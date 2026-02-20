@@ -81,7 +81,11 @@ _write_wav("sfx_button_click", fade(sine(600, 0.03, 0.3), 0.005, 0.02))
 nl = fade(sine(300, 0.15, 0.4)) + silence(0.05) + fade(sine(300, 0.15, 0.4)) + silence(0.05) + fade(sine(250, 0.2, 0.3), 0.01, 0.1)
 _write_wav("sfx_no_lives", nl)
 
-# 10. Background music - simple ambient loop (30 seconds)
+# 10. Level fail - dramatic descending tones
+lf = fade(sine(500, 0.12, 0.5)) + fade(sine(420, 0.12, 0.4)) + fade(sine(340, 0.15, 0.4)) + fade(sine(260, 0.3, 0.35), 0.01, 0.15)
+_write_wav("sfx_level_fail", lf)
+
+# 11. Background music - simple ambient loop (30 seconds)
 print("  Generating music_theme (30s ambient loop)...")
 music = []
 dur = 30.0

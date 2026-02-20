@@ -3,6 +3,8 @@ package com.djtaylor.wordjourney.ui.levelselect
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.djtaylor.wordjourney.audio.SfxSound
+import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -31,7 +33,8 @@ data class LevelSelectUiState(
 class LevelSelectViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val playerRepository: PlayerRepository,
-    private val lifeRegenUseCase: LifeRegenUseCase
+    private val lifeRegenUseCase: LifeRegenUseCase,
+    private val audioManager: WordJourneysAudioManager
 ) : ViewModel() {
 
     private val difficultyKey: String = checkNotNull(savedStateHandle["difficulty"])
@@ -139,6 +142,10 @@ class LevelSelectViewModel @Inject constructor(
 
     fun resetLifeAnimation() {
         _uiState.update { it.copy(lifeDeducted = false) }
+    }
+
+    fun playButtonClick() {
+        audioManager.playSfx(SfxSound.BUTTON_CLICK)
     }
 
     private fun PlayerProgress.levelFor(d: Difficulty) = when (d) {

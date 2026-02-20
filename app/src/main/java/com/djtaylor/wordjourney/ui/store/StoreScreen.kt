@@ -85,15 +85,17 @@ fun StoreScreen(
         }
     ) { padding ->
         if (uiState.isPurchasing) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Primary)
             }
         } else {
-            when (selectedTab) {
-                0 -> ItemsTab(uiState, viewModel)
-                1 -> LivesTab(uiState, viewModel)
-                2 -> CoinsTab(uiState, viewModel)
-                3 -> DiamondsTab(uiState, viewModel)
+            Box(Modifier.fillMaxSize().padding(padding)) {
+                when (selectedTab) {
+                    0 -> ItemsTab(uiState, viewModel)
+                    1 -> LivesTab(uiState, viewModel)
+                    2 -> CoinsTab(uiState, viewModel)
+                    3 -> DiamondsTab(uiState, viewModel)
+                }
             }
         }
     }

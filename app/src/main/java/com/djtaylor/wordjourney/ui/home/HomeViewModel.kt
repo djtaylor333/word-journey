@@ -2,6 +2,8 @@ package com.djtaylor.wordjourney.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.djtaylor.wordjourney.audio.SfxSound
+import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -22,7 +24,8 @@ data class HomeUiState(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
-    private val lifeRegenUseCase: LifeRegenUseCase
+    private val lifeRegenUseCase: LifeRegenUseCase,
+    private val audioManager: WordJourneysAudioManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -81,5 +84,9 @@ class HomeViewModel @Inject constructor(
             Difficulty.REGULAR -> progress.regularLevel
             Difficulty.HARD    -> progress.hardLevel
         }
+    }
+
+    fun playButtonClick() {
+        audioManager.playSfx(SfxSound.BUTTON_CLICK)
     }
 }

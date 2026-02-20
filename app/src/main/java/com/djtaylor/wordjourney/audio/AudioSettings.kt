@@ -17,5 +17,6 @@ enum class SfxSound(val resName: String) {
     LIFE_LOST("sfx_life_lost"),
     LIFE_GAINED("sfx_life_gained"),
     BUTTON_CLICK("sfx_button_click"),
-    NO_LIVES("sfx_no_lives")
+    NO_LIVES("sfx_no_lives"),
+    LEVEL_FAIL("sfx_level_fail")
 }

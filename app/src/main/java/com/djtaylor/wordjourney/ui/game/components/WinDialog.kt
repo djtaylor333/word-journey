@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
@@ -16,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.djtaylor.wordjourney.ui.theme.*
+import kotlinx.coroutines.delay
 
 @Composable
 fun WinDialog(
@@ -26,7 +28,7 @@ fun WinDialog(
     onNextLevel: () -> Unit,
     onMainMenu: () -> Unit
 ) {
-    // Confetti bounce animation per letter tile
+    // Trophy bounce animation
     val infiniteTransition = rememberInfiniteTransition(label = "winBounce")
     val bounce by infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = -16f,
@@ -36,6 +38,47 @@ fun WinDialog(
         ),
         label = "bounce"
     )
+
+    // Animated coin counter
+    var displayedCoins by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(coinsEarned) {
+        if (coinsEarned <= 0) { displayedCoins = 0; return@LaunchedEffect }
+        val steps = 20
+        val stepDelay = 600L / steps
+        for (i in 1..steps) {
+            displayedCoins = (coinsEarned * i) / steps
+            delay(stepDelay)
+        }
+        displayedCoins = coinsEarned
+    }
+
+    // Coin pop scale animation
+    val coinScale = remember { Animatable(0.5f) }
+    LaunchedEffect(Unit) {
+        delay(200) // slight delay before coins appear
+        coinScale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            )
+        )
+    }
+
+    // Bonus life pop
+    val lifeScale = remember { Animatable(0f) }
+    LaunchedEffect(bonusLifeEarned) {
+        if (bonusLifeEarned) {
+            delay(700) // appear after coin animation starts
+            lifeScale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            )
+        }
+    }
 
     Dialog(onDismissRequest = { /* must press button */ }) {
         Surface(
@@ -96,31 +139,35 @@ fun WinDialog(
                     }
                 }
 
-                // Coins earned
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = CoinGold.copy(alpha = 0.15f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Coins earned — animated pop + counter
+                if (coinsEarned > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = CoinGold.copy(alpha = 0.15f),
+                        modifier = Modifier.scale(coinScale.value)
                     ) {
-                        Text("⬡", color = CoinGold, fontSize = 20.sp)
-                        Text(
-                            "+$coinsEarned coins",
-                            color = CoinGold,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("⬡", color = CoinGold, fontSize = 24.sp)
+                            Text(
+                                "+$displayedCoins coins",
+                                color = CoinGold,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            )
+                        }
                     }
                 }
 
-                // Bonus life notification
+                // Bonus life notification — animated pop
                 if (bonusLifeEarned) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = HeartRed.copy(alpha = 0.15f)
+                        color = HeartRed.copy(alpha = 0.15f),
+                        modifier = Modifier.scale(lifeScale.value)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

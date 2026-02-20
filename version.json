@@ -1,9 +1,9 @@
 {
-  "versionName": "1.1.0",
-  "versionCode": 2,
+  "versionName": "1.2.0",
+  "versionCode": 3,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-02-21",
-  "releaseNotes": "v1.1.0 — Level select grid, definition item, hearts redesign, dark/light mode, about modal, sounds, larger UI"
+  "buildDate": "2026-02-22",
+  "releaseNotes": "v1.2.0 — Sound effects on menus/levels, failure sound with continue options, win coin pop animation, Store layout fix, SoundPool reliability"
 }

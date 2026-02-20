@@ -23,7 +23,7 @@ data class SettingsUiState(
     val darkMode: Boolean = true,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "1.1.0"
+    val appVersion: String = "1.2.0"
 )
 
 @HiltViewModel

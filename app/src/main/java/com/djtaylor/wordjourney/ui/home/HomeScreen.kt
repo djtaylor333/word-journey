@@ -79,7 +79,7 @@ fun HomeScreen(
                 }
                 Row {
                     IconButton(
-                        onClick = onNavigateToStore,
+                        onClick = { viewModel.playButtonClick(); onNavigateToStore() },
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
@@ -90,7 +90,7 @@ fun HomeScreen(
                         )
                     }
                     IconButton(
-                        onClick = onNavigateToSettings,
+                        onClick = { viewModel.playButtonClick(); onNavigateToSettings() },
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
@@ -170,7 +170,10 @@ fun HomeScreen(
                 DifficultyCard(
                     difficulty = difficulty,
                     currentLevel = viewModel.levelForDifficulty(difficulty),
-                    onClick = { onNavigateToLevelSelect(difficulty.saveKey) }
+                    onClick = {
+                        viewModel.playButtonClick()
+                        onNavigateToLevelSelect(difficulty.saveKey)
+                    }
                 )
                 Spacer(Modifier.height(14.dp))
             }

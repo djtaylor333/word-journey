@@ -32,6 +32,7 @@ class WordJourneysAudioManager @Inject constructor(
     // ── Sound effects ─────────────────────────────────────────────────────────
     private var soundPool: SoundPool? = null
     private val soundIds = mutableMapOf<SfxSound, Int>()
+    private val loadedIds = mutableSetOf<Int>()
 
     // ── Settings state ────────────────────────────────────────────────────────
     var settings: AudioSettings = AudioSettings()
@@ -87,7 +88,7 @@ class WordJourneysAudioManager @Inject constructor(
     fun playSfx(sound: SfxSound) {
         if (!settings.sfxEnabled) return
         val id = soundIds[sound] ?: return
-        if (id == 0) return
+        if (id == 0 || id !in loadedIds) return
         soundPool?.play(id, settings.sfxVolume, settings.sfxVolume, 1, 0, 1f)
     }
 
@@ -136,7 +137,11 @@ class WordJourneysAudioManager @Inject constructor(
         soundPool = SoundPool.Builder()
             .setMaxStreams(6)
             .setAudioAttributes(attrs)
-            .build()
+            .build().also { pool ->
+                pool.setOnLoadCompleteListener { _, sampleId, status ->
+                    if (status == 0) loadedIds.add(sampleId)
+                }
+            }
 
         for (sound in SfxSound.entries) {
             val resId = context.resources.getIdentifier(sound.resName, "raw", context.packageName)

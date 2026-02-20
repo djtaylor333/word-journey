@@ -260,6 +260,7 @@ class GameViewModel @Inject constructor(
     }
 
     private fun handleOutOfGuesses() {
+        audioManager.playSfx(SfxSound.LEVEL_FAIL)
         val progress = playerProgress
         if (progress.lives > 0) {
             _uiState.update { it.copy(
@@ -267,6 +268,7 @@ class GameViewModel @Inject constructor(
                 showNeedMoreGuessesDialog = true
             )}
         } else {
+            audioManager.playSfx(SfxSound.NO_LIVES)
             _uiState.update { it.copy(
                 status = GameStatus.WAITING_FOR_LIFE,
                 showNoLivesDialog = true

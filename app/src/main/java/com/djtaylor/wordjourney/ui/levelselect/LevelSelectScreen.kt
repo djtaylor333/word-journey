@@ -170,6 +170,7 @@ fun LevelSelectScreen(
                     }
                     Button(
                         onClick = {
+                            viewModel.playButtonClick()
                             val level = state.currentLevel
                             if (viewModel.canStartLevel(level)) {
                                 if (viewModel.deductLifeForLevel(level)) {
@@ -230,6 +231,7 @@ fun LevelSelectScreen(
                         accent = accent,
                         onClick = {
                             if (!isPlayable) return@LevelCell
+                            viewModel.playButtonClick()
                             if (isCompleted) {
                                 // Replay — no life cost, go directly
                                 onNavigateToGame(difficultyKey, level)
