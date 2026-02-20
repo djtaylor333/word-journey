@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun GameScreen(
     difficultyKey: String,
+    levelArg: Int,
     onNavigateHome: () -> Unit,
     onNavigateToStore: () -> Unit,
     viewModel: GameViewModel = hiltViewModel()
@@ -62,6 +64,7 @@ fun GameScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .statusBarsPadding()
                 .padding(horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -79,6 +82,22 @@ fun GameScreen(
                     CircularProgressIndicator(color = Primary)
                 }
             } else {
+                // Replay badge
+                if (uiState.isReplay) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = AccentEasy.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            "🔄 Replay — No rewards or life cost",
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            fontSize = 13.sp,
+                            color = AccentEasy
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+
                 // ── GAME GRID ─────────────────────────────────────────────────
                 Box(
                     modifier = Modifier.weight(1f),
@@ -86,7 +105,7 @@ fun GameScreen(
                 ) {
                     GameGrid(
                         uiState = uiState,
-                        highContrast = false   // TODO: read from settings
+                        highContrast = false
                     )
                 }
 
@@ -95,8 +114,10 @@ fun GameScreen(
                 // ── ITEMS BAR ─────────────────────────────────────────────────
                 ItemsBar(
                     coins = uiState.coins,
+                    definitionUsed = uiState.definitionUsedThisLevel,
                     onAddGuess = { viewModel.useAddGuessItem() },
-                    onRemoveLetter = { viewModel.useRemoveLetterItem() }
+                    onRemoveLetter = { viewModel.useRemoveLetterItem() },
+                    onDefinition = { viewModel.useDefinitionItem() }
                 )
 
                 Spacer(Modifier.height(8.dp))
@@ -122,7 +143,10 @@ fun GameScreen(
             definition = uiState.winDefinition,
             coinsEarned = uiState.winCoinEarned,
             bonusLifeEarned = uiState.bonusLifeEarned,
-            onNextLevel = { viewModel.nextLevel() },
+            onNextLevel = {
+                viewModel.nextLevel()
+                onNavigateHome()
+            },
             onMainMenu = onNavigateHome
         )
     }
@@ -150,6 +174,24 @@ fun GameScreen(
             onWait = { /* close dialog but stay on screen */ }
         )
     }
+
+    if (uiState.showDefinitionDialog && uiState.definitionHint != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDefinitionDialog() },
+            title = { Text("📖 Word Definition") },
+            text = {
+                Text(
+                    uiState.definitionHint!!,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissDefinitionDialog() }) {
+                    Text("Got it")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -169,11 +211,15 @@ private fun GameTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onBack) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(48.dp)
+        ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onBackground
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(28.dp)
             )
         }
 
@@ -182,7 +228,7 @@ private fun GameTopBar(
             Text(
                 "Level ${uiState.level}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
+                fontSize = 20.sp,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Surface(
@@ -191,45 +237,61 @@ private fun GameTopBar(
             ) {
                 Text(
                     uiState.difficulty.displayName,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                     color = difficultyColor,
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
         }
 
-        // Lives + currencies
+        // Lives + currencies — larger
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Lives
+            // Hearts: red with count + blue bonus
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("❤️", fontSize = 16.sp)
-                Text(
-                    "${uiState.lives}",
-                    fontWeight = FontWeight.Bold,
-                    color = HeartRed,
-                    fontSize = 14.sp
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Text("❤️", fontSize = 26.sp)
+                    Text(
+                        "${uiState.regularLives}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        modifier = Modifier.offset(y = 1.dp)
+                    )
+                }
+                if (uiState.bonusLives > 0) {
+                    Text("+", fontSize = 12.sp, color = BonusHeartBlue, fontWeight = FontWeight.Bold)
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("💙", fontSize = 22.sp)
+                        Text(
+                            "${uiState.bonusLives}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            modifier = Modifier.offset(y = 1.dp)
+                        )
+                    }
+                }
             }
             // Coins
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("⬡", fontSize = 14.sp, color = CoinGold)
+                Text("⬡", fontSize = 16.sp, color = CoinGold)
                 Text(
                     "${uiState.coins}",
                     fontWeight = FontWeight.Bold,
                     color = CoinGold,
-                    fontSize = 12.sp
+                    fontSize = 15.sp
                 )
             }
-            IconButton(onClick = onStore, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onStore, modifier = Modifier.size(40.dp)) {
                 Icon(
                     Icons.Default.ShoppingCart,
                     contentDescription = "Store",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -239,12 +301,14 @@ private fun GameTopBar(
 @Composable
 private fun ItemsBar(
     coins: Long,
+    definitionUsed: Boolean,
     onAddGuess: () -> Unit,
-    onRemoveLetter: () -> Unit
+    onRemoveLetter: () -> Unit,
+    onDefinition: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
     ) {
         ItemButton(
             label = "➕ +1 Guess",
@@ -257,6 +321,12 @@ private fun ItemsBar(
             cost = "150 ⬡",
             enabled = coins >= 150,
             onClick = onRemoveLetter
+        )
+        ItemButton(
+            label = "📖 Definition",
+            cost = if (definitionUsed) "Used" else "300 ⬡",
+            enabled = !definitionUsed && coins >= 300,
+            onClick = onDefinition
         )
     }
 }
@@ -279,7 +349,7 @@ private fun ItemButton(
         modifier = Modifier.padding(2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,

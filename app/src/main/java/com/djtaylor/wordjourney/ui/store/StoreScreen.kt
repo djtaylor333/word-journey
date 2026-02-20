@@ -41,6 +41,7 @@ fun StoreScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Column {
+                Spacer(Modifier.statusBarsPadding())
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -124,6 +125,15 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             costLabel = "150 coins",
             costColor = CoinGold,
             enabled = uiState.progress.coins >= 150,
+            onBuy = { /* items are bought in-game from the game screen */ }
+        )
+        StoreCard(
+            emoji = "📖",
+            title = "Definition",
+            description = "Reveal the definition of the target word as a hint (once per level)",
+            costLabel = "300 coins",
+            costColor = CoinGold,
+            enabled = uiState.progress.coins >= 300,
             onBuy = { /* items are bought in-game from the game screen */ }
         )
 

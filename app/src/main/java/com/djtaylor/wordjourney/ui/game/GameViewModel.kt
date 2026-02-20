@@ -32,10 +32,12 @@ class GameViewModel @Inject constructor(
 
     private val difficultyKey: String = checkNotNull(savedStateHandle["difficulty"])
     private val difficulty: Difficulty = Difficulty.entries.first { it.saveKey == difficultyKey }
+    private val levelArg: Int = savedStateHandle["level"] ?: 1
 
     // The secret target word — NEVER included in GameUiState until WON
     private var targetWord: String = ""
     private var playerProgress: PlayerProgress = PlayerProgress()
+    private var isReplay: Boolean = false
 
     private val _uiState = MutableStateFlow(
         GameUiState(difficulty = difficulty, isLoading = true)
@@ -45,6 +47,21 @@ class GameViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             initGame()
+        }
+        // Observe player progress reactively so heart/coin counts stay fresh
+        viewModelScope.launch {
+            playerRepository.playerProgressFlow.collectLatest { progress ->
+                playerProgress = progress
+                _uiState.update { s ->
+                    s.copy(
+                        lives = progress.lives,
+                        coins = progress.coins,
+                        diamonds = progress.diamonds,
+                        addGuessItems = progress.addGuessItems,
+                        removeLetterItems = progress.removeLetterItems
+                    )
+                }
+            }
         }
     }
 
@@ -63,12 +80,16 @@ class GameViewModel @Inject constructor(
             } else progress
         }
 
-        // Try to restore in-progress game
-        val saved = playerRepository.loadInProgressGame(difficulty)
-        if (saved != null) {
+        // Determine if this is a replay of a completed level
+        val currentLevel = playerProgress.levelFor(difficulty)
+        isReplay = levelArg < currentLevel
+
+        // Try to restore in-progress game (only for current level, not replays)
+        val saved = if (!isReplay) playerRepository.loadInProgressGame(difficulty) else null
+        if (saved != null && saved.level == levelArg) {
             restoreFromSave(saved)
         } else {
-            startFreshLevel(playerProgress.levelFor(difficulty))
+            startFreshLevel(levelArg)
         }
     }
 
@@ -92,10 +113,14 @@ class GameViewModel @Inject constructor(
                 diamonds = playerProgress.diamonds,
                 addGuessItems = playerProgress.addGuessItems,
                 removeLetterItems = playerProgress.removeLetterItems,
-                isLoading = false
+                isLoading = false,
+                isReplay = isReplay,
+                definitionHint = null,
+                showDefinitionDialog = false,
+                definitionUsedThisLevel = false
             )
         }
-        persistCurrentState()
+        if (!isReplay) persistCurrentState()
     }
 
     private fun restoreFromSave(saved: SavedGameState) {
@@ -169,34 +194,52 @@ class GameViewModel @Inject constructor(
 
             val won = evaluated.all { it.second == TileState.CORRECT }
             if (won) {
-                // Coin reward: 100 base + 10 per remaining guess
-                val remaining = state.maxGuesses - newGuesses.size
-                val coinsEarned = 100L + (remaining * 10L)
                 val definition = wordRepository.getDefinition(difficulty, state.level)
 
-                // Update level counter & check bonus life
-                val (updatedProgress, bonusLife) = applyLevelCompletion(coinsEarned)
+                if (isReplay) {
+                    // Replay — reveal word but no rewards
+                    audioManager.playSfx(SfxSound.WIN)
+                    _uiState.update { s ->
+                        s.copy(
+                            guesses = newGuesses,
+                            currentInput = emptyList(),
+                            letterStates = newLetterStates,
+                            status = GameStatus.WON,
+                            showWinDialog = true,
+                            winCoinEarned = 0L,
+                            winDefinition = definition,
+                            winWord = targetWord,
+                            bonusLifeEarned = false,
+                            isReplay = true
+                        )
+                    }
+                } else {
+                    // Normal — coin reward: 100 base + 10 per remaining guess
+                    val remaining = state.maxGuesses - newGuesses.size
+                    val coinsEarned = 100L + (remaining * 10L)
+                    val (updatedProgress, bonusLife) = applyLevelCompletion(coinsEarned)
 
-                audioManager.playSfx(SfxSound.WIN)
-                audioManager.playSfx(SfxSound.COIN_EARN)
+                    audioManager.playSfx(SfxSound.WIN)
+                    audioManager.playSfx(SfxSound.COIN_EARN)
 
-                _uiState.update { s ->
-                    s.copy(
-                        guesses = newGuesses,
-                        currentInput = emptyList(),
-                        letterStates = newLetterStates,
-                        status = GameStatus.WON,
-                        showWinDialog = true,
-                        winCoinEarned = coinsEarned,
-                        winDefinition = definition,
-                        winWord = targetWord,
-                        bonusLifeEarned = bonusLife,
-                        lives = updatedProgress.lives,
-                        coins = updatedProgress.coins,
-                        diamonds = updatedProgress.diamonds
-                    )
+                    _uiState.update { s ->
+                        s.copy(
+                            guesses = newGuesses,
+                            currentInput = emptyList(),
+                            letterStates = newLetterStates,
+                            status = GameStatus.WON,
+                            showWinDialog = true,
+                            winCoinEarned = coinsEarned,
+                            winDefinition = definition,
+                            winWord = targetWord,
+                            bonusLifeEarned = bonusLife,
+                            lives = updatedProgress.lives,
+                            coins = updatedProgress.coins,
+                            diamonds = updatedProgress.diamonds
+                        )
+                    }
+                    playerRepository.clearInProgressGame(difficulty)
                 }
-                playerRepository.clearInProgressGame(difficulty)
             } else {
                 _uiState.update { s ->
                     s.copy(
@@ -350,21 +393,43 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    // ── Win → Next Level ──────────────────────────────────────────────────────
+    // ── Win → Next Level — dismiss dialog; the LevelSelect screen handles navigation
     fun nextLevel() {
-        val nextLevel = _uiState.value.level + 1
-        _uiState.update { it.copy(showWinDialog = false, isLoading = true) }
+        _uiState.update { it.copy(showWinDialog = false) }
+        // The calling screen should pop back to level-select or home
+    }
+
+    // ── Definition item ───────────────────────────────────────────────────────
+    fun useDefinitionItem() {
+        if (_uiState.value.definitionUsedThisLevel) {
+            _uiState.update { it.copy(snackbarMessage = "Definition already used this level") }
+            return
+        }
+        val progress = playerProgress
+        val coinCost = 300L
+        if (progress.coins < coinCost) {
+            _uiState.update { it.copy(snackbarMessage = "Need 300 coins for Definition") }
+            return
+        }
         viewModelScope.launch {
-            // Deduct 1 life for entering the next level
-            if (playerProgress.lives <= 0) {
-                _uiState.update { it.copy(showNoLivesDialog = true, isLoading = false) }
-                return@launch
-            }
-            val updated = playerProgress.copy(lives = playerProgress.lives - 1)
+            val definition = wordRepository.getDefinition(difficulty, _uiState.value.level)
+            val hint = definition.ifBlank { "No definition available" }
+            val updated = progress.copy(coins = progress.coins - coinCost)
             playerProgress = updated
             playerRepository.saveProgress(updated)
-            startFreshLevel(nextLevel)
+            _uiState.update { s ->
+                s.copy(
+                    coins = updated.coins,
+                    definitionHint = hint,
+                    showDefinitionDialog = true,
+                    definitionUsedThisLevel = true
+                )
+            }
         }
+    }
+
+    fun dismissDefinitionDialog() {
+        _uiState.update { it.copy(showDefinitionDialog = false) }
     }
 
     fun dismissSnackbar() {

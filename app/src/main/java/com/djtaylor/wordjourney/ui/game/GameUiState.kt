@@ -46,10 +46,20 @@ data class GameUiState(
     val snackbarMessage: String? = null,
 
     // Loading
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+
+    // Replay mode — replaying a completed level (no life cost, no rewards)
+    val isReplay: Boolean = false,
+
+    // Definition item
+    val definitionHint: String? = null,
+    val showDefinitionDialog: Boolean = false,
+    val definitionUsedThisLevel: Boolean = false
 ) {
     val currentRow: Int get() = guesses.size
     val remainingGuesses: Int get() = maxGuesses - guesses.size
     val isInputFull: Boolean get() = currentInput.size == difficulty.wordLength
     val canSubmit: Boolean get() = isInputFull && status == GameStatus.IN_PROGRESS
+    val regularLives: Int get() = minOf(lives, 10)
+    val bonusLives: Int get() = maxOf(lives - 10, 0)
 }

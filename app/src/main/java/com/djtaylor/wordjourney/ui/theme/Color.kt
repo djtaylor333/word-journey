@@ -26,6 +26,7 @@ val AccentHard    = Color(0xFFEF4444)   // crimson
 val CoinGold      = Color(0xFFF59E0B)
 val DiamondCyan   = Color(0xFF67E8F9)
 val HeartRed      = Color(0xFFEF4444)
+val BonusHeartBlue = Color(0xFF3B82F6)
 
 // ── Dark adventure-map theme ──────────────────────────────────────────────────
 val BackgroundDark        = Color(0xFF1C1610)

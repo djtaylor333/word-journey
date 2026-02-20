@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,14 +27,12 @@ import java.util.concurrent.TimeUnit
 
 @Composable
 fun HomeScreen(
-    onNavigateToGame: (String) -> Unit,
+    onNavigateToLevelSelect: (String) -> Unit,
     onNavigateToStore: () -> Unit,
     onNavigateToSettings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var showNoLivesDialog by remember { mutableStateOf(false) }
-    var pendingDifficulty by remember { mutableStateOf<Difficulty?>(null) }
 
     // Rotating compass animation
     val infiniteTransition = rememberInfiniteTransition(label = "compass")
@@ -56,8 +53,9 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ── Top bar ──────────────────────────────────────────────────────
@@ -66,7 +64,7 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Currency display
+                // Currency display — larger
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CurrencyChip(
                         value = uiState.progress.coins.toString(),
@@ -80,18 +78,26 @@ fun HomeScreen(
                     )
                 }
                 Row {
-                    IconButton(onClick = onNavigateToStore) {
+                    IconButton(
+                        onClick = onNavigateToStore,
+                        modifier = Modifier.size(48.dp)
+                    ) {
                         Icon(
                             Icons.Default.ShoppingCart,
                             contentDescription = "Store",
-                            tint = MaterialTheme.colorScheme.onBackground
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
-                    IconButton(onClick = onNavigateToSettings) {
+                    IconButton(
+                        onClick = onNavigateToSettings,
+                        modifier = Modifier.size(48.dp)
+                    ) {
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onBackground
+                            tint = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
@@ -102,35 +108,32 @@ fun HomeScreen(
             // ── Animated logo ─────────────────────────────────────────────────
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(120.dp)
+                modifier = Modifier.size(130.dp)
             ) {
-                // Outer rotating ring
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(130.dp)
                         .rotate(compassRotation)
                         .clip(CircleShape)
                         .border(3.dp, Primary, CircleShape)
                 )
-                // Inner grid of 4 coloured tiles
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        LogoTile(TileCorrect,  "W")
-                        LogoTile(TilePresent,  "J")
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        LogoTile(TileCorrect, "W")
+                        LogoTile(TilePresent, "J")
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        LogoTile(TileAbsent,   "?")
-                        LogoTile(TilePresent,  "!")
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        LogoTile(TileAbsent, "?")
+                        LogoTile(TilePresent, "!")
                     }
                 }
             }
 
             Spacer(Modifier.height(8.dp))
 
-            // Title
             Text(
                 text = "Word Journeys",
                 style = MaterialTheme.typography.headlineLarge,
@@ -146,8 +149,8 @@ fun HomeScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // ── Lives bar ─────────────────────────────────────────────────────
-            LivesBar(
+            // ── Hearts display — redesigned ───────────────────────────────────
+            HeartsBar(
                 lives = uiState.progress.lives,
                 timerMs = uiState.timerDisplayMs
             )
@@ -158,7 +161,8 @@ fun HomeScreen(
             Text(
                 "Choose Your Journey",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                fontSize = 18.sp
             )
             Spacer(Modifier.height(12.dp))
 
@@ -166,49 +170,13 @@ fun HomeScreen(
                 DifficultyCard(
                     difficulty = difficulty,
                     currentLevel = viewModel.levelForDifficulty(difficulty),
-                    onClick = {
-                        val result = viewModel.enterLevel(difficulty)
-                        if (result == EnterLevelResult.NoLives) {
-                            pendingDifficulty = difficulty
-                            showNoLivesDialog = true
-                        } else {
-                            onNavigateToGame(difficulty.saveKey)
-                        }
-                    }
+                    onClick = { onNavigateToLevelSelect(difficulty.saveKey) }
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(14.dp))
             }
 
             Spacer(Modifier.height(16.dp))
         }
-    }
-
-    // No-lives dialog is inline – implemented in game screen but triggered here too
-    if (showNoLivesDialog) {
-        AlertDialog(
-            onDismissRequest = { showNoLivesDialog = false },
-            title = { Text("Out of Lives!") },
-            text  = {
-                Column {
-                    Text("You need at least 1 life to start a level.")
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "⏱ Next life in: ${formatTimerMs(uiState.timerDisplayMs)}",
-                        color = AccentRegular,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    showNoLivesDialog = false
-                    onNavigateToStore()
-                }) { Text("Go to Store") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showNoLivesDialog = false }) { Text("Wait") }
-            }
-        )
     }
 }
 
@@ -217,11 +185,11 @@ private fun LogoTile(color: Color, letter: String) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(32.dp)
-            .clip(RoundedCornerShape(4.dp))
+            .size(36.dp)
+            .clip(RoundedCornerShape(6.dp))
             .background(color)
     ) {
-        Text(letter, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text(letter, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
     }
 }
 
@@ -233,44 +201,78 @@ private fun CurrencyChip(value: String, color: Color, symbol: String) {
         border = BorderStroke(1.dp, color.copy(alpha = 0.4f))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(symbol, color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Text(value, color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(symbol, color = color, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = color, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-private fun LivesBar(lives: Int, timerMs: Long) {
+private fun HeartsBar(lives: Int, timerMs: Long) {
+    val regularLives = minOf(lives, 10)
+    val bonusLives = maxOf(lives - 10, 0)
+
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                repeat(minOf(lives, 10)) {
-                    Text("❤️", fontSize = 20.sp)
+                // Red heart with count inside
+                Box(contentAlignment = Alignment.Center) {
+                    Text("❤️", fontSize = 40.sp)
+                    Text(
+                        "$regularLives",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        modifier = Modifier.offset(y = 1.dp)
+                    )
                 }
-                if (lives > 10) {
-                    Text("+${lives - 10}", color = HeartRed, fontWeight = FontWeight.Bold)
+
+                Spacer(Modifier.width(8.dp))
+
+                // Plus sign
+                Text(
+                    "+",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = BonusHeartBlue,
+                )
+
+                Spacer(Modifier.width(8.dp))
+
+                // Blue heart with bonus count inside
+                Box(contentAlignment = Alignment.Center) {
+                    Text("💙", fontSize = 40.sp)
+                    Text(
+                        "$bonusLives",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        modifier = Modifier.offset(y = 1.dp)
+                    )
                 }
             }
+
             if (timerMs > 0L) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(
                     "Next life in ${formatTimerMs(timerMs)}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    fontSize = 14.sp
                 )
             }
         }
@@ -307,39 +309,41 @@ private fun DifficultyCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(emoji, fontSize = 32.sp)
+                Text(emoji, fontSize = 38.sp)
                 Column {
                     Text(
                         difficulty.displayName,
                         style = MaterialTheme.typography.titleLarge,
-                        color = accent
+                        color = accent,
+                        fontSize = 22.sp
                     )
                     Text(
                         description,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        fontSize = 14.sp
                     )
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = accent.copy(alpha = 0.2f)
                 ) {
                     Text(
                         "Level $currentLevel",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                         color = accent,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 16.sp
                     )
                 }
             }

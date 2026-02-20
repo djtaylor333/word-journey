@@ -74,28 +74,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Called when the player taps a difficulty card to start a level. */
-    fun enterLevel(difficulty: Difficulty): EnterLevelResult {
-        val progress = _uiState.value.progress
-        return if (progress.lives <= 0) {
-            EnterLevelResult.NoLives
-        } else {
-            viewModelScope.launch {
-                val updated = progress.copy(lives = progress.lives - 1)
-                // Restart regen timer if lives just dropped below cap
-                val regenTs = if (updated.lives < LifeRegenUseCase.TIME_REGEN_CAP &&
-                    updated.lastLifeRegenTimestamp == 0L) {
-                    System.currentTimeMillis()
-                } else {
-                    updated.lastLifeRegenTimestamp
-                }
-                val final = updated.copy(lastLifeRegenTimestamp = regenTs)
-                playerRepository.saveProgress(final)
-            }
-            EnterLevelResult.Ok
-        }
-    }
-
     fun levelForDifficulty(difficulty: Difficulty): Int {
         val progress = _uiState.value.progress
         return when (difficulty) {
@@ -105,5 +83,3 @@ class HomeViewModel @Inject constructor(
         }
     }
 }
-
-enum class EnterLevelResult { Ok, NoLives }

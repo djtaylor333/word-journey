@@ -9,8 +9,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.datastore.PlayerDataStore
 import com.djtaylor.wordjourney.ui.navigation.AppNavigation
 import com.djtaylor.wordjourney.ui.theme.WordJourneysTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -20,6 +22,7 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var audioManager: WordJourneysAudioManager
+    @Inject lateinit var playerDataStore: PlayerDataStore
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -39,12 +42,16 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            // Read dark mode preference — defaulting to true here; SettingsViewModel
-            // will override once DataStore loads
-            var darkMode by remember { mutableStateOf(true) }
-            var highContrast by remember { mutableStateOf(false) }
+            // Read dark mode and high contrast from persisted settings
+            val progress by playerDataStore.playerProgressFlow
+                .collectAsStateWithLifecycle(
+                    initialValue = com.djtaylor.wordjourney.domain.model.PlayerProgress()
+                )
 
-            WordJourneysTheme(darkTheme = darkMode, highContrast = highContrast) {
+            WordJourneysTheme(
+                darkTheme = progress.darkMode,
+                highContrast = progress.highContrast
+            ) {
                 val navController = rememberNavController()
                 AppNavigation(navController = navController)
             }
