@@ -1,0 +1,70 @@
+<resources>
+    <string name="app_name">Word Journeys</string>
+    <!-- Game App ID for Play Games - replace with real ID -->
+    <string name="app_id">000000000000</string>
+
+    <!-- Difficulties -->
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_regular">Regular</string>
+    <string name="difficulty_hard">Hard</string>
+
+    <!-- Game -->
+    <string name="level">Level %d</string>
+    <string name="lives">Lives</string>
+    <string name="coins">Coins</string>
+    <string name="diamonds">Diamonds</string>
+    <string name="guess_the_word">Guess the %d-letter word</string>
+    <string name="attempts_remaining">%d attempts remaining</string>
+
+    <!-- Dialogs -->
+    <string name="congratulations">Congratulations!</string>
+    <string name="you_solved_it">You solved it!</string>
+    <string name="next_level">Next Level</string>
+    <string name="main_menu">Main Menu</string>
+    <string name="need_more_guesses">Need More Guesses?</string>
+    <string name="use_a_life">Use a Life</string>
+    <string name="no_lives_title">Out of Lives!</string>
+    <string name="no_lives_body">You need lives to continue. Wait for regeneration or use coins/diamonds.</string>
+    <string name="wait">Wait for Life</string>
+    <string name="trade_coins">Trade 1000 Coins</string>
+    <string name="buy_with_diamonds">Buy with Diamonds</string>
+    <string name="invalid_word">Not a valid word</string>
+    <string name="not_enough_letters">Not enough letters</string>
+    <string name="not_enough_coins">Not enough coins</string>
+    <string name="not_enough_diamonds">Not enough diamonds</string>
+
+    <!-- Store -->
+    <string name="store">Store</string>
+    <string name="items">Items</string>
+    <string name="add_a_guess">Add a Guess</string>
+    <string name="add_a_guess_desc">Get one extra guess for this word</string>
+    <string name="remove_a_letter">Remove a Letter</string>
+    <string name="remove_a_letter_desc">Eliminate a letter guaranteed not in the word</string>
+
+    <!-- Settings -->
+    <string name="settings">Settings</string>
+    <string name="music">Background Music</string>
+    <string name="music_volume">Music Volume</string>
+    <string name="sound_effects">Sound Effects</string>
+    <string name="sfx_volume">SFX Volume</string>
+    <string name="notifications">Notifications</string>
+    <string name="notify_lives_full">Notify when lives are full</string>
+    <string name="appearance">Appearance</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="high_contrast">High Contrast Tiles</string>
+    <string name="account">Account</string>
+    <string name="sign_in_google_play">Sign in with Google Play</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="about">About</string>
+    <string name="version">Version %s</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_lives">Lives Ready</string>
+    <string name="notification_lives_full_title">❤️ Your lives are full!</string>
+    <string name="notification_lives_full_body">Come back and continue your Word Journeys adventure!</string>
+
+    <!-- Coins earned -->
+    <string name="coins_earned">+%d coins</string>
+    <string name="bonus_life_earned">🎉 Bonus life earned!</string>
+    <string name="definition_label">Definition</string>
+</resources>

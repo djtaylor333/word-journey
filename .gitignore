@@ -1,0 +1,39 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+keystore.properties
+*.jks
+*.keystore
+
+# Android
+app/release/
+app/debug/
+**/build/
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Kotlin
+*.kotlin_module
+
+# IDE
+.idea/
+*.ipr
+*.iws
+out/
+
+# Log Files
+*.log
+
+# Generated assets
+app/src/main/assets/generated/

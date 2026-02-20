@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Word Journeys launcher icon foreground — compass with letter grid -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer compass ring -->
+    <path
+        android:pathData="M54,10 A44,44 0 1,1 53.99,10 Z"
+        android:strokeWidth="3"
+        android:strokeColor="#C9A84C"
+        android:fillColor="#00000000" />
+
+    <!-- Compass cardinal points (N/S/E/W) diamond shapes -->
+    <path
+        android:pathData="M54,12 L58,26 L54,30 L50,26 Z"
+        android:fillColor="#EF4444" />
+    <path
+        android:pathData="M54,78 L58,82 L54,96 L50,82 Z"
+        android:fillColor="#C9A84C" />
+    <path
+        android:pathData="M12,54 L26,50 L30,54 L26,58 Z"
+        android:fillColor="#C9A84C" />
+    <path
+        android:pathData="M78,54 L82,50 L96,54 L82,58 Z"
+        android:fillColor="#C9A84C" />
+
+    <!-- Centre letter grid (2x2 tiles as rounded rect paths) -->
+    <!-- Tile 1 (green - correct) -->
+    <path
+        android:pathData="M40,38 L50,38 Q52,38 52,40 L52,50 Q52,52 50,52 L40,52 Q38,52 38,50 L38,40 Q38,38 40,38 Z"
+        android:fillColor="#538D4E" />
+    <!-- Tile 2 (yellow - present) -->
+    <path
+        android:pathData="M58,38 L68,38 Q70,38 70,40 L70,50 Q70,52 68,52 L58,52 Q56,52 56,50 L56,40 Q56,38 58,38 Z"
+        android:fillColor="#C9A84C" />
+    <!-- Tile 3 (yellow - present) -->
+    <path
+        android:pathData="M40,56 L50,56 Q52,56 52,58 L52,68 Q52,70 50,70 L40,70 Q38,70 38,68 L38,58 Q38,56 40,56 Z"
+        android:fillColor="#C9A84C" />
+    <!-- Tile 4 (grey - absent) -->
+    <path
+        android:pathData="M58,56 L68,56 Q70,56 70,58 L70,68 Q70,70 68,70 L58,70 Q56,70 56,68 L56,58 Q56,56 58,56 Z"
+        android:fillColor="#555759" />
+
+    <!-- Letter W on tile 1 -->
+    <path
+        android:pathData="M41,44 L43.5,50 L45,46 L46.5,50 L49,44"
+        android:strokeWidth="2"
+        android:strokeColor="#FFFFFF"
+        android:fillColor="#00000000" />
+
+</vector>

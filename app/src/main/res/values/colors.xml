@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Game tile states -->
+    <color name="tile_correct">#538D4E</color>
+    <color name="tile_present">#C9A84C</color>
+    <color name="tile_absent">#555759</color>
+    <color name="tile_empty">#121213</color>
+    <color name="tile_filled">#1C1B1F</color>
+
+    <!-- High contrast tile states -->
+    <color name="tile_correct_hc">#F5793A</color>
+    <color name="tile_present_hc">#85C0F9</color>
+
+    <!-- Tile borders -->
+    <color name="tile_border_empty">#3A3A3C</color>
+    <color name="tile_border_filled">#565758</color>
+
+    <!-- Difficulty accents -->
+    <color name="accent_easy">#2DD4BF</color>
+    <color name="accent_regular">#F59E0B</color>
+    <color name="accent_hard">#EF4444</color>
+
+    <!-- Currency colours -->
+    <color name="coin_gold">#F59E0B</color>
+    <color name="diamond_cyan">#67E8F9</color>
+    <color name="heart_red">#EF4444</color>
+
+    <!-- Background / surface (dark adventure theme) -->
+    <color name="background_dark">#1C1610</color>
+    <color name="surface_dark">#2A2117</color>
+    <color name="surface_variant_dark">#352B1E</color>
+    <color name="on_surface_dark">#E8DCC8</color>
+    <color name="on_background_dark">#F0E8D4</color>
+
+    <!-- Background / surface (light parchment theme) -->
+    <color name="background_light">#FAF0E0</color>
+    <color name="surface_light">#FFF8EC</color>
+    <color name="surface_variant_light">#F0E4C8</color>
+    <color name="on_surface_light">#2A1F0E</color>
+    <color name="on_background_light">#1C150A</color>
+
+    <!-- Keyboard keys -->
+    <color name="key_default_dark">#818384</color>
+    <color name="key_default_light">#D3D6DA</color>
+    <color name="key_text_dark">#FFFFFF</color>
+    <color name="key_text_light">#1A1A1B</color>
+
+    <!-- Primary -->
+    <color name="primary">#C9A84C</color>
+    <color name="on_primary">#1C1610</color>
+    <color name="primary_container">#352B1E</color>
+
+    <!-- Splash -->
+    <color name="splash_background">#1C1610</color>
+</resources>

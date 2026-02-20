@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Game grid tile sizes by difficulty -->
+    <dimen name="tile_size_4">72dp</dimen>
+    <dimen name="tile_size_5">60dp</dimen>
+    <dimen name="tile_size_6">52dp</dimen>
+    <dimen name="tile_spacing">6dp</dimen>
+    <dimen name="tile_corner_radius">6dp</dimen>
+    <dimen name="tile_border_width">2dp</dimen>
+    <dimen name="tile_letter_size_4">28sp</dimen>
+    <dimen name="tile_letter_size_5">24sp</dimen>
+    <dimen name="tile_letter_size_6">20sp</dimen>
+
+    <!-- Keyboard -->
+    <dimen name="key_height">52dp</dimen>
+    <dimen name="key_letter_width">32dp</dimen>
+    <dimen name="key_action_width">52dp</dimen>
+    <dimen name="key_spacing">5dp</dimen>
+    <dimen name="key_corner_radius">6dp</dimen>
+    <dimen name="key_text_size">14sp</dimen>
+
+    <!-- Screen padding -->
+    <dimen name="screen_padding">16dp</dimen>
+    <dimen name="card_corner_radius">16dp</dimen>
+
+    <!-- Toolbar -->
+    <dimen name="icon_size">28dp</dimen>
+    <dimen name="currency_icon_size">20dp</dimen>
+</resources>
