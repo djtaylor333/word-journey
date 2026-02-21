@@ -35,6 +35,7 @@ data class GameUiState(
     // Item inventory
     val addGuessItems: Int = 0,
     val removeLetterItems: Int = 0,
+    val definitionItems: Int = 0,
 
     // Eliminated letters by "Remove a Letter" item
     val removedLetters: Set<Char> = emptySet(),

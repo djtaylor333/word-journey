@@ -114,6 +114,9 @@ fun GameScreen(
                 // ── ITEMS BAR ─────────────────────────────────────────────────
                 ItemsBar(
                     coins = uiState.coins,
+                    addGuessCount = uiState.addGuessItems,
+                    removeLetterCount = uiState.removeLetterItems,
+                    definitionCount = uiState.definitionItems,
                     definitionUsed = uiState.definitionUsedThisLevel,
                     onAddGuess = { viewModel.useAddGuessItem() },
                     onRemoveLetter = { viewModel.useRemoveLetterItem() },
@@ -301,6 +304,9 @@ private fun GameTopBar(
 @Composable
 private fun ItemsBar(
     coins: Long,
+    addGuessCount: Int,
+    removeLetterCount: Int,
+    definitionCount: Int,
     definitionUsed: Boolean,
     onAddGuess: () -> Unit,
     onRemoveLetter: () -> Unit,
@@ -311,21 +317,28 @@ private fun ItemsBar(
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
     ) {
         ItemButton(
-            label = "➕ +1 Guess",
-            cost = "200 ⬡",
-            enabled = coins >= 200,
+            icon = "➕",
+            label = "+1 Guess",
+            ownedCount = addGuessCount,
+            coinCost = 200,
+            enabled = addGuessCount > 0 || coins >= 200,
             onClick = onAddGuess
         )
         ItemButton(
-            label = "🚫 Remove Letter",
-            cost = "150 ⬡",
-            enabled = coins >= 150,
+            icon = "🚫",
+            label = "Remove",
+            ownedCount = removeLetterCount,
+            coinCost = 150,
+            enabled = removeLetterCount > 0 || coins >= 150,
             onClick = onRemoveLetter
         )
         ItemButton(
-            label = "📖 Definition",
-            cost = if (definitionUsed) "Used" else "300 ⬡",
-            enabled = !definitionUsed && coins >= 300,
+            icon = "📖",
+            label = "Define",
+            ownedCount = definitionCount,
+            coinCost = 300,
+            enabled = !definitionUsed && (definitionCount > 0 || coins >= 300),
+            subtitle = if (definitionUsed) "Used" else null,
             onClick = onDefinition
         )
     }
@@ -333,11 +346,15 @@ private fun ItemsBar(
 
 @Composable
 private fun ItemButton(
+    icon: String,
     label: String,
-    cost: String,
+    ownedCount: Int,
+    coinCost: Int,
     enabled: Boolean,
+    subtitle: String? = null,
     onClick: () -> Unit
 ) {
+    val alpha = if (enabled) 1f else 0.4f
     Surface(
         onClick = onClick,
         enabled = enabled,
@@ -352,9 +369,42 @@ private fun ItemButton(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.4f))
-            Text(cost, fontSize = 11.sp, color = CoinGold.copy(alpha = if (enabled) 1f else 0.4f))
+            // Icon row — show owned badge if any
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(icon, fontSize = 16.sp)
+                if (ownedCount > 0) {
+                    Spacer(Modifier.width(3.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = AccentEasy.copy(alpha = 0.25f),
+                        modifier = Modifier.padding(start = 2.dp)
+                    ) {
+                        Text(
+                            "×$ownedCount",
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AccentEasy.copy(alpha = alpha)
+                        )
+                    }
+                }
+            }
+            Text(
+                label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+            )
+            // Subtitle / cost
+            Text(
+                text = subtitle ?: if (ownedCount > 0) "FREE" else "$coinCost ⬡",
+                fontSize = 11.sp,
+                fontWeight = if (ownedCount > 0 && subtitle == null) FontWeight.Bold else FontWeight.Normal,
+                color = if (ownedCount > 0 && subtitle == null)
+                    AccentEasy.copy(alpha = alpha)
+                else
+                    CoinGold.copy(alpha = alpha)
+            )
         }
     }
 }

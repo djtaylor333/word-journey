@@ -31,6 +31,7 @@ data class PlayerProgress(
     // Item inventory
     val addGuessItems: Int = 0,
     val removeLetterItems: Int = 0,
+    val definitionItems: Int = 0,
     // Settings flags
     val musicEnabled: Boolean = true,
     val musicVolume: Float = 0.7f,

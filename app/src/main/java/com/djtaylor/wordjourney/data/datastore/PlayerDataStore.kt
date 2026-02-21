@@ -38,6 +38,7 @@ class PlayerDataStore @Inject constructor(
         val KEY_HARD_BONUS_COUNTER             = intPreferencesKey("hard_bonus_counter")
         val KEY_ADD_GUESS_ITEMS                = intPreferencesKey("add_guess_items")
         val KEY_REMOVE_LETTER_ITEMS            = intPreferencesKey("remove_letter_items")
+        val KEY_DEFINITION_ITEMS               = intPreferencesKey("definition_items")
         val KEY_MUSIC_ENABLED                  = booleanPreferencesKey("music_enabled")
         val KEY_MUSIC_VOLUME                   = floatPreferencesKey("music_volume")
         val KEY_SFX_ENABLED                    = booleanPreferencesKey("sfx_enabled")
@@ -70,6 +71,7 @@ class PlayerDataStore @Inject constructor(
                 hardLevelsCompletedSinceBonusLife    = prefs[KEY_HARD_BONUS_COUNTER] ?: 0,
                 addGuessItems     = prefs[KEY_ADD_GUESS_ITEMS] ?: 0,
                 removeLetterItems = prefs[KEY_REMOVE_LETTER_ITEMS] ?: 0,
+                definitionItems   = prefs[KEY_DEFINITION_ITEMS] ?: 0,
                 musicEnabled      = prefs[KEY_MUSIC_ENABLED] ?: true,
                 musicVolume       = prefs[KEY_MUSIC_VOLUME] ?: 0.7f,
                 sfxEnabled        = prefs[KEY_SFX_ENABLED] ?: true,
@@ -100,6 +102,7 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_HARD_BONUS_COUNTER]       = progress.hardLevelsCompletedSinceBonusLife
             prefs[KEY_ADD_GUESS_ITEMS]          = progress.addGuessItems
             prefs[KEY_REMOVE_LETTER_ITEMS]      = progress.removeLetterItems
+            prefs[KEY_DEFINITION_ITEMS]         = progress.definitionItems
             prefs[KEY_MUSIC_ENABLED]            = progress.musicEnabled
             prefs[KEY_MUSIC_VOLUME]             = progress.musicVolume
             prefs[KEY_SFX_ENABLED]              = progress.sfxEnabled

@@ -7,10 +7,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -108,43 +108,74 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Power-Ups", style = MaterialTheme.typography.titleLarge, color = Primary)
-        Text("Use coins to buy in-game power-ups", style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+        Text(
+            "Buy items to stock up — use them during gameplay!",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+
+        // Current inventory
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                Text("📦 Your Inventory", fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    InventoryChip("➕", "Add Guess", uiState.progress.addGuessItems)
+                    InventoryChip("🚫", "Remove Letter", uiState.progress.removeLetterItems)
+                    InventoryChip("📖", "Definition", uiState.progress.definitionItems)
+                }
+            }
+        }
+
+        HorizontalDivider()
 
         StoreCard(
             emoji = "➕",
             title = "Add a Guess",
-            description = "Get one extra guess row for the current word without using a life",
+            description = "Get one extra guess row during a level",
             costLabel = "200 coins",
             costColor = CoinGold,
+            ownedCount = uiState.progress.addGuessItems,
             enabled = uiState.progress.coins >= 200,
-            onBuy = { /* items are bought in-game from the game screen */ }
+            onBuy = { viewModel.buyAddGuessItem() }
         )
         StoreCard(
             emoji = "🚫",
             title = "Remove a Letter",
-            description = "Eliminate one random letter guaranteed not in the current word",
+            description = "Eliminate one letter guaranteed not in the word",
             costLabel = "150 coins",
             costColor = CoinGold,
+            ownedCount = uiState.progress.removeLetterItems,
             enabled = uiState.progress.coins >= 150,
-            onBuy = { /* items are bought in-game from the game screen */ }
+            onBuy = { viewModel.buyRemoveLetterItem() }
         )
         StoreCard(
             emoji = "📖",
-            title = "Definition",
-            description = "Reveal the definition of the target word as a hint (once per level)",
+            title = "Definition Hint",
+            description = "Reveal the word's definition as a clue (once per level)",
             costLabel = "300 coins",
             costColor = CoinGold,
+            ownedCount = uiState.progress.definitionItems,
             enabled = uiState.progress.coins >= 300,
-            onBuy = { /* items are bought in-game from the game screen */ }
+            onBuy = { viewModel.buyDefinitionItem() }
         )
+    }
+}
 
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "💡 Items are purchased directly from the game screen for immediate use.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-        )
+@Composable
+private fun InventoryChip(emoji: String, label: String, count: Int) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(emoji, fontSize = 24.sp)
+        Text("$count", fontWeight = FontWeight.Bold, fontSize = 18.sp,
+            color = if (count > 0) Primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f))
+        Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
     }
 }
 
@@ -155,23 +186,29 @@ private fun LivesTab(uiState: StoreUiState, viewModel: StoreViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Lives", style = MaterialTheme.typography.titleLarge, color = HeartRed)
+        Text(
+            "Current: ❤️ ${uiState.progress.lives} lives",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold
+        )
+
         StoreCard(
-            emoji = "⬡",
+            emoji = "⬡→❤️",
             title = "Trade Coins for 1 Life",
-            description = "Spend 1,000 coins to gain 1 extra life immediately",
+            description = "Spend 1,000 coins to gain 1 extra life",
             costLabel = "1000 coins",
             costColor = CoinGold,
             enabled = uiState.progress.coins >= 1000,
             onBuy = { viewModel.tradeCoinsForLife() }
         )
         StoreCard(
-            emoji = "◆",
+            emoji = "◆→❤️",
             title = "Trade Diamonds for 1 Life",
-            description = "Spend 3 diamonds to gain 1 extra life immediately",
+            description = "Spend 3 diamonds to gain 1 extra life",
             costLabel = "3 diamonds",
             costColor = DiamondCyan,
             enabled = uiState.progress.diamonds >= 3,
-            onBuy = { /* handled by StoreViewModel */ }
+            onBuy = { viewModel.tradeDiamondsForLife() }
         )
 
         HorizontalDivider()
@@ -180,7 +217,7 @@ private fun LivesTab(uiState: StoreUiState, viewModel: StoreViewModel) {
         StoreCard(
             emoji = "❤️",
             title = "5 Lives Pack",
-            description = "4.99 — Instantly receive 5 extra lives",
+            description = "Instantly receive 5 extra lives",
             costLabel = viewModel.getPriceLabel(ProductIds.LIVES_PACK_5),
             costColor = HeartRed,
             enabled = true,
@@ -196,6 +233,7 @@ private fun CoinsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Coins", style = MaterialTheme.typography.titleLarge, color = CoinGold)
+        Text("Current: ⬡ ${uiState.progress.coins} coins", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
         IapCard("⬡", "500 Coins", "Starter pack", ProductIds.COINS_500, viewModel)
         IapCard("⬡⬡", "1500 Coins", "Popular pack", ProductIds.COINS_1500, viewModel)
         IapCard("⬡⬡⬡", "5000 Coins", "Best value — save 30%", ProductIds.COINS_5000, viewModel)
@@ -209,7 +247,8 @@ private fun DiamondsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Diamonds", style = MaterialTheme.typography.titleLarge, color = DiamondCyan)
-        Text("Premium currency — used for lives, power-ups and special packs",
+        Text("Current: ◆ ${uiState.progress.diamonds} diamonds", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        Text("Premium currency — used for lives and special items",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
         IapCard("◆", "10 Diamonds", "Starter pack", ProductIds.DIAMONDS_10, viewModel)
@@ -237,8 +276,9 @@ private fun StoreCard(
     title: String,
     description: String,
     costLabel: String,
-    costColor: androidx.compose.ui.graphics.Color,
+    costColor: Color,
     enabled: Boolean,
+    ownedCount: Int? = null,
     onBuy: () -> Unit
 ) {
     Surface(
@@ -258,7 +298,26 @@ private fun StoreCard(
             ) {
                 Text(emoji, fontSize = 32.sp)
                 Column {
-                    Text(title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        if (ownedCount != null) {
+                            Spacer(Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (ownedCount > 0) Primary.copy(alpha = 0.2f)
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                            ) {
+                                Text(
+                                    "×$ownedCount",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (ownedCount > 0) Primary
+                                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                            }
+                        }
+                    }
                     Text(description, style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }

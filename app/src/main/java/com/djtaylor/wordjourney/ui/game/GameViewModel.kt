@@ -58,7 +58,8 @@ class GameViewModel @Inject constructor(
                         coins = progress.coins,
                         diamonds = progress.diamonds,
                         addGuessItems = progress.addGuessItems,
-                        removeLetterItems = progress.removeLetterItems
+                        removeLetterItems = progress.removeLetterItems,
+                        definitionItems = progress.definitionItems
                     )
                 }
             }
@@ -113,6 +114,7 @@ class GameViewModel @Inject constructor(
                 diamonds = playerProgress.diamonds,
                 addGuessItems = playerProgress.addGuessItems,
                 removeLetterItems = playerProgress.removeLetterItems,
+                definitionItems = playerProgress.definitionItems,
                 isLoading = false,
                 isReplay = isReplay,
                 definitionHint = null,
@@ -145,6 +147,7 @@ class GameViewModel @Inject constructor(
                 diamonds = playerProgress.diamonds,
                 addGuessItems = playerProgress.addGuessItems,
                 removeLetterItems = playerProgress.removeLetterItems,
+                definitionItems = playerProgress.definitionItems,
                 status = GameStatus.IN_PROGRESS,
                 isLoading = false
             )
@@ -346,32 +349,44 @@ class GameViewModel @Inject constructor(
     // ── Items ─────────────────────────────────────────────────────────────────
     fun useAddGuessItem() {
         val progress = playerProgress
-        val coinCost = 200L
-        if (progress.coins < coinCost) {
-            _uiState.update { it.copy(snackbarMessage = "Need 200 coins for Add a Guess") }
-            return
-        }
-        val updated = progress.copy(coins = progress.coins - coinCost)
-        playerProgress = updated
-        viewModelScope.launch { playerRepository.saveProgress(updated) }
-        _uiState.update { s ->
-            s.copy(
-                maxGuesses = s.maxGuesses + 1,
-                status = GameStatus.IN_PROGRESS,
-                showNeedMoreGuessesDialog = false,
-                coins = updated.coins
-            )
+        // Use from inventory first, else buy with coins
+        if (progress.addGuessItems > 0) {
+            audioManager.playSfx(SfxSound.BUTTON_CLICK)
+            val updated = progress.copy(addGuessItems = progress.addGuessItems - 1)
+            playerProgress = updated
+            viewModelScope.launch { playerRepository.saveProgress(updated) }
+            _uiState.update { s ->
+                s.copy(
+                    maxGuesses = s.maxGuesses + 1,
+                    status = GameStatus.IN_PROGRESS,
+                    showNeedMoreGuessesDialog = false,
+                    addGuessItems = updated.addGuessItems
+                )
+            }
+        } else {
+            val coinCost = 200L
+            if (progress.coins < coinCost) {
+                _uiState.update { it.copy(snackbarMessage = "Need 200 coins or buy from Store") }
+                return
+            }
+            audioManager.playSfx(SfxSound.COIN_EARN)
+            val updated = progress.copy(coins = progress.coins - coinCost)
+            playerProgress = updated
+            viewModelScope.launch { playerRepository.saveProgress(updated) }
+            _uiState.update { s ->
+                s.copy(
+                    maxGuesses = s.maxGuesses + 1,
+                    status = GameStatus.IN_PROGRESS,
+                    showNeedMoreGuessesDialog = false,
+                    coins = updated.coins
+                )
+            }
         }
         persistCurrentState()
     }
 
     fun useRemoveLetterItem() {
         val progress = playerProgress
-        val coinCost = 150L
-        if (progress.coins < coinCost) {
-            _uiState.update { it.copy(snackbarMessage = "Need 150 coins to Remove a Letter") }
-            return
-        }
         viewModelScope.launch {
             val letter = wordRepository.findAbsentLetter(
                 targetWord,
@@ -381,15 +396,37 @@ class GameViewModel @Inject constructor(
                 _uiState.update { it.copy(snackbarMessage = "No more letters to remove!") }
                 return@launch
             }
-            val updated = progress.copy(coins = progress.coins - coinCost)
-            playerProgress = updated
-            playerRepository.saveProgress(updated)
-            _uiState.update { s ->
-                s.copy(
-                    removedLetters = s.removedLetters + letter,
-                    letterStates = s.letterStates + (letter to TileState.ABSENT),
-                    coins = updated.coins
-                )
+
+            // Use from inventory first, else buy with coins
+            if (progress.removeLetterItems > 0) {
+                audioManager.playSfx(SfxSound.BUTTON_CLICK)
+                val updated = progress.copy(removeLetterItems = progress.removeLetterItems - 1)
+                playerProgress = updated
+                playerRepository.saveProgress(updated)
+                _uiState.update { s ->
+                    s.copy(
+                        removedLetters = s.removedLetters + letter,
+                        letterStates = s.letterStates + (letter to TileState.ABSENT),
+                        removeLetterItems = updated.removeLetterItems
+                    )
+                }
+            } else {
+                val coinCost = 150L
+                if (progress.coins < coinCost) {
+                    _uiState.update { it.copy(snackbarMessage = "Need 150 coins or buy from Store") }
+                    return@launch
+                }
+                audioManager.playSfx(SfxSound.COIN_EARN)
+                val updated = progress.copy(coins = progress.coins - coinCost)
+                playerProgress = updated
+                playerRepository.saveProgress(updated)
+                _uiState.update { s ->
+                    s.copy(
+                        removedLetters = s.removedLetters + letter,
+                        letterStates = s.letterStates + (letter to TileState.ABSENT),
+                        coins = updated.coins
+                    )
+                }
             }
             persistCurrentState()
         }
@@ -408,24 +445,42 @@ class GameViewModel @Inject constructor(
             return
         }
         val progress = playerProgress
-        val coinCost = 300L
-        if (progress.coins < coinCost) {
-            _uiState.update { it.copy(snackbarMessage = "Need 300 coins for Definition") }
-            return
-        }
         viewModelScope.launch {
             val definition = wordRepository.getDefinition(difficulty, _uiState.value.level)
             val hint = definition.ifBlank { "No definition available" }
-            val updated = progress.copy(coins = progress.coins - coinCost)
-            playerProgress = updated
-            playerRepository.saveProgress(updated)
-            _uiState.update { s ->
-                s.copy(
-                    coins = updated.coins,
-                    definitionHint = hint,
-                    showDefinitionDialog = true,
-                    definitionUsedThisLevel = true
-                )
+
+            // Use from inventory first, else buy with coins
+            if (progress.definitionItems > 0) {
+                audioManager.playSfx(SfxSound.BUTTON_CLICK)
+                val updated = progress.copy(definitionItems = progress.definitionItems - 1)
+                playerProgress = updated
+                playerRepository.saveProgress(updated)
+                _uiState.update { s ->
+                    s.copy(
+                        definitionHint = hint,
+                        showDefinitionDialog = true,
+                        definitionUsedThisLevel = true,
+                        definitionItems = updated.definitionItems
+                    )
+                }
+            } else {
+                val coinCost = 300L
+                if (progress.coins < coinCost) {
+                    _uiState.update { it.copy(snackbarMessage = "Need 300 coins or buy from Store") }
+                    return@launch
+                }
+                audioManager.playSfx(SfxSound.COIN_EARN)
+                val updated = progress.copy(coins = progress.coins - coinCost)
+                playerProgress = updated
+                playerRepository.saveProgress(updated)
+                _uiState.update { s ->
+                    s.copy(
+                        coins = updated.coins,
+                        definitionHint = hint,
+                        showDefinitionDialog = true,
+                        definitionUsedThisLevel = true
+                    )
+                }
             }
         }
     }
