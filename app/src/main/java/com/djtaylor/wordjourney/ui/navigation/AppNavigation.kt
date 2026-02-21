@@ -12,6 +12,7 @@ import com.djtaylor.wordjourney.ui.dailychallenge.DailyChallengeScreen
 import com.djtaylor.wordjourney.ui.game.GameScreen
 import com.djtaylor.wordjourney.ui.home.HomeScreen
 import com.djtaylor.wordjourney.ui.levelselect.LevelSelectScreen
+import com.djtaylor.wordjourney.ui.onboarding.OnboardingScreen
 import com.djtaylor.wordjourney.ui.settings.SettingsScreen
 import com.djtaylor.wordjourney.ui.statistics.StatisticsScreen
 import com.djtaylor.wordjourney.ui.store.StoreScreen
@@ -19,15 +20,30 @@ import com.djtaylor.wordjourney.ui.store.StoreScreen
 private const val ANIM_MS = 350
 
 @Composable
-fun AppNavigation(navController: NavHostController) {
+fun AppNavigation(
+    navController: NavHostController,
+    hasCompletedOnboarding: Boolean = true
+) {
+    val startDestination = if (hasCompletedOnboarding) Screen.Home.route else Screen.Onboarding.route
+
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route,
+        startDestination = startDestination,
         enterTransition = { fadeIn(tween(ANIM_MS)) + slideInHorizontally(tween(ANIM_MS)) { it / 4 } },
         exitTransition = { fadeOut(tween(ANIM_MS)) + slideOutHorizontally(tween(ANIM_MS)) { -it / 4 } },
         popEnterTransition = { fadeIn(tween(ANIM_MS)) + slideInHorizontally(tween(ANIM_MS)) { -it / 4 } },
         popExitTransition = { fadeOut(tween(ANIM_MS)) + slideOutHorizontally(tween(ANIM_MS)) { it / 4 } }
     ) {
+        composable(Screen.Onboarding.route) {
+            OnboardingScreen(
+                onComplete = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Screen.Home.route) {
             HomeScreen(
                 onNavigateToLevelSelect = { difficulty ->

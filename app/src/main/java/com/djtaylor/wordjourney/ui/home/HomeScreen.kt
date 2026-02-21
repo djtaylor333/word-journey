@@ -14,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,17 +69,17 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Currency display — larger
+                // Currency display — larger, with emoji
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CurrencyChip(
                         value = uiState.progress.coins.toString(),
                         color = CoinGold,
-                        symbol = "⬡"
+                        symbol = "🪙"
                     )
                     CurrencyChip(
                         value = uiState.progress.diamonds.toString(),
                         color = DiamondCyan,
-                        symbol = "◆"
+                        symbol = "💎"
                     )
                 }
                 Row {
@@ -162,7 +164,7 @@ fun HomeScreen(
             SectionHeader(emoji = "🗺️", title = "Adventure")
             Spacer(Modifier.height(8.dp))
 
-            for (difficulty in Difficulty.entries) {
+            for (difficulty in Difficulty.entries.filter { it != Difficulty.VIP }) {
                 DifficultyCard(
                     difficulty = difficulty,
                     currentLevel = viewModel.levelForDifficulty(difficulty),
@@ -173,6 +175,23 @@ fun HomeScreen(
                 )
                 Spacer(Modifier.height(10.dp))
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── VIP LEVEL PACK ───────────────────────────────────────────────
+            SectionHeader(emoji = "👑", title = "VIP Level Pack")
+            Spacer(Modifier.height(8.dp))
+
+            VipPackCard(
+                isVip = uiState.progress.isVip,
+                currentLevel = viewModel.levelForDifficulty(Difficulty.VIP),
+                onClick = {
+                    if (uiState.progress.isVip) {
+                        viewModel.playButtonClick()
+                        onNavigateToLevelSelect(Difficulty.VIP.saveKey)
+                    }
+                }
+            )
 
             Spacer(Modifier.height(16.dp))
 
@@ -202,6 +221,8 @@ fun HomeScreen(
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 6.dp,
+                    tonalElevation = 2.dp,
                     border = BorderStroke(2.dp, Primary.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -355,11 +376,22 @@ private fun DailyChallengeCard(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+        tonalElevation = 2.dp,
         border = BorderStroke(2.dp, Primary.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Primary.copy(alpha = 0.08f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -423,6 +455,7 @@ private fun QuickNavCard(
         onClick = onClick,
         enabled = enabled,
         shape = RoundedCornerShape(14.dp),
+        shadowElevation = if (enabled) 4.dp else 0.dp,
         color = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         border = BorderStroke(1.dp, if (enabled) Primary.copy(alpha = 0.3f) else Color.Transparent),
         modifier = modifier
@@ -456,8 +489,16 @@ private fun LogoTile(color: Color, letter: String) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(36.dp)
+            .shadow(4.dp, RoundedCornerShape(6.dp))
             .clip(RoundedCornerShape(6.dp))
-            .background(color)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        color.copy(alpha = 1f),
+                        color.copy(alpha = 0.7f)
+                    )
+                )
+            )
     ) {
         Text(letter, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
     }
@@ -468,14 +509,15 @@ private fun CurrencyChip(value: String, color: Color, symbol: String) {
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = color.copy(alpha = 0.15f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.4f))
+        shadowElevation = 4.dp,
+        border = BorderStroke(1.5f.dp, color.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(symbol, color = color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(symbol, fontSize = 22.sp)
             Text(value, color = color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
     }
@@ -489,6 +531,7 @@ private fun HeartsBar(lives: Int, timerMs: Long) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
+        shadowElevation = 4.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -559,27 +602,41 @@ private fun DifficultyCard(
         Difficulty.EASY    -> AccentEasy
         Difficulty.REGULAR -> AccentRegular
         Difficulty.HARD    -> AccentHard
+        Difficulty.VIP     -> CoinGold
     }
     val emoji = when (difficulty) {
         Difficulty.EASY    -> "🌿"
         Difficulty.REGULAR -> "⚔️"
         Difficulty.HARD    -> "🔥"
+        Difficulty.VIP     -> "👑"
     }
     val description = when (difficulty) {
         Difficulty.EASY    -> "4-letter words • 6 guesses\nEvery 10 levels = +1 life"
         Difficulty.REGULAR -> "5-letter words • 6 guesses\nEvery 5 levels = +1 life"
         Difficulty.HARD    -> "6-letter words • 6 guesses\nEvery 3 levels = +1 life"
+        Difficulty.VIP     -> "3-7 letter words • 6 guesses\nx2 rewards • 100 levels"
     }
 
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+        tonalElevation = 2.dp,
         border = BorderStroke(2.dp, accent.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.08f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -615,6 +672,90 @@ private fun DifficultyCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VipPackCard(
+    isVip: Boolean,
+    currentLevel: Int,
+    onClick: () -> Unit
+) {
+    val accent = CoinGold
+    Surface(
+        onClick = onClick,
+        enabled = isVip,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+        tonalElevation = 2.dp,
+        border = BorderStroke(2.dp, if (isVip) accent.copy(alpha = 0.6f) else Color.Gray.copy(alpha = 0.3f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            accent.copy(alpha = if (isVip) 0.12f else 0.04f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text("👑", fontSize = 42.sp)
+                Column {
+                    Text(
+                        "VIP Challenge",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = if (isVip) accent else Color.Gray,
+                        fontSize = 22.sp
+                    )
+                    Text(
+                        "100 levels • 3-7 letter words\nx2 rewards • Bonus life every 5 levels",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isVip) 0.7f else 0.4f),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                if (isVip) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = accent.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            "Level $currentLevel",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                            color = accent,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                } else {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            "🔒 VIP Only",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                            color = Color.Gray,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
         }

@@ -227,11 +227,112 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `appVersion is 2_1_0`() = runTest {
+    fun `appVersion is 2_2_0`() = runTest {
         val vm = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.first()
-        assertEquals("2.1.0", state.appVersion)
+        assertEquals("2.2.0", state.appVersion)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 5. THEME SYSTEM
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `init loads selected theme and owned themes`() = runTest {
+        val progress = PlayerProgress(
+            selectedTheme = "ocean_breeze",
+            ownedThemes = "classic,ocean_breeze,forest_grove,neon_nights"
+        )
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertEquals("ocean_breeze", state.selectedTheme)
+        assertTrue(state.ownedThemes.contains("neon_nights"))
+        assertEquals(4, state.ownedThemes.size)
+    }
+
+    @Test
+    fun `selectTheme changes active theme when owned`() = runTest {
+        val progress = PlayerProgress(
+            selectedTheme = "classic",
+            ownedThemes = "classic,ocean_breeze,forest_grove"
+        )
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.selectTheme("ocean_breeze")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertEquals("ocean_breeze", state.selectedTheme)
+        coVerify { playerRepository.saveProgress(match { it.selectedTheme == "ocean_breeze" }) }
+    }
+
+    @Test
+    fun `selectTheme does not change if theme not owned`() = runTest {
+        val progress = PlayerProgress(
+            selectedTheme = "classic",
+            ownedThemes = "classic,ocean_breeze,forest_grove"
+        )
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.selectTheme("neon_nights")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertEquals("classic", state.selectedTheme)
+    }
+
+    @Test
+    fun `purchaseTheme deducts diamonds and selects theme`() = runTest {
+        val progress = PlayerProgress(
+            diamonds = 100,
+            selectedTheme = "classic",
+            ownedThemes = "classic,ocean_breeze,forest_grove"
+        )
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = vm.purchaseTheme("neon_nights")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(result)
+        val state = vm.uiState.first()
+        assertEquals("neon_nights", state.selectedTheme)
+        assertTrue(state.ownedThemes.contains("neon_nights"))
+        assertEquals(50, state.diamonds) // 100 - 50 diamond cost
+    }
+
+    @Test
+    fun `purchaseTheme fails when not enough diamonds`() = runTest {
+        val progress = PlayerProgress(
+            diamonds = 10,
+            selectedTheme = "classic",
+            ownedThemes = "classic,ocean_breeze,forest_grove"
+        )
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = vm.purchaseTheme("neon_nights")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(result)
+        val state = vm.uiState.first()
+        assertEquals("classic", state.selectedTheme)
+        assertFalse(state.ownedThemes.contains("neon_nights"))
+    }
+
+    @Test
+    fun `purchaseTheme fails for unknown theme id`() = runTest {
+        val progress = PlayerProgress(diamonds = 1000)
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = vm.purchaseTheme("nonexistent_theme")
+        assertFalse(result)
     }
 }

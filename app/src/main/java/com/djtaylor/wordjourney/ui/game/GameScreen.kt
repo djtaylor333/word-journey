@@ -42,6 +42,7 @@ fun GameScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val isLightTheme = !isSystemInDarkTheme()
+    val textScale = LocalTextScale.current
 
     // Show snackbar for transient messages
     LaunchedEffect(uiState.snackbarMessage) {
@@ -77,6 +78,7 @@ fun GameScreen(
             // ── TOP BAR ───────────────────────────────────────────────────────
             GameTopBar(
                 uiState = uiState,
+                textScale = textScale,
                 onBack = onNavigateHome,
                 onStore = onNavigateToStore,
                 onSettings = onNavigateToSettings
@@ -98,7 +100,7 @@ fun GameScreen(
                         Text(
                             "🔄 Replay — No rewards or life cost",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            fontSize = 15.sp,
+                            fontSize = (15 * textScale).sp,
                             color = AccentEasy
                         )
                     }
@@ -129,11 +131,11 @@ fun GameScreen(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("💡", fontSize = 16.sp)
+                            Text("💡", fontSize = (16 * textScale).sp)
                             uiState.revealedLetters.toSortedMap().forEach { (pos, ch) ->
                                 Text(
                                     "#${pos + 1}=$ch",
-                                    fontSize = 14.sp,
+                                    fontSize = (14 * textScale).sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Primary
                                 )
@@ -151,8 +153,7 @@ fun GameScreen(
                     definitionCount = uiState.definitionItems,
                     showLetterCount = uiState.showLetterItems,
                     definitionUsed = uiState.definitionUsedThisLevel,
-                    isDailyChallenge = uiState.isDailyChallenge,
-                    onAddGuess = { viewModel.useAddGuessItem() },
+                    isDailyChallenge = uiState.isDailyChallenge,                    textScale = textScale,                    onAddGuess = { viewModel.useAddGuessItem() },
                     onRemoveLetter = { viewModel.useRemoveLetterItem() },
                     onDefinition = { viewModel.useDefinitionItem() },
                     onShowLetter = { viewModel.useShowLetterItem() }
@@ -270,6 +271,7 @@ fun GameScreen(
 @Composable
 private fun GameTopBar(
     uiState: GameUiState,
+    textScale: Float = 1f,
     onBack: () -> Unit,
     onStore: () -> Unit,
     onSettings: () -> Unit
@@ -278,6 +280,7 @@ private fun GameTopBar(
         Difficulty.EASY    -> AccentEasy
         Difficulty.REGULAR -> AccentRegular
         Difficulty.HARD    -> AccentHard
+        Difficulty.VIP     -> CoinGold
     }
 
     Row(
@@ -302,7 +305,7 @@ private fun GameTopBar(
             Text(
                 if (uiState.isDailyChallenge) "Daily Challenge" else "Level ${uiState.level}",
                 fontWeight = FontWeight.Bold,
-                fontSize = if (uiState.isDailyChallenge) 20.sp else 25.sp,
+                fontSize = (if (uiState.isDailyChallenge) 20f else 25f).let { (it * textScale).sp },
                 color = MaterialTheme.colorScheme.onBackground
             )
             Surface(
@@ -313,7 +316,7 @@ private fun GameTopBar(
                     if (uiState.isDailyChallenge) "${uiState.difficulty.wordLength} Letters" else uiState.difficulty.displayName,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                     color = difficultyColor,
-                    fontSize = 16.sp,
+                    fontSize = (16 * textScale).sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -327,22 +330,22 @@ private fun GameTopBar(
             // Hearts: red with count + blue bonus
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("❤️", fontSize = 34.sp)
+                    Text("❤️", fontSize = (34 * textScale).sp)
                     Text(
                         "${uiState.regularLives}",
-                        fontSize = 13.sp,
+                        fontSize = (13 * textScale).sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
                         modifier = Modifier.offset(y = 1.dp)
                     )
                 }
                 if (uiState.bonusLives > 0) {
-                    Text("+", fontSize = 14.sp, color = BonusHeartBlue, fontWeight = FontWeight.Bold)
+                    Text("+", fontSize = (14 * textScale).sp, color = BonusHeartBlue, fontWeight = FontWeight.Bold)
                     Box(contentAlignment = Alignment.Center) {
-                        Text("💙", fontSize = 26.sp)
+                        Text("💙", fontSize = (26 * textScale).sp)
                         Text(
                             "${uiState.bonusLives}",
-                            fontSize = 12.sp,
+                            fontSize = (12 * textScale).sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
                             modifier = Modifier.offset(y = 1.dp)
@@ -352,12 +355,24 @@ private fun GameTopBar(
             }
             // Coins
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("⬡", fontSize = 20.sp, color = CoinGold)
+                Text("🪙", fontSize = (22 * textScale).sp)
+                Spacer(Modifier.width(2.dp))
                 Text(
                     "${uiState.coins}",
                     fontWeight = FontWeight.Bold,
                     color = CoinGold,
-                    fontSize = 19.sp
+                    fontSize = (19 * textScale).sp
+                )
+            }
+            // Diamonds
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("💎", fontSize = (20 * textScale).sp)
+                Spacer(Modifier.width(2.dp))
+                Text(
+                    "${uiState.diamonds}",
+                    fontWeight = FontWeight.Bold,
+                    color = DiamondCyan,
+                    fontSize = (19 * textScale).sp
                 )
             }
             IconButton(onClick = onStore, modifier = Modifier.size(48.dp)) {
@@ -389,6 +404,7 @@ private fun ItemsBar(
     showLetterCount: Int,
     definitionUsed: Boolean,
     isDailyChallenge: Boolean,
+    textScale: Float = 1f,
     onAddGuess: () -> Unit,
     onRemoveLetter: () -> Unit,
     onDefinition: () -> Unit,
@@ -404,6 +420,7 @@ private fun ItemsBar(
             ownedCount = addGuessCount,
             coinCost = 200,
             enabled = addGuessCount > 0 || coins >= 200,
+            textScale = textScale,
             onClick = onAddGuess
         )
         ItemButton(
@@ -412,6 +429,7 @@ private fun ItemsBar(
             ownedCount = removeLetterCount,
             coinCost = 150,
             enabled = removeLetterCount > 0 || coins >= 150,
+            textScale = textScale,
             onClick = onRemoveLetter
         )
         if (!isDailyChallenge) {
@@ -422,6 +440,7 @@ private fun ItemsBar(
                 coinCost = 300,
                 enabled = definitionUsed || definitionCount > 0 || coins >= 300,
                 subtitle = if (definitionUsed) "View 📖" else null,
+                textScale = textScale,
                 onClick = onDefinition
             )
         }
@@ -431,6 +450,7 @@ private fun ItemsBar(
             ownedCount = showLetterCount,
             coinCost = 250,
             enabled = showLetterCount > 0 || coins >= 250,
+            textScale = textScale,
             onClick = onShowLetter
         )
     }
@@ -444,6 +464,7 @@ private fun ItemButton(
     coinCost: Int,
     enabled: Boolean,
     subtitle: String? = null,
+    textScale: Float = 1f,
     onClick: () -> Unit
 ) {
     val alpha = if (enabled) 1f else 0.4f
@@ -451,6 +472,7 @@ private fun ItemButton(
         onClick = onClick,
         enabled = enabled,
         shape = RoundedCornerShape(12.dp),
+        shadowElevation = if (enabled) 4.dp else 0.dp,
         color = if (enabled)
             MaterialTheme.colorScheme.surfaceVariant
         else
@@ -463,7 +485,7 @@ private fun ItemButton(
         ) {
             // Icon row — show owned badge if any
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(icon, fontSize = 24.sp)
+                Text(icon, fontSize = (24 * textScale).sp)
                 if (ownedCount > 0) {
                     Spacer(Modifier.width(3.dp))
                     Surface(
@@ -474,7 +496,7 @@ private fun ItemButton(
                         Text(
                             "×$ownedCount",
                             modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                            fontSize = 13.sp,
+                            fontSize = (13 * textScale).sp,
                             fontWeight = FontWeight.Bold,
                             color = AccentEasy.copy(alpha = alpha)
                         )
@@ -483,14 +505,14 @@ private fun ItemButton(
             }
             Text(
                 label,
-                fontSize = 16.sp,
+                fontSize = (16 * textScale).sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
             )
             // Subtitle / cost
             Text(
-                text = subtitle ?: if (ownedCount > 0) "$ownedCount left" else "$coinCost ⬡",
-                fontSize = 13.sp,
+                text = subtitle ?: if (ownedCount > 0) "$ownedCount left" else "$coinCost 🪙",
+                fontSize = (13 * textScale).sp,
                 fontWeight = if (ownedCount > 0 && subtitle == null) FontWeight.Bold else FontWeight.Normal,
                 color = if (ownedCount > 0 && subtitle == null)
                     AccentEasy.copy(alpha = alpha)

@@ -58,6 +58,12 @@ class PlayerDataStore @Inject constructor(
         // VIP
         val KEY_IS_VIP                         = booleanPreferencesKey("is_vip")
         val KEY_VIP_EXPIRY                     = longPreferencesKey("vip_expiry")
+        val KEY_LAST_VIP_REWARD_DATE           = stringPreferencesKey("last_vip_reward_date")
+        // New player bonus
+        val KEY_HAS_RECEIVED_NEW_PLAYER_BONUS  = booleanPreferencesKey("has_received_new_player_bonus")
+        // VIP Level pack
+        val KEY_VIP_LEVEL                      = intPreferencesKey("vip_level")
+        val KEY_VIP_BONUS_COUNTER              = intPreferencesKey("vip_bonus_counter")
         // Settings
         val KEY_MUSIC_ENABLED                  = booleanPreferencesKey("music_enabled")
         val KEY_MUSIC_VOLUME                   = floatPreferencesKey("music_volume")
@@ -74,6 +80,9 @@ class PlayerDataStore @Inject constructor(
         val KEY_SELECTED_KEYBOARD_THEME        = stringPreferencesKey("selected_keyboard_theme")
         val KEY_OWNED_TILE_THEMES              = stringPreferencesKey("owned_tile_themes")
         val KEY_OWNED_KEYBOARD_THEMES          = stringPreferencesKey("owned_keyboard_themes")
+        // Theme system
+        val KEY_SELECTED_THEME                 = stringPreferencesKey("selected_theme")
+        val KEY_OWNED_THEMES                   = stringPreferencesKey("owned_themes")
         // Onboarding
         val KEY_HAS_COMPLETED_ONBOARDING       = booleanPreferencesKey("has_completed_onboarding")
         val KEY_FIRST_LAUNCH                   = booleanPreferencesKey("first_launch")
@@ -120,6 +129,8 @@ class PlayerDataStore @Inject constructor(
                 totalDailyChallengesCompleted = prefs[KEY_TOTAL_DAILY_COMPLETED] ?: 0,
                 isVip             = prefs[KEY_IS_VIP] ?: false,
                 vipExpiryTimestamp = prefs[KEY_VIP_EXPIRY] ?: 0L,
+                lastVipRewardDate = prefs[KEY_LAST_VIP_REWARD_DATE] ?: "",
+                hasReceivedNewPlayerBonus = prefs[KEY_HAS_RECEIVED_NEW_PLAYER_BONUS] ?: false,
                 musicEnabled      = prefs[KEY_MUSIC_ENABLED] ?: true,
                 musicVolume       = prefs[KEY_MUSIC_VOLUME] ?: 0.7f,
                 sfxEnabled        = prefs[KEY_SFX_ENABLED] ?: true,
@@ -130,11 +141,15 @@ class PlayerDataStore @Inject constructor(
                 colorblindMode    = prefs[KEY_COLORBLIND_MODE] ?: "none",
                 textScaleFactor   = prefs[KEY_TEXT_SCALE_FACTOR] ?: 1.0f,
                 playGamesSignedIn = prefs[KEY_PLAY_GAMES_SIGNED_IN] ?: false,
+                selectedTheme         = prefs[KEY_SELECTED_THEME] ?: "classic",
+                ownedThemes           = prefs[KEY_OWNED_THEMES] ?: "classic,ocean_breeze,forest_grove",
                 selectedTileTheme     = prefs[KEY_SELECTED_TILE_THEME] ?: "default",
                 selectedKeyboardTheme = prefs[KEY_SELECTED_KEYBOARD_THEME] ?: "default",
                 ownedTileThemes       = prefs[KEY_OWNED_TILE_THEMES] ?: "default",
                 ownedKeyboardThemes   = prefs[KEY_OWNED_KEYBOARD_THEMES] ?: "default",
-                hasCompletedOnboarding = prefs[KEY_HAS_COMPLETED_ONBOARDING] ?: false
+                hasCompletedOnboarding = prefs[KEY_HAS_COMPLETED_ONBOARDING] ?: false,
+                vipLevel              = prefs[KEY_VIP_LEVEL] ?: 1,
+                vipLevelsCompletedSinceBonusLife = prefs[KEY_VIP_BONUS_COUNTER] ?: 0
             )
         }
 
@@ -173,6 +188,8 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_TOTAL_DAILY_COMPLETED]    = progress.totalDailyChallengesCompleted
             prefs[KEY_IS_VIP]                   = progress.isVip
             prefs[KEY_VIP_EXPIRY]               = progress.vipExpiryTimestamp
+            prefs[KEY_LAST_VIP_REWARD_DATE]     = progress.lastVipRewardDate
+            prefs[KEY_HAS_RECEIVED_NEW_PLAYER_BONUS] = progress.hasReceivedNewPlayerBonus
             prefs[KEY_MUSIC_ENABLED]            = progress.musicEnabled
             prefs[KEY_MUSIC_VOLUME]             = progress.musicVolume
             prefs[KEY_SFX_ENABLED]              = progress.sfxEnabled
@@ -183,11 +200,15 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_COLORBLIND_MODE]          = progress.colorblindMode
             prefs[KEY_TEXT_SCALE_FACTOR]        = progress.textScaleFactor
             prefs[KEY_PLAY_GAMES_SIGNED_IN]     = progress.playGamesSignedIn
+            prefs[KEY_SELECTED_THEME]           = progress.selectedTheme
+            prefs[KEY_OWNED_THEMES]             = progress.ownedThemes
             prefs[KEY_SELECTED_TILE_THEME]      = progress.selectedTileTheme
             prefs[KEY_SELECTED_KEYBOARD_THEME]  = progress.selectedKeyboardTheme
             prefs[KEY_OWNED_TILE_THEMES]        = progress.ownedTileThemes
             prefs[KEY_OWNED_KEYBOARD_THEMES]    = progress.ownedKeyboardThemes
             prefs[KEY_HAS_COMPLETED_ONBOARDING] = progress.hasCompletedOnboarding
+            prefs[KEY_VIP_LEVEL]                = progress.vipLevel
+            prefs[KEY_VIP_BONUS_COUNTER]        = progress.vipLevelsCompletedSinceBonusLife
         }
     }
 

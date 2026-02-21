@@ -166,5 +166,6 @@ class LevelSelectViewModel @Inject constructor(
         Difficulty.EASY    -> easyLevel
         Difficulty.REGULAR -> regularLevel
         Difficulty.HARD    -> hardLevel
+        Difficulty.VIP     -> vipLevel
     }
 }

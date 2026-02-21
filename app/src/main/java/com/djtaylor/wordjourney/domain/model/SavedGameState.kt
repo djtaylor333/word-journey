@@ -25,9 +25,11 @@ data class PlayerProgress(
     val easyLevel: Int = 1,
     val regularLevel: Int = 1,
     val hardLevel: Int = 1,
+    val vipLevel: Int = 1,                             // VIP level pack progress
     val easyLevelsCompletedSinceBonusLife: Int = 0,
     val regularLevelsCompletedSinceBonusLife: Int = 0,
     val hardLevelsCompletedSinceBonusLife: Int = 0,
+    val vipLevelsCompletedSinceBonusLife: Int = 0,
     // Item inventory
     val addGuessItems: Int = 0,
     val removeLetterItems: Int = 0,
@@ -50,6 +52,9 @@ data class PlayerProgress(
     // VIP
     val isVip: Boolean = false,
     val vipExpiryTimestamp: Long = 0L,
+    val lastVipRewardDate: String = "",        // YYYY-MM-DD — last day VIP daily rewards were collected
+    // New player bonus
+    val hasReceivedNewPlayerBonus: Boolean = false,
     // Settings flags
     val musicEnabled: Boolean = true,
     val musicVolume: Float = 0.7f,
@@ -61,7 +66,9 @@ data class PlayerProgress(
     val colorblindMode: String = "none",
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
-    // Cosmetics
+    // Cosmetics / Themes
+    val selectedTheme: String = "classic",             // active theme id
+    val ownedThemes: String = "classic,ocean_breeze,forest_grove",  // comma-separated owned theme ids
     val selectedTileTheme: String = "default",
     val selectedKeyboardTheme: String = "default",
     val ownedTileThemes: String = "default",          // comma-separated

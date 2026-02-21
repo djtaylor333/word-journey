@@ -33,20 +33,21 @@ fun GameKeyboard(
     highContrast: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val textScale = LocalTextScale.current
     Column(
         modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        KeyRow(ROW1, letterStates, removedLetters, onKey, highContrast)
-        KeyRow(ROW2, letterStates, removedLetters, onKey, highContrast)
+        KeyRow(ROW1, letterStates, removedLetters, onKey, highContrast, textScale)
+        KeyRow(ROW2, letterStates, removedLetters, onKey, highContrast, textScale)
         Row(
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ActionKey(label = "ENTER", onClick = onEnter)
-            KeyRow(ROW3, letterStates, removedLetters, onKey, highContrast)
-            ActionKey(label = "⌫", onClick = onDelete)
+            ActionKey(label = "ENTER", onClick = onEnter, textScale = textScale)
+            KeyRow(ROW3, letterStates, removedLetters, onKey, highContrast, textScale)
+            ActionKey(label = "⌫", onClick = onDelete, textScale = textScale)
         }
     }
 }
@@ -57,7 +58,8 @@ private fun KeyRow(
     letterStates: Map<Char, TileState>,
     removedLetters: Set<Char>,
     onKey: (Char) -> Unit,
-    highContrast: Boolean
+    highContrast: Boolean,
+    textScale: Float
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         letters.forEach { ch ->
@@ -69,7 +71,8 @@ private fun KeyRow(
                 },
                 enabled = !removedLetters.contains(ch),
                 onClick = { onKey(ch) },
-                highContrast = highContrast
+                highContrast = highContrast,
+                textScale = textScale
             )
         }
     }
@@ -81,7 +84,8 @@ private fun LetterKey(
     state: TileState,
     enabled: Boolean,
     onClick: () -> Unit,
-    highContrast: Boolean
+    highContrast: Boolean,
+    textScale: Float
 ) {
     var pressed by remember { mutableStateOf(false) }
 
@@ -105,7 +109,7 @@ private fun LetterKey(
     ) {
         Text(
             text = letter.toString(),
-            fontSize = 17.sp,
+            fontSize = (17 * textScale).sp,
             fontWeight = FontWeight.Bold,
             color = textColor.copy(alpha = alpha)
         )
@@ -113,7 +117,7 @@ private fun LetterKey(
 }
 
 @Composable
-private fun ActionKey(label: String, onClick: () -> Unit) {
+private fun ActionKey(label: String, onClick: () -> Unit, textScale: Float = 1f) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -126,7 +130,7 @@ private fun ActionKey(label: String, onClick: () -> Unit) {
     ) {
         Text(
             text = label,
-            fontSize = if (label == "ENTER") 14.sp else 20.sp,
+            fontSize = ((if (label == "ENTER") 14f else 20f) * textScale).sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )

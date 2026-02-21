@@ -55,7 +55,10 @@ class MainActivity : ComponentActivity() {
                 textScale = progress.textScaleFactor
             ) {
                 val navController = rememberNavController()
-                AppNavigation(navController = navController)
+                AppNavigation(
+                    navController = navController,
+                    hasCompletedOnboarding = progress.hasCompletedOnboarding
+                )
             }
         }
     }

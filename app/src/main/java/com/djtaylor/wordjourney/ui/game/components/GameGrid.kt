@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.TileState
 import com.djtaylor.wordjourney.ui.game.GameUiState
+import com.djtaylor.wordjourney.ui.theme.LocalTextScale
 
 @Composable
 fun GameGrid(
@@ -32,6 +33,8 @@ fun GameGrid(
         5    -> 22
         else -> 18
     }
+
+    val textScale = LocalTextScale.current
 
     // Shake animation for invalid word on active row
     val shakeOffset by animateFloatAsState(
@@ -83,7 +86,8 @@ fun GameGrid(
                         tileSize = tileSize,
                         fontSize = fontSize,
                         highContrast = highContrast,
-                        isLightTheme = isLightTheme
+                        isLightTheme = isLightTheme,
+                        textScale = textScale
                     )
                 }
             }
@@ -108,7 +112,8 @@ fun GameGrid(
                         tileSize = tileSize,
                         fontSize = fontSize,
                         highContrast = highContrast,
-                        isLightTheme = isLightTheme
+                        isLightTheme = isLightTheme,
+                        textScale = textScale
                     )
                 }
             }
@@ -129,7 +134,8 @@ fun GameGrid(
                         tileSize = tileSize,
                         fontSize = fontSize,
                         highContrast = highContrast,
-                        isLightTheme = isLightTheme
+                        isLightTheme = isLightTheme,
+                        textScale = textScale
                     )
                 }
             }

@@ -72,7 +72,7 @@ class GameViewModelTest {
         progressFlow = MutableStateFlow(progress)
 
         wordRepository = mockk {
-            coEvery { getWordForLevel(any(), any()) } returns word
+            coEvery { getWordForLevel(any(), any(), any()) } returns word
             coEvery { isValidWord(any(), any()) } returns wordValidator
             coEvery { getDefinition(any(), any()) } returns "A test definition"
             coEvery { findAbsentLetter(any(), any(), any()) } returns 'X'

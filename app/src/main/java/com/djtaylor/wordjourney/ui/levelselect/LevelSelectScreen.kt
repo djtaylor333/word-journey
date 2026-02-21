@@ -82,6 +82,7 @@ fun LevelSelectScreen(
         Difficulty.EASY    -> AccentEasy
         Difficulty.REGULAR -> AccentRegular
         Difficulty.HARD    -> AccentHard
+        Difficulty.VIP     -> CoinGold
     }
 
     // Heart shrink animation

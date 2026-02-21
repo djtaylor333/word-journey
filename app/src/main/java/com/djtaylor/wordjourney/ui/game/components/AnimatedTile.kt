@@ -34,6 +34,7 @@ fun AnimatedTile(
     fontSize: Int,
     highContrast: Boolean = false,
     isLightTheme: Boolean = false,
+    textScale: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     val isEvaluated = state in listOf(TileState.CORRECT, TileState.PRESENT, TileState.ABSENT)
@@ -92,7 +93,7 @@ fun AnimatedTile(
             Text(
                 // Hide only during the brief edge-on moment of the flip (around 90°)
                 text = if (flipAngle in 80f..100f) "" else letter.toString(),
-                fontSize = fontSize.sp,
+                fontSize = (fontSize * textScale).sp,
                 fontWeight = FontWeight.Bold,
                 color = textColor
             )

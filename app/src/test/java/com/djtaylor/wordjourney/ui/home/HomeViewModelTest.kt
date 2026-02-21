@@ -6,6 +6,7 @@ import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
+import com.djtaylor.wordjourney.domain.usecase.VipDailyRewardUseCase
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -55,6 +56,7 @@ class HomeViewModelTest {
         return HomeViewModel(
             playerRepository = playerRepository,
             lifeRegenUseCase = LifeRegenUseCase(),
+            vipDailyRewardUseCase = VipDailyRewardUseCase(),
             audioManager = audioManager
         )
     }
@@ -78,14 +80,14 @@ class HomeViewModelTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `loads progress and sets isLoading false`() = testWithVm { vm ->
+    fun `loads progress and sets isLoading false`() = testWithVm(PlayerProgress(hasReceivedNewPlayerBonus = true)) { vm ->
         val state = vm.uiState.first()
         assertFalse(state.isLoading)
     }
 
     @Test
     fun `displays correct player progress`() = testWithVm(
-        PlayerProgress(coins = 3000L, diamonds = 25, lives = 8, easyLevel = 5, regularLevel = 3, hardLevel = 2)
+        PlayerProgress(coins = 3000L, diamonds = 25, lives = 8, easyLevel = 5, regularLevel = 3, hardLevel = 2, hasReceivedNewPlayerBonus = true)
     ) { vm ->
         val state = vm.uiState.first()
         assertEquals(3000L, state.progress.coins)
@@ -99,21 +101,21 @@ class HomeViewModelTest {
 
     @Test
     fun `levelForDifficulty returns correct easy level`() = testWithVm(
-        PlayerProgress(easyLevel = 10)
+        PlayerProgress(easyLevel = 10, hasReceivedNewPlayerBonus = true)
     ) { vm ->
         assertEquals(10, vm.levelForDifficulty(Difficulty.EASY))
     }
 
     @Test
     fun `levelForDifficulty returns correct regular level`() = testWithVm(
-        PlayerProgress(regularLevel = 7)
+        PlayerProgress(regularLevel = 7, hasReceivedNewPlayerBonus = true)
     ) { vm ->
         assertEquals(7, vm.levelForDifficulty(Difficulty.REGULAR))
     }
 
     @Test
     fun `levelForDifficulty returns correct hard level`() = testWithVm(
-        PlayerProgress(hardLevel = 3)
+        PlayerProgress(hardLevel = 3, hasReceivedNewPlayerBonus = true)
     ) { vm ->
         assertEquals(3, vm.levelForDifficulty(Difficulty.HARD))
     }
@@ -124,7 +126,7 @@ class HomeViewModelTest {
 
     @Test
     fun `does not regen lives when at cap`() = testWithVm(
-        PlayerProgress(lives = 10)
+        PlayerProgress(lives = 10, hasReceivedNewPlayerBonus = true)
     ) { vm ->
         val state = vm.uiState.first()
         assertEquals(10, state.progress.lives)
@@ -135,7 +137,7 @@ class HomeViewModelTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `playButtonClick plays sound effect`() = testWithVm { vm ->
+    fun `playButtonClick plays sound effect`() = testWithVm(PlayerProgress(hasReceivedNewPlayerBonus = true)) { vm ->
         vm.playButtonClick()
         verify { audioManager.playSfx(any()) }
     }
@@ -146,11 +148,11 @@ class HomeViewModelTest {
 
     @Test
     fun `UI updates when progress flow emits new value`() = testWithVm(
-        PlayerProgress(coins = 100L)
+        PlayerProgress(coins = 100L, hasReceivedNewPlayerBonus = true)
     ) { vm ->
         assertEquals(100L, vm.uiState.first().progress.coins)
 
-        progressFlow.value = PlayerProgress(coins = 500L)
+        progressFlow.value = PlayerProgress(coins = 500L, hasReceivedNewPlayerBonus = true)
         testDispatcher.scheduler.runCurrent()
 
         assertEquals(500L, vm.uiState.first().progress.coins)
@@ -162,7 +164,7 @@ class HomeViewModelTest {
 
     @Test
     fun `first login sets streak to 1`() = testWithVm(
-        PlayerProgress(lastLoginDate = "", loginStreak = 0)
+        PlayerProgress(lastLoginDate = "", loginStreak = 0, hasReceivedNewPlayerBonus = true)
     ) { vm ->
         val state = vm.uiState.first()
         assertEquals(1, state.progress.loginStreak)
@@ -171,7 +173,7 @@ class HomeViewModelTest {
 
     @Test
     fun `same day login does not change streak`() = testWithVm(
-        PlayerProgress(
+        PlayerProgress(hasReceivedNewPlayerBonus = true,
             lastLoginDate = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE),
             loginStreak = 5
         )
@@ -182,7 +184,7 @@ class HomeViewModelTest {
 
     @Test
     fun `consecutive day login increments streak`() = testWithVm(
-        PlayerProgress(
+        PlayerProgress(hasReceivedNewPlayerBonus = true,
             lastLoginDate = java.time.LocalDate.now().minusDays(1).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE),
             loginStreak = 3
         )
@@ -194,7 +196,7 @@ class HomeViewModelTest {
 
     @Test
     fun `non-consecutive day resets streak to 1`() = testWithVm(
-        PlayerProgress(
+        PlayerProgress(hasReceivedNewPlayerBonus = true,
             lastLoginDate = java.time.LocalDate.now().minusDays(3).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE),
             loginStreak = 10
         )
@@ -206,7 +208,7 @@ class HomeViewModelTest {
 
     @Test
     fun `login streak updates loginBestStreak`() = testWithVm(
-        PlayerProgress(
+        PlayerProgress(hasReceivedNewPlayerBonus = true,
             lastLoginDate = java.time.LocalDate.now().minusDays(1).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE),
             loginStreak = 9,
             loginBestStreak = 9
@@ -223,13 +225,13 @@ class HomeViewModelTest {
 
     @Test
     fun `dailyChallengeStreak displayed from progress`() = testWithVm(
-        PlayerProgress(dailyChallengeStreak = 7)
+        PlayerProgress(dailyChallengeStreak = 7, hasReceivedNewPlayerBonus = true)
     ) { vm ->
         assertEquals(7, vm.uiState.first().dailyChallengeStreak)
     }
 
     @Test
-    fun `zero daily streak when new player`() = testWithVm { vm ->
+    fun `zero daily streak when new player`() = testWithVm(PlayerProgress(hasReceivedNewPlayerBonus = true)) { vm ->
         assertEquals(0, vm.uiState.first().dailyChallengeStreak)
     }
 
@@ -239,8 +241,86 @@ class HomeViewModelTest {
 
     @Test
     fun `showLetterItems tracked in progress`() = testWithVm(
-        PlayerProgress(showLetterItems = 3)
+        PlayerProgress(showLetterItems = 3, hasReceivedNewPlayerBonus = true)
     ) { vm ->
         assertEquals(3, vm.uiState.first().progress.showLetterItems)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 9. NEW PLAYER BONUS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `new player receives 500 coins 5 diamonds and 3 of each item`() = testWithVm(
+        PlayerProgress(hasReceivedNewPlayerBonus = false, coins = 0, diamonds = 5)
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(500L, state.progress.coins)
+        assertEquals(10, state.progress.diamonds)
+        assertEquals(3, state.progress.addGuessItems)
+        assertEquals(3, state.progress.removeLetterItems)
+        assertEquals(3, state.progress.definitionItems)
+        assertEquals(3, state.progress.showLetterItems)
+        assertTrue(state.progress.hasReceivedNewPlayerBonus)
+        assertNotNull(state.newPlayerBonusMessage)
+    }
+
+    @Test
+    fun `existing player does not get bonus again`() = testWithVm(
+        PlayerProgress(hasReceivedNewPlayerBonus = true, coins = 100, diamonds = 2)
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(100L, state.progress.coins)
+        assertEquals(2, state.progress.diamonds)
+        assertNull(state.newPlayerBonusMessage)
+    }
+
+    @Test
+    fun `new player bonus adds to existing items`() = testWithVm(
+        PlayerProgress(
+            hasReceivedNewPlayerBonus = false,
+            coins = 200,
+            diamonds = 10,
+            addGuessItems = 2,
+            removeLetterItems = 1,
+            definitionItems = 0,
+            showLetterItems = 5
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(700L, state.progress.coins) // 200 + 500
+        assertEquals(15, state.progress.diamonds) // 10 + 5
+        assertEquals(5, state.progress.addGuessItems) // 2 + 3
+        assertEquals(4, state.progress.removeLetterItems) // 1 + 3
+        assertEquals(3, state.progress.definitionItems) // 0 + 3
+        assertEquals(8, state.progress.showLetterItems) // 5 + 3
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 10. VIP DAILY REWARDS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `VIP player receives daily rewards`() = testWithVm(
+        PlayerProgress(
+            isVip = true,
+            lastVipRewardDate = "",
+            lives = 5,
+            hasReceivedNewPlayerBonus = true
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(10, state.progress.lives) // 5 + 5
+        assertNotNull(state.vipRewardsMessage)
+        assertTrue(state.progress.lastVipRewardDate.isNotEmpty())
+    }
+
+    @Test
+    fun `non-VIP player gets no VIP rewards`() = testWithVm(
+        PlayerProgress(isVip = false, lives = 5, hasReceivedNewPlayerBonus = true)
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(5, state.progress.lives)
+        assertNull(state.vipRewardsMessage)
     }
 }

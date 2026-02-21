@@ -37,9 +37,11 @@ class WordRepository @Inject constructor(
             val json = context.assets.open("valid_words.json").bufferedReader().use { it.readText() }
             val root = JSONObject(json)
             mapOf(
+                3 to parseWordSet(root, "3"),
                 4 to parseWordSet(root, "4"),
                 5 to parseWordSet(root, "5"),
-                6 to parseWordSet(root, "6")
+                6 to parseWordSet(root, "6"),
+                7 to parseWordSet(root, "7")
             )
         } catch (e: Exception) {
             android.util.Log.e("WordRepository", "Failed to load valid_words.json", e)
@@ -85,9 +87,13 @@ class WordRepository @Inject constructor(
      * Returns the target word for a given [difficulty] and [level].
      * Uses a fixed global seed so all players get the same word for the same level.
      * Returns null only if the word list is unexpectedly empty.
+     *
+     * @param wordLengthOverride If provided, uses this word length instead of the difficulty's default.
+     *                           Used for VIP difficulty which varies word length by level.
      */
-    suspend fun getWordForLevel(difficulty: Difficulty, level: Int): String? {
-        val words = getShuffledWords(difficulty.wordLength)
+    suspend fun getWordForLevel(difficulty: Difficulty, level: Int, wordLengthOverride: Int? = null): String? {
+        val length = wordLengthOverride ?: difficulty.wordLength
+        val words = getShuffledWords(length)
         if (words.isEmpty()) return null
         val index = (level - 1) % words.size
         return words[index].word

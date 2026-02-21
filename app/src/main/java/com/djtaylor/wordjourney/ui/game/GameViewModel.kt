@@ -148,10 +148,17 @@ class GameViewModel @Inject constructor(
     }
 
     private suspend fun startFreshLevel(level: Int) {
+        // For VIP difficulty, word length varies by level
+        val effectiveWordLength = if (difficulty == Difficulty.VIP) {
+            Difficulty.vipWordLengthForLevel(level)
+        } else {
+            difficulty.wordLength
+        }
+
         val word = if (isDailyChallenge) {
             dailyChallengeRepository.getDailyWord(difficulty.wordLength)
         } else {
-            wordRepository.getWordForLevel(difficulty, level)
+            wordRepository.getWordForLevel(difficulty, level, effectiveWordLength)
         }
         if (word.isNullOrEmpty()) {
             _uiState.update { s ->
@@ -811,18 +818,23 @@ class GameViewModel @Inject constructor(
         var p = playerProgress
         val newLevel = _uiState.value.level + 1
 
+        // VIP gets x2 coin rewards
+        val effectiveCoins = if (difficulty == Difficulty.VIP) coinsEarned * 2 else coinsEarned
+
         p = when (difficulty) {
             Difficulty.EASY    -> p.copy(easyLevel = newLevel)
             Difficulty.REGULAR -> p.copy(regularLevel = newLevel)
             Difficulty.HARD    -> p.copy(hardLevel = newLevel)
+            Difficulty.VIP     -> p.copy(vipLevel = newLevel)
         }
 
-        p = p.copy(coins = p.coins + coinsEarned)
+        p = p.copy(coins = p.coins + effectiveCoins)
 
         val counter = when (difficulty) {
             Difficulty.EASY    -> p.easyLevelsCompletedSinceBonusLife
             Difficulty.REGULAR -> p.regularLevelsCompletedSinceBonusLife
             Difficulty.HARD    -> p.hardLevelsCompletedSinceBonusLife
+            Difficulty.VIP     -> p.vipLevelsCompletedSinceBonusLife
         }
         val newCounter = counter + 1
         val bonusLife = newCounter >= difficulty.levelBonusThreshold
@@ -833,12 +845,14 @@ class GameViewModel @Inject constructor(
                 Difficulty.EASY    -> p.copy(easyLevelsCompletedSinceBonusLife = 0)
                 Difficulty.REGULAR -> p.copy(regularLevelsCompletedSinceBonusLife = 0)
                 Difficulty.HARD    -> p.copy(hardLevelsCompletedSinceBonusLife = 0)
+                Difficulty.VIP     -> p.copy(vipLevelsCompletedSinceBonusLife = 0)
             }
         } else {
             p = when (difficulty) {
                 Difficulty.EASY    -> p.copy(easyLevelsCompletedSinceBonusLife = newCounter)
                 Difficulty.REGULAR -> p.copy(regularLevelsCompletedSinceBonusLife = newCounter)
                 Difficulty.HARD    -> p.copy(hardLevelsCompletedSinceBonusLife = newCounter)
+                Difficulty.VIP     -> p.copy(vipLevelsCompletedSinceBonusLife = newCounter)
             }
         }
 
@@ -870,5 +884,6 @@ class GameViewModel @Inject constructor(
         Difficulty.EASY    -> easyLevel
         Difficulty.REGULAR -> regularLevel
         Difficulty.HARD    -> hardLevel
+        Difficulty.VIP     -> vipLevel
     }
 }

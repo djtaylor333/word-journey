@@ -5,8 +5,12 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,13 +20,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.djtaylor.wordjourney.domain.model.GameTheme
+import com.djtaylor.wordjourney.domain.model.ThemeCategory
+import com.djtaylor.wordjourney.domain.model.ThemeRegistry
 import com.djtaylor.wordjourney.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,6 +150,72 @@ fun SettingsScreen(
                 description = "Increase contrast for tiles and text",
                 checked = state.highContrast,
                 onCheckedChange = viewModel::setHighContrast
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // ── Themes ────────────────────────────────────────────────────────
+            SettingsSection(title = "Themes")
+
+            Text(
+                text = "Choose a visual theme for your game",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // Diamond balance
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text("💎", fontSize = 18.sp)
+                Text(
+                    "${state.diamonds} diamonds available",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DiamondCyan,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Free themes
+            ThemeCategoryLabel("🎨 Free Themes")
+            ThemeGrid(
+                themes = ThemeRegistry.FREE_THEMES,
+                selectedTheme = state.selectedTheme,
+                ownedThemes = state.ownedThemes,
+                isVip = state.isVip,
+                onSelect = { viewModel.selectTheme(it) },
+                onPurchase = { viewModel.purchaseTheme(it) }
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // VIP themes
+            ThemeCategoryLabel("👑 VIP Themes")
+            ThemeGrid(
+                themes = ThemeRegistry.VIP_THEMES,
+                selectedTheme = state.selectedTheme,
+                ownedThemes = state.ownedThemes,
+                isVip = state.isVip,
+                onSelect = { viewModel.selectTheme(it) },
+                onPurchase = { viewModel.purchaseTheme(it) }
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Seasonal themes
+            ThemeCategoryLabel("🌟 Seasonal Themes")
+            ThemeGrid(
+                themes = ThemeRegistry.SEASONAL_THEMES,
+                selectedTheme = state.selectedTheme,
+                ownedThemes = state.ownedThemes,
+                isVip = state.isVip,
+                onSelect = { viewModel.selectTheme(it) },
+                onPurchase = { viewModel.purchaseTheme(it) }
             )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -457,5 +534,133 @@ private fun SettingsSliderRow(
                 activeTrackColor = MaterialTheme.colorScheme.primary
             )
         )
+    }
+}
+
+@Composable
+private fun ThemeCategoryLabel(label: String) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(bottom = 4.dp)
+    )
+}
+
+@Composable
+private fun ThemeGrid(
+    themes: List<GameTheme>,
+    selectedTheme: String,
+    ownedThemes: Set<String>,
+    isVip: Boolean,
+    onSelect: (String) -> Unit,
+    onPurchase: (String) -> Boolean
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        themes.chunked(3).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                row.forEach { theme ->
+                    ThemeCard(
+                        theme = theme,
+                        isSelected = theme.id == selectedTheme,
+                        isOwned = theme.id in ownedThemes,
+                        isVip = isVip,
+                        modifier = Modifier.weight(1f),
+                        onSelect = { onSelect(theme.id) },
+                        onPurchase = { onPurchase(theme.id) }
+                    )
+                }
+                // Fill empty slots
+                repeat(3 - row.size) {
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeCard(
+    theme: GameTheme,
+    isSelected: Boolean,
+    isOwned: Boolean,
+    isVip: Boolean,
+    modifier: Modifier = Modifier,
+    onSelect: () -> Unit,
+    onPurchase: () -> Boolean
+) {
+    val borderColor = when {
+        isSelected -> Primary
+        isOwned -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+    }
+    val borderWidth = if (isSelected) 2.dp else 1.dp
+
+    Surface(
+        onClick = {
+            if (isOwned) onSelect()
+            else onPurchase()
+        },
+        shape = RoundedCornerShape(12.dp),
+        shadowElevation = if (isSelected) 6.dp else 2.dp,
+        modifier = modifier
+            .border(borderWidth, borderColor, RoundedCornerShape(12.dp))
+    ) {
+        Column(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            theme.backgroundDark,
+                            theme.surfaceDark
+                        )
+                    )
+                )
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Color preview tiles
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(theme.tileCorrect))
+                Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(theme.tilePresent))
+                Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(theme.tileAbsent))
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = theme.displayName,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+
+            // Status badge
+            when {
+                isSelected -> {
+                    Text("✓ Active", fontSize = 9.sp, color = Primary, fontWeight = FontWeight.Bold)
+                }
+                isOwned -> {
+                    Text("Owned", fontSize = 9.sp, color = Color.White.copy(alpha = 0.5f))
+                }
+                theme.category == ThemeCategory.VIP && !isVip -> {
+                    Text("👑 VIP", fontSize = 9.sp, color = CoinGold)
+                }
+                else -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text("💎", fontSize = 9.sp)
+                        Text("${theme.diamondCost}", fontSize = 9.sp, color = DiamondCyan, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
     }
 }

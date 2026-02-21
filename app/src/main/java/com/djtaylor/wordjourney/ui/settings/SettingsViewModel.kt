@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
+import com.djtaylor.wordjourney.domain.model.GameTheme
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
+import com.djtaylor.wordjourney.domain.model.ThemeRegistry
 import com.djtaylor.wordjourney.notifications.LivesFullNotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -25,7 +27,11 @@ data class SettingsUiState(
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.1.0"
+    val appVersion: String = "2.2.0",
+    val selectedTheme: String = "classic",
+    val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
+    val diamonds: Int = 0,
+    val isVip: Boolean = false
 )
 
 @HiltViewModel
@@ -55,7 +61,11 @@ class SettingsViewModel @Inject constructor(
                         darkMode          = progress.darkMode,
                         colorblindMode    = progress.colorblindMode,
                         textScaleFactor   = progress.textScaleFactor,
-                        playGamesSignedIn = progress.playGamesSignedIn
+                        playGamesSignedIn = progress.playGamesSignedIn,
+                        selectedTheme     = progress.selectedTheme,
+                        ownedThemes       = progress.ownedThemes.split(",").filter { it.isNotBlank() }.toSet(),
+                        diamonds          = progress.diamonds,
+                        isVip             = progress.isVip
                     )
                 }
                 // Sync audio manager with saved settings
@@ -111,6 +121,28 @@ class SettingsViewModel @Inject constructor(
     fun setColorblindMode(mode: String) = saveField { it.copy(colorblindMode = mode) }
     fun setTextScaleFactor(factor: Float) = saveField { it.copy(textScaleFactor = factor.coerceIn(0.8f, 1.5f)) }
 
+    fun selectTheme(themeId: String) {
+        val owned = _uiState.value.ownedThemes
+        if (themeId in owned) {
+            saveField { it.copy(selectedTheme = themeId) }
+        }
+    }
+
+    fun purchaseTheme(themeId: String): Boolean {
+        val theme = ThemeRegistry.getThemeById(themeId) ?: return false
+        val cost = theme.diamondCost
+        if (latestProgress.diamonds < cost) return false
+        val newOwned = _uiState.value.ownedThemes + themeId
+        saveField {
+            it.copy(
+                diamonds = it.diamonds - cost,
+                ownedThemes = newOwned.joinToString(","),
+                selectedTheme = themeId
+            )
+        }
+        return true
+    }
+
     private fun saveField(block: (PlayerProgress) -> PlayerProgress) {
         viewModelScope.launch {
             val updated = block(latestProgress)
@@ -126,7 +158,11 @@ class SettingsViewModel @Inject constructor(
                     highContrast    = updated.highContrast,
                     darkMode        = updated.darkMode,
                     colorblindMode  = updated.colorblindMode,
-                    textScaleFactor = updated.textScaleFactor
+                    textScaleFactor = updated.textScaleFactor,
+                    selectedTheme   = updated.selectedTheme,
+                    ownedThemes     = updated.ownedThemes.split(",").filter { it.isNotBlank() }.toSet(),
+                    diamonds        = updated.diamonds,
+                    isVip           = updated.isVip
                 )
             }
         }

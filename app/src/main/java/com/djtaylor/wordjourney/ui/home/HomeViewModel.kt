@@ -8,6 +8,7 @@ import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
+import com.djtaylor.wordjourney.domain.usecase.VipDailyRewardUseCase
 import com.djtaylor.wordjourney.notifications.LivesFullNotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -21,13 +22,16 @@ data class HomeUiState(
     val progress: PlayerProgress = PlayerProgress(),
     val timerDisplayMs: Long = 0L,         // ms until next life
     val isLoading: Boolean = true,
-    val dailyChallengeStreak: Int = 0
+    val dailyChallengeStreak: Int = 0,
+    val vipRewardsMessage: String? = null,
+    val newPlayerBonusMessage: String? = null
 )
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
     private val lifeRegenUseCase: LifeRegenUseCase,
+    private val vipDailyRewardUseCase: VipDailyRewardUseCase,
     private val audioManager: WordJourneysAudioManager
 ) : ViewModel() {
 
@@ -58,6 +62,45 @@ class HomeViewModel @Inject constructor(
                     progress
                 }
 
+                // ── New Player Bonus ─────────────────────────────────────
+                var newPlayerMsg: String? = null
+                if (!updated.hasReceivedNewPlayerBonus) {
+                    updated = updated.copy(
+                        coins = updated.coins + 500,
+                        diamonds = updated.diamonds + 5,
+                        addGuessItems = updated.addGuessItems + 3,
+                        removeLetterItems = updated.removeLetterItems + 3,
+                        definitionItems = updated.definitionItems + 3,
+                        showLetterItems = updated.showLetterItems + 3,
+                        hasReceivedNewPlayerBonus = true,
+                        totalCoinsEarned = updated.totalCoinsEarned + 500
+                    )
+                    playerRepository.saveProgress(updated)
+                    newPlayerMsg = "🎉 Welcome! You received 500 coins, 5 diamonds, and 3 of each item!"
+                }
+
+                // ── VIP Daily Rewards ────────────────────────────────────
+                var vipMsg: String? = null
+                if (updated.isVip) {
+                    val reward = vipDailyRewardUseCase.calculateRewards(updated.lastVipRewardDate)
+                    if (reward != null) {
+                        updated = updated.copy(
+                            lives = updated.lives + reward.livesGranted,
+                            addGuessItems = updated.addGuessItems + reward.addGuessItemsGranted,
+                            removeLetterItems = updated.removeLetterItems + reward.removeLetterItemsGranted,
+                            definitionItems = updated.definitionItems + reward.definitionItemsGranted,
+                            showLetterItems = updated.showLetterItems + reward.showLetterItemsGranted,
+                            lastVipRewardDate = reward.updatedLastRewardDate
+                        )
+                        playerRepository.saveProgress(updated)
+                        if (reward.daysAccumulated > 1) {
+                            vipMsg = "👑 VIP: ${reward.daysAccumulated} days of rewards! +${reward.livesGranted} lives, +${reward.addGuessItemsGranted + reward.removeLetterItemsGranted + reward.definitionItemsGranted + reward.showLetterItemsGranted} items"
+                        } else {
+                            vipMsg = "👑 VIP Daily: +${reward.livesGranted} lives, +${reward.addGuessItemsGranted + reward.removeLetterItemsGranted + reward.definitionItemsGranted + reward.showLetterItemsGranted} items"
+                        }
+                    }
+                }
+
                 // Track login streak
                 val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
                 if (updated.lastLoginDate != today) {
@@ -79,7 +122,9 @@ class HomeViewModel @Inject constructor(
                     it.copy(
                         progress = updated,
                         isLoading = false,
-                        dailyChallengeStreak = updated.dailyChallengeStreak
+                        dailyChallengeStreak = updated.dailyChallengeStreak,
+                        vipRewardsMessage = vipMsg,
+                        newPlayerBonusMessage = newPlayerMsg
                     )
                 }
             }
@@ -110,6 +155,7 @@ class HomeViewModel @Inject constructor(
             Difficulty.EASY    -> progress.easyLevel
             Difficulty.REGULAR -> progress.regularLevel
             Difficulty.HARD    -> progress.hardLevel
+            Difficulty.VIP     -> progress.vipLevel
         }
     }
 

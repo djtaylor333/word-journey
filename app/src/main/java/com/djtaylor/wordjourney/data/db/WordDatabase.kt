@@ -33,7 +33,7 @@ abstract class WordDatabase : RoomDatabase() {
      */
     suspend fun ensurePopulated(context: Context) {
         val dao = wordDao()
-        val total = dao.countByLength(4) + dao.countByLength(5) + dao.countByLength(6)
+        val total = dao.countByLength(3) + dao.countByLength(4) + dao.countByLength(5) + dao.countByLength(6) + dao.countByLength(7)
         if (total > 0) {
             Log.d(TAG, "Database already populated with $total words")
             return

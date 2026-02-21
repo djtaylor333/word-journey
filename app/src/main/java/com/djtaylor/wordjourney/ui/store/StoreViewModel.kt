@@ -264,6 +264,27 @@ class StoreViewModel @Inject constructor(
 
     fun dismissMessage() = _uiState.update { it.copy(message = null) }
 
+    /**
+     * Immediately activates VIP without billing — for use until Google Play billing is live.
+     * Sets VIP for 30 days.
+     */
+    fun activateVipDirect() {
+        viewModelScope.launch {
+            val current = _uiState.value.progress
+            if (current.isVip) {
+                _uiState.update { it.copy(message = "You're already a VIP member! 👑") }
+                return@launch
+            }
+            val updated = current.copy(
+                isVip = true,
+                vipExpiryTimestamp = System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000
+            )
+            playerRepository.saveProgress(updated)
+            audioManager.playSfx(SfxSound.COIN_EARN)
+            _uiState.update { it.copy(message = "👑 VIP activated for 30 days! Enjoy +5 lives & items daily!") }
+        }
+    }
+
     fun getPriceLabel(productId: String) = billingManager.getPriceLabel(productId)
 
     private fun buildGrantMessage(coins: Long, diamonds: Int, lives: Int): String {
