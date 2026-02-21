@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.db.StarRatingDao
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -27,6 +28,8 @@ data class LevelSelectUiState(
     val isLoading: Boolean = true,
     val showNoLivesDialog: Boolean = false,
     val lifeDeducted: Boolean = false, // triggers heart animation
+    val starRatings: Map<Int, Int> = emptyMap(), // level -> stars (1-3)
+    val totalStars: Int = 0
 )
 
 @HiltViewModel
@@ -34,7 +37,8 @@ class LevelSelectViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val playerRepository: PlayerRepository,
     private val lifeRegenUseCase: LifeRegenUseCase,
-    private val audioManager: WordJourneysAudioManager
+    private val audioManager: WordJourneysAudioManager,
+    private val starRatingDao: StarRatingDao
 ) : ViewModel() {
 
     private val difficultyKey: String = checkNotNull(savedStateHandle["difficulty"])
@@ -46,7 +50,17 @@ class LevelSelectViewModel @Inject constructor(
 
     init {
         loadProgress()
+        loadStarRatings()
         startTimerTick()
+    }
+
+    private fun loadStarRatings() {
+        viewModelScope.launch {
+            val ratings = starRatingDao.getAllForDifficulty(difficultyKey)
+            val map = ratings.associate { it.level to it.stars }
+            val total = ratings.sumOf { it.stars }
+            _uiState.update { it.copy(starRatings = map, totalStars = total) }
+        }
     }
 
     private fun loadProgress() {

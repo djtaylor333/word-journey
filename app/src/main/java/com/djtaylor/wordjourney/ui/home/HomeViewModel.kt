@@ -13,12 +13,15 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 data class HomeUiState(
     val progress: PlayerProgress = PlayerProgress(),
     val timerDisplayMs: Long = 0L,         // ms until next life
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val dailyChallengeStreak: Int = 0
 )
 
 @HiltViewModel
@@ -44,7 +47,7 @@ class HomeViewModel @Inject constructor(
                     progress.lives,
                     progress.lastLifeRegenTimestamp
                 )
-                val updated = if (regen.livesAdded > 0) {
+                var updated = if (regen.livesAdded > 0) {
                     val p = progress.copy(
                         lives = regen.updatedLives,
                         lastLifeRegenTimestamp = regen.updatedTimestamp
@@ -54,7 +57,31 @@ class HomeViewModel @Inject constructor(
                 } else {
                     progress
                 }
-                _uiState.update { it.copy(progress = updated, isLoading = false) }
+
+                // Track login streak
+                val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                if (updated.lastLoginDate != today) {
+                    val yesterday = LocalDate.now().minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)
+                    val newLoginStreak = if (updated.lastLoginDate == yesterday) {
+                        updated.loginStreak + 1
+                    } else {
+                        1
+                    }
+                    updated = updated.copy(
+                        lastLoginDate = today,
+                        loginStreak = newLoginStreak,
+                        loginBestStreak = maxOf(updated.loginBestStreak, newLoginStreak)
+                    )
+                    playerRepository.saveProgress(updated)
+                }
+
+                _uiState.update {
+                    it.copy(
+                        progress = updated,
+                        isLoading = false,
+                        dailyChallengeStreak = updated.dailyChallengeStreak
+                    )
+                }
             }
         }
     }

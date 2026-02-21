@@ -20,12 +20,15 @@ data class GameUiState(
     val showWinDialog: Boolean = false,
     val showNeedMoreGuessesDialog: Boolean = false,
     val showNoLivesDialog: Boolean = false,
+    val showDailyLossDialog: Boolean = false,
+    val dailyLossWord: String = "",
 
     // Win screen data
     val winCoinEarned: Long = 0L,
     val winDefinition: String = "",
     val winWord: String = "",            // word revealed only on win
     val bonusLifeEarned: Boolean = false,
+    val starsEarned: Int = 0,            // 1-3 stars awarded on win
 
     // Player resources displayed in toolbar
     val lives: Int = 10,
@@ -36,9 +39,13 @@ data class GameUiState(
     val addGuessItems: Int = 0,
     val removeLetterItems: Int = 0,
     val definitionItems: Int = 0,
+    val showLetterItems: Int = 0,
 
     // Eliminated letters by "Remove a Letter" item
     val removedLetters: Set<Char> = emptySet(),
+
+    // Revealed letters by "Show Letter" item: position -> correct char
+    val revealedLetters: Map<Int, Char> = emptyMap(),
 
     // Shake animation trigger (resets to false automatically)
     val shakeCurrentRow: Boolean = false,
@@ -51,6 +58,9 @@ data class GameUiState(
 
     // Replay mode — replaying a completed level (no life cost, no rewards)
     val isReplay: Boolean = false,
+
+    // Daily challenge mode
+    val isDailyChallenge: Boolean = false,
 
     // Definition item
     val definitionHint: String? = null,

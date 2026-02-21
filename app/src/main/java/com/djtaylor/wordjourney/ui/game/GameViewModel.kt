@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.db.StarRatingDao
+import com.djtaylor.wordjourney.data.db.StarRatingEntity
+import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.data.repository.WordRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
@@ -29,11 +32,22 @@ class GameViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
     private val evaluateGuess: EvaluateGuessUseCase,
     private val lifeRegenUseCase: LifeRegenUseCase,
-    private val audioManager: WordJourneysAudioManager
+    private val audioManager: WordJourneysAudioManager,
+    private val starRatingDao: StarRatingDao,
+    private val dailyChallengeRepository: DailyChallengeRepository
 ) : ViewModel() {
 
     private val difficultyKey: String = checkNotNull(savedStateHandle["difficulty"])
-    private val difficulty: Difficulty = Difficulty.entries.first { it.saveKey == difficultyKey }
+    private val isDailyChallenge: Boolean = difficultyKey.startsWith("daily")
+    private val difficulty: Difficulty = if (isDailyChallenge) {
+        when (difficultyKey.substringAfter("_").toIntOrNull()) {
+            4 -> Difficulty.EASY
+            6 -> Difficulty.HARD
+            else -> Difficulty.REGULAR
+        }
+    } else {
+        Difficulty.entries.first { it.saveKey == difficultyKey }
+    }
     private val levelArg: Int = savedStateHandle["level"] ?: 1
 
     /** Pure game engine — all game logic is tested via GameEngineTest */
@@ -65,7 +79,8 @@ class GameViewModel @Inject constructor(
                         diamonds = progress.diamonds,
                         addGuessItems = progress.addGuessItems,
                         removeLetterItems = progress.removeLetterItems,
-                        definitionItems = progress.definitionItems
+                        definitionItems = progress.definitionItems,
+                        showLetterItems = progress.showLetterItems
                     )
                 }
             }
@@ -89,21 +104,37 @@ class GameViewModel @Inject constructor(
             }
 
             // Determine if this is a replay of a completed level
-            val currentLevel = playerProgress.levelFor(difficulty)
-            isReplay = levelArg < currentLevel
-
-            // Try to restore in-progress game (only for current level, not replays)
-            val saved = if (!isReplay) playerRepository.loadInProgressGame(difficulty) else null
-            if (saved != null && saved.level == levelArg) {
-                try {
-                    restoreFromSave(saved)
-                } catch (restoreEx: Exception) {
-                    android.util.Log.e(TAG, "Failed to restore saved game, starting fresh", restoreEx)
-                    playerRepository.clearInProgressGame(difficulty)
+            if (isDailyChallenge) {
+                isReplay = false
+                val saved = playerRepository.loadInProgressGame(difficultyKey)
+                if (saved != null) {
+                    try {
+                        restoreFromSave(saved)
+                    } catch (restoreEx: Exception) {
+                        android.util.Log.e(TAG, "Failed to restore saved game, starting fresh", restoreEx)
+                        playerRepository.clearInProgressGame(difficultyKey)
+                        startFreshLevel(levelArg)
+                    }
+                } else {
                     startFreshLevel(levelArg)
                 }
             } else {
-                startFreshLevel(levelArg)
+                val currentLevel = playerProgress.levelFor(difficulty)
+                isReplay = levelArg < currentLevel
+
+                // Try to restore in-progress game (only for current level, not replays)
+                val saved = if (!isReplay) playerRepository.loadInProgressGame(difficulty) else null
+                if (saved != null && saved.level == levelArg) {
+                    try {
+                        restoreFromSave(saved)
+                    } catch (restoreEx: Exception) {
+                        android.util.Log.e(TAG, "Failed to restore saved game, starting fresh", restoreEx)
+                        playerRepository.clearInProgressGame(difficulty)
+                        startFreshLevel(levelArg)
+                    }
+                } else {
+                    startFreshLevel(levelArg)
+                }
             }
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to initialize game", e)
@@ -117,7 +148,11 @@ class GameViewModel @Inject constructor(
     }
 
     private suspend fun startFreshLevel(level: Int) {
-        val word = wordRepository.getWordForLevel(difficulty, level)
+        val word = if (isDailyChallenge) {
+            dailyChallengeRepository.getDailyWord(difficulty.wordLength)
+        } else {
+            wordRepository.getWordForLevel(difficulty, level)
+        }
         if (word.isNullOrEmpty()) {
             _uiState.update { s ->
                 s.copy(
@@ -139,7 +174,7 @@ class GameViewModel @Inject constructor(
         // For replay mode, auto-load definition so player can always view it
         var defHint: String? = null
         var defUsed = false
-        if (isReplay) {
+        if (isReplay && !isDailyChallenge) {
             val definition = wordRepository.getDefinition(difficulty, level)
             if (definition.isNotBlank()) {
                 defHint = definition
@@ -155,6 +190,7 @@ class GameViewModel @Inject constructor(
                 maxGuesses = difficulty.maxGuesses,
                 letterStates = emptyMap(),
                 removedLetters = emptySet(),
+                revealedLetters = emptyMap(),
                 status = GameStatus.IN_PROGRESS,
                 showWinDialog = false,
                 showNeedMoreGuessesDialog = false,
@@ -165,11 +201,14 @@ class GameViewModel @Inject constructor(
                 addGuessItems = playerProgress.addGuessItems,
                 removeLetterItems = playerProgress.removeLetterItems,
                 definitionItems = playerProgress.definitionItems,
+                showLetterItems = playerProgress.showLetterItems,
                 isLoading = false,
                 isReplay = isReplay,
+                isDailyChallenge = isDailyChallenge,
                 definitionHint = defHint,
                 showDefinitionDialog = false,
-                definitionUsedThisLevel = defUsed
+                definitionUsedThisLevel = defUsed,
+                starsEarned = 0
             )
         }
         if (!isReplay) persistCurrentState()
@@ -202,7 +241,9 @@ class GameViewModel @Inject constructor(
                 addGuessItems = playerProgress.addGuessItems,
                 removeLetterItems = playerProgress.removeLetterItems,
                 definitionItems = playerProgress.definitionItems,
-                isLoading = false
+                showLetterItems = playerProgress.showLetterItems,
+                isLoading = false,
+                isDailyChallenge = isDailyChallenge
             )
         }
     }
@@ -265,9 +306,17 @@ class GameViewModel @Inject constructor(
     private suspend fun handleWin() {
         val e = engine ?: return
         val level = _uiState.value.level
-        val definition = wordRepository.getDefinition(difficulty, level)
+        val definition = if (isDailyChallenge) "" else wordRepository.getDefinition(difficulty, level)
         val targetWord = e.guesses.last()
             .joinToString("") { it.first.toString() } // reconstruct from last guess (all CORRECT)
+        val guessCount = e.guesses.size
+
+        // Calculate stars: 3★ = 1-2 guesses, 2★ = 3-4 guesses, 1★ = 5+ guesses
+        val stars = when {
+            guessCount <= 2 -> 3
+            guessCount <= 4 -> 2
+            else -> 1
+        }
 
         if (isReplay) {
             audioManager.playSfx(SfxSound.WIN)
@@ -279,9 +328,71 @@ class GameViewModel @Inject constructor(
                     winDefinition = definition,
                     winWord = targetWord,
                     bonusLifeEarned = false,
-                    isReplay = true
+                    isReplay = true,
+                    starsEarned = stars
                 )
             }
+            // Still save star rating if better
+            val existing = starRatingDao.get(difficultyKey, level)
+            if (existing == null || stars > existing.stars) {
+                starRatingDao.upsert(
+                    StarRatingEntity(
+                        id = existing?.id ?: 0,
+                        difficultyKey = difficultyKey,
+                        level = level,
+                        stars = stars,
+                        guessCount = guessCount
+                    )
+                )
+            }
+        } else if (isDailyChallenge) {
+            val coinsEarned = 150L + (e.remainingGuesses * 15L)
+            audioManager.playSfx(SfxSound.WIN)
+            audioManager.playSfx(SfxSound.COIN_EARN)
+
+            // Save daily challenge result
+            dailyChallengeRepository.saveResult(
+                wordLength = difficulty.wordLength,
+                word = targetWord,
+                guessCount = guessCount,
+                won = true,
+                stars = stars
+            )
+
+            // Update streak
+            var p = playerProgress
+            val today = dailyChallengeRepository.todayDateString()
+            p = p.copy(
+                coins = p.coins + coinsEarned,
+                totalCoinsEarned = p.totalCoinsEarned + coinsEarned,
+                totalWins = p.totalWins + 1,
+                totalGuesses = p.totalGuesses + guessCount,
+                totalDailyChallengesCompleted = p.totalDailyChallengesCompleted + 1,
+                dailyChallengeLastDate = today,
+                dailyChallengeStreak = p.dailyChallengeStreak + 1,
+                dailyChallengeBestStreak = maxOf(p.dailyChallengeBestStreak, p.dailyChallengeStreak + 1)
+            )
+            // Apply streak rewards
+            p = applyStreakRewards(p, p.dailyChallengeStreak)
+            playerProgress = p
+            playerRepository.saveProgress(p)
+
+            _uiState.update { s ->
+                s.copy(
+                    status = GameStatus.WON,
+                    showWinDialog = true,
+                    winCoinEarned = coinsEarned,
+                    winDefinition = "",
+                    winWord = targetWord,
+                    bonusLifeEarned = false,
+                    starsEarned = stars,
+                    lives = p.lives,
+                    coins = p.coins,
+                    diamonds = p.diamonds,
+                    isDailyChallenge = true
+                )
+            }
+            playerRepository.clearInProgressGame("daily")
         } else {
             val remaining = e.remainingGuesses
             val coinsEarned = 100L + (remaining * 10L)
@@ -289,6 +400,31 @@ class GameViewModel @Inject constructor(
 
             audioManager.playSfx(SfxSound.WIN)
             audioManager.playSfx(SfxSound.COIN_EARN)
+
+            // Save star rating
+            val existing = starRatingDao.get(difficultyKey, level)
+            if (existing == null || stars > existing.stars) {
+                starRatingDao.upsert(
+                    StarRatingEntity(
+                        id = existing?.id ?: 0,
+                        difficultyKey = difficultyKey,
+                        level = level,
+                        stars = stars,
+                        guessCount = guessCount
+                    )
+                )
+            }
+
+            // Update cumulative stats
+            var p = updatedProgress
+            p = p.copy(
+                totalCoinsEarned = p.totalCoinsEarned + coinsEarned,
+                totalLevelsCompleted = p.totalLevelsCompleted + 1,
+                totalWins = p.totalWins + 1,
+                totalGuesses = p.totalGuesses + guessCount
+            )
+            playerProgress = p
+            playerRepository.saveProgress(p)
 
             _uiState.update { s ->
                 s.copy(
@@ -298,29 +434,70 @@ class GameViewModel @Inject constructor(
                     winDefinition = definition,
                     winWord = targetWord,
                     bonusLifeEarned = bonusLife,
-                    lives = updatedProgress.lives,
-                    coins = updatedProgress.coins,
-                    diamonds = updatedProgress.diamonds
+                    starsEarned = stars,
+                    lives = p.lives,
+                    coins = p.coins,
+                    diamonds = p.diamonds
                 )
             }
             playerRepository.clearInProgressGame(difficulty)
         }
     }
 
+    /** Apply streak rewards at specific milestones */
+    private fun applyStreakRewards(progress: PlayerProgress, streak: Int): PlayerProgress {
+        var p = progress
+        when (streak) {
+            3  -> p = p.copy(coins = p.coins + 100, totalCoinsEarned = p.totalCoinsEarned + 100)
+            7  -> p = p.copy(coins = p.coins + 500, diamonds = p.diamonds + 1, totalCoinsEarned = p.totalCoinsEarned + 500)
+            14 -> p = p.copy(coins = p.coins + 1000, diamonds = p.diamonds + 3, totalCoinsEarned = p.totalCoinsEarned + 1000)
+            30 -> p = p.copy(coins = p.coins + 2000, diamonds = p.diamonds + 5, lives = p.lives + 1, totalCoinsEarned = p.totalCoinsEarned + 2000)
+        }
+        return p
+    }
+
     private fun handleOutOfGuesses() {
         audioManager.playSfx(SfxSound.LEVEL_FAIL)
-        val progress = playerProgress
-        if (progress.lives > 0) {
+        val e = engine ?: return
+
+        if (isDailyChallenge) {
+            // Daily challenge: no second chances — save loss
+            viewModelScope.launch {
+                dailyChallengeRepository.saveResult(
+                    wordLength = difficulty.wordLength,
+                    word = _targetWordCache,
+                    guessCount = e.guesses.size,
+                    won = false,
+                    stars = 0
+                )
+                // Reset daily challenge streak
+                val p = playerProgress.copy(
+                    dailyChallengeStreak = 0,
+                    totalGuesses = playerProgress.totalGuesses + e.guesses.size
+                )
+                playerProgress = p
+                playerRepository.saveProgress(p)
+                playerRepository.clearInProgressGame(difficultyKey)
+            }
             _uiState.update { it.copy(
-                status = GameStatus.WAITING_FOR_LIFE,
-                showNeedMoreGuessesDialog = true
+                status = GameStatus.LOST,
+                showDailyLossDialog = true,
+                dailyLossWord = _targetWordCache
             )}
         } else {
-            audioManager.playSfx(SfxSound.NO_LIVES)
-            _uiState.update { it.copy(
-                status = GameStatus.WAITING_FOR_LIFE,
-                showNoLivesDialog = true
-            )}
+            val progress = playerProgress
+            if (progress.lives > 0) {
+                _uiState.update { it.copy(
+                    status = GameStatus.WAITING_FOR_LIFE,
+                    showNeedMoreGuessesDialog = true
+                )}
+            } else {
+                audioManager.playSfx(SfxSound.NO_LIVES)
+                _uiState.update { it.copy(
+                    status = GameStatus.WAITING_FOR_LIFE,
+                    showNoLivesDialog = true
+                )}
+            }
         }
     }
 
@@ -398,7 +575,10 @@ class GameViewModel @Inject constructor(
         val progress = playerProgress
         if (progress.addGuessItems > 0) {
             audioManager.playSfx(SfxSound.BUTTON_CLICK)
-            val updated = progress.copy(addGuessItems = progress.addGuessItems - 1)
+            val updated = progress.copy(
+                addGuessItems = progress.addGuessItems - 1,
+                totalItemsUsed = progress.totalItemsUsed + 1
+            )
             playerProgress = updated
             viewModelScope.launch { playerRepository.saveProgress(updated) }
             e.addBonusGuesses(1)
@@ -482,6 +662,73 @@ class GameViewModel @Inject constructor(
     /** Returns (difficultyKey, nextLevel) for navigation. */
     fun getNextLevelRoute(): Pair<String, Int> {
         return Pair(difficultyKey, _uiState.value.level + 1)
+    }
+
+    // ── Show Letter item ──────────────────────────────────────────────────────
+    fun useShowLetterItem() {
+        val e = engine ?: return
+        val target = _targetWordCache
+        if (target.isEmpty()) return
+
+        // Find positions not yet correctly known
+        val revealed = _uiState.value.revealedLetters
+        val correctPositions = mutableSetOf<Int>()
+        // Check from existing guesses which positions are CORRECT
+        for (guess in e.guesses) {
+            for ((idx, pair) in guess.withIndex()) {
+                if (pair.second == TileState.CORRECT) correctPositions.add(idx)
+            }
+        }
+        // Also exclude positions we've already revealed via item
+        val availablePositions = (target.indices).filter { it !in correctPositions && it !in revealed }
+        if (availablePositions.isEmpty()) {
+            _uiState.update { it.copy(snackbarMessage = "All letters already revealed!") }
+            return
+        }
+
+        val progress = playerProgress
+        if (progress.showLetterItems > 0) {
+            audioManager.playSfx(SfxSound.ITEM_USE)
+            val updated = progress.copy(
+                showLetterItems = progress.showLetterItems - 1,
+                totalItemsUsed = progress.totalItemsUsed + 1
+            )
+            playerProgress = updated
+            viewModelScope.launch { playerRepository.saveProgress(updated) }
+
+            val pos = availablePositions.random()
+            val newRevealed = revealed + (pos to target[pos])
+            _uiState.update { s ->
+                s.copy(
+                    revealedLetters = newRevealed,
+                    showLetterItems = updated.showLetterItems,
+                    snackbarMessage = "Position ${pos + 1} is '${target[pos]}'"
+                )
+            }
+        } else {
+            val coinCost = 250L
+            if (progress.coins < coinCost) {
+                _uiState.update { it.copy(snackbarMessage = "Need 250 coins or buy from Store") }
+                return
+            }
+            audioManager.playSfx(SfxSound.COIN_EARN)
+            val updated = progress.copy(
+                coins = progress.coins - coinCost,
+                totalItemsUsed = progress.totalItemsUsed + 1
+            )
+            playerProgress = updated
+            viewModelScope.launch { playerRepository.saveProgress(updated) }
+
+            val pos = availablePositions.random()
+            val newRevealed = revealed + (pos to target[pos])
+            _uiState.update { s ->
+                s.copy(
+                    revealedLetters = newRevealed,
+                    coins = updated.coins,
+                    snackbarMessage = "Position ${pos + 1} is '${target[pos]}'"
+                )
+            }
+        }
     }
 
     // ── Definition item ───────────────────────────────────────────────────────

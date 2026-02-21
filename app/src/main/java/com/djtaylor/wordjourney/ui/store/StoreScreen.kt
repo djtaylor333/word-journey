@@ -130,6 +130,7 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
                     InventoryChip("➕", "Add Guess", uiState.progress.addGuessItems)
                     InventoryChip("🚫", "Remove Letter", uiState.progress.removeLetterItems)
                     InventoryChip("📖", "Definition", uiState.progress.definitionItems)
+                    InventoryChip("💡", "Show Letter", uiState.progress.showLetterItems)
                 }
             }
         }
@@ -165,6 +166,16 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             ownedCount = uiState.progress.definitionItems,
             enabled = uiState.progress.coins >= 300,
             onBuy = { viewModel.buyDefinitionItem() }
+        )
+        StoreCard(
+            emoji = "💡",
+            title = "Show Letter",
+            description = "Reveal one correct letter position in the word",
+            costLabel = "250 coins",
+            costColor = CoinGold,
+            ownedCount = uiState.progress.showLetterItems,
+            enabled = uiState.progress.coins >= 250,
+            onBuy = { viewModel.buyShowLetterItem() }
         )
     }
 }

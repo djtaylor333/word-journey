@@ -143,6 +143,23 @@ class StoreViewModel @Inject constructor(
         }
     }
 
+    fun buyShowLetterItem() {
+        val progress = _uiState.value.progress
+        if (progress.coins < 250) {
+            _uiState.update { it.copy(message = "Need 250 coins.") }
+            return
+        }
+        audioManager.playSfx(SfxSound.COIN_EARN)
+        viewModelScope.launch {
+            val updated = progress.copy(
+                coins = progress.coins - 250,
+                showLetterItems = progress.showLetterItems + 1
+            )
+            playerRepository.saveProgress(updated)
+            _uiState.update { it.copy(message = "✅ +1 Show Letter item! (${updated.showLetterItems} owned)") }
+        }
+    }
+
     fun dismissMessage() = _uiState.update { it.copy(message = null) }
 
     fun getPriceLabel(productId: String) = billingManager.getPriceLabel(productId)

@@ -8,10 +8,12 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.djtaylor.wordjourney.ui.dailychallenge.DailyChallengeScreen
 import com.djtaylor.wordjourney.ui.game.GameScreen
 import com.djtaylor.wordjourney.ui.home.HomeScreen
 import com.djtaylor.wordjourney.ui.levelselect.LevelSelectScreen
 import com.djtaylor.wordjourney.ui.settings.SettingsScreen
+import com.djtaylor.wordjourney.ui.statistics.StatisticsScreen
 import com.djtaylor.wordjourney.ui.store.StoreScreen
 
 private const val ANIM_MS = 350
@@ -31,8 +33,10 @@ fun AppNavigation(navController: NavHostController) {
                 onNavigateToLevelSelect = { difficulty ->
                     navController.navigate(Screen.LevelSelect.route(difficulty))
                 },
-                onNavigateToStore   = { navController.navigate(Screen.Store.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToStore    = { navController.navigate(Screen.Store.route) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToDailyChallenge = { navController.navigate(Screen.DailyChallenge.route) },
+                onNavigateToStatistics = { navController.navigate(Screen.Statistics.route) }
             )
         }
 
@@ -65,15 +69,34 @@ fun AppNavigation(navController: NavHostController) {
                 difficultyKey    = difficultyKey,
                 levelArg         = level,
                 onNavigateHome   = {
-                    navController.popBackStack(Screen.Home.route, inclusive = false)
+                    if (difficultyKey.startsWith("daily")) {
+                        navController.popBackStack()
+                    } else {
+                        navController.popBackStack(Screen.Home.route, inclusive = false)
+                    }
                 },
                 onNavigateToStore = { navController.navigate(Screen.Store.route) },
                 onNavigateToNextLevel = { diff, nextLevel ->
                     navController.navigate(Screen.Game.route(diff, nextLevel)) {
-                        // Pop current game screen so pressing back goes to level select, not the old level
                         popUpTo("level_select/{difficulty}") { inclusive = false }
                     }
                 }
+            )
+        }
+
+        composable(Screen.DailyChallenge.route) {
+            DailyChallengeScreen(
+                onNavigateToGame = { wordLength ->
+                    val dailyKey = "daily_$wordLength"
+                    navController.navigate(Screen.Game.route(dailyKey, 1))
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Statistics.route) {
+            StatisticsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
 

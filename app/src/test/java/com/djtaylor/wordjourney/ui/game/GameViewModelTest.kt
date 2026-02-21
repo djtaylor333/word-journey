@@ -2,6 +2,9 @@ package com.djtaylor.wordjourney.ui.game
 
 import androidx.lifecycle.SavedStateHandle
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.db.StarRatingDao
+import com.djtaylor.wordjourney.data.db.StarRatingEntity
+import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.data.repository.WordRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
@@ -43,6 +46,8 @@ class GameViewModelTest {
     private lateinit var wordRepository: WordRepository
     private lateinit var playerRepository: PlayerRepository
     private lateinit var audioManager: WordJourneysAudioManager
+    private lateinit var starRatingDao: StarRatingDao
+    private lateinit var dailyChallengeRepository: DailyChallengeRepository
 
     @Before
     fun setUp() {
@@ -77,12 +82,35 @@ class GameViewModelTest {
             every { playerProgressFlow } returns progressFlow
             every { isFirstLaunch } returns MutableStateFlow(false)
             coEvery { saveProgress(any()) } just Runs
-            coEvery { loadInProgressGame(any()) } returns savedGame
+            coEvery { loadInProgressGame(any<Difficulty>()) } returns savedGame
+            coEvery { loadInProgressGame(any<String>()) } returns savedGame
             coEvery { saveInProgressGame(any()) } just Runs
-            coEvery { clearInProgressGame(any()) } just Runs
+            coEvery { clearInProgressGame(any<Difficulty>()) } just Runs
+            coEvery { clearInProgressGame(any<String>()) } just Runs
         }
 
         audioManager = mockk(relaxed = true)
+
+        starRatingDao = mockk {
+            coEvery { upsert(any()) } just Runs
+            coEvery { get(any(), any()) } returns null
+            coEvery { getAllForDifficulty(any()) } returns emptyList()
+            coEvery { totalStarsForDifficulty(any()) } returns 0
+            coEvery { totalStars() } returns 0
+            coEvery { countPerfectLevels() } returns 0
+        }
+
+        dailyChallengeRepository = mockk {
+            coEvery { getDailyWord(any(), any()) } returns (word ?: "QUIZ")
+            coEvery { getDailyWord(any()) } returns (word ?: "QUIZ")
+            coEvery { hasPlayedToday(any()) } returns false
+            coEvery { saveResult(any(), any(), any(), any(), any(), any()) } just Runs
+            coEvery { saveResult(any(), any(), any(), any(), any()) } just Runs
+            coEvery { getResultsForToday() } returns emptyList()
+            coEvery { totalWins() } returns 0
+            coEvery { totalPlayed() } returns 0
+            coEvery { todayDateString() } returns "2026-02-21"
+        }
 
         return GameViewModel(
             savedStateHandle = SavedStateHandle(mapOf("difficulty" to difficulty, "level" to level)),
@@ -90,7 +118,9 @@ class GameViewModelTest {
             playerRepository = playerRepository,
             evaluateGuess = EvaluateGuessUseCase(),
             lifeRegenUseCase = LifeRegenUseCase(),
-            audioManager = audioManager
+            audioManager = audioManager,
+            starRatingDao = starRatingDao,
+            dailyChallengeRepository = dailyChallengeRepository
         )
     }
 
@@ -161,7 +191,8 @@ class GameViewModelTest {
     fun `exception during init still sets isLoading false`() = runTest {
         // Force loadInProgressGame to throw
         val vm = createViewModel()
-        coEvery { playerRepository.loadInProgressGame(any()) } throws RuntimeException("DB crashed")
+        coEvery { playerRepository.loadInProgressGame(any<Difficulty>()) } throws RuntimeException("DB crashed")
+        coEvery { playerRepository.loadInProgressGame(any<String>()) } throws RuntimeException("DB crashed")
         // The init already launched, let it run
         awaitInit(vm)
 
@@ -209,7 +240,7 @@ class GameViewModelTest {
         assertFalse("Should recover from corrupted save", state.isLoading)
         assertEquals(GameStatus.IN_PROGRESS, state.status)
         // Should have cleared the corrupted save
-        coVerify { playerRepository.clearInProgressGame(any()) }
+        coVerify { playerRepository.clearInProgressGame(any<Difficulty>()) }
     }
 
     @Test
@@ -678,7 +709,7 @@ class GameViewModelTest {
         vm.onSubmit()
         awaitInit(vm)
 
-        coVerify { playerRepository.clearInProgressGame(any()) }
+        coVerify { playerRepository.clearInProgressGame(any<Difficulty>()) }
     }
 
     @Test
@@ -1131,5 +1162,585 @@ class GameViewModelTest {
         awaitInit(vm)
         assertTrue(vm.uiState.first().showDefinitionDialog)
         assertEquals(1, vm.uiState.first().definitionItems) // still 1 (re-view)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 18. STAR RATINGS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `win on first guess awards 3 stars`() = runTest {
+        val vm = createViewModel(word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertEquals(GameStatus.WON, state.status)
+        assertEquals(3, state.starsEarned)
+    }
+
+    @Test
+    fun `win on second guess awards 3 stars`() = runTest {
+        val vm = createViewModel(word = "ABLE")
+        awaitInit(vm)
+
+        "DARK".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        assertEquals(3, vm.uiState.first().starsEarned)
+    }
+
+    @Test
+    fun `win on third guess awards 2 stars`() = runTest {
+        val vm = createViewModel(word = "ABLE")
+        awaitInit(vm)
+
+        repeat(2) {
+            "DARK".forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        assertEquals(2, vm.uiState.first().starsEarned)
+    }
+
+    @Test
+    fun `win on fourth guess awards 2 stars`() = runTest {
+        val vm = createViewModel(word = "ABLE")
+        awaitInit(vm)
+
+        repeat(3) {
+            "DARK".forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        assertEquals(2, vm.uiState.first().starsEarned)
+    }
+
+    @Test
+    fun `win on fifth guess awards 1 star`() = runTest {
+        val vm = createViewModel(word = "ABLE")
+        awaitInit(vm)
+
+        repeat(4) {
+            "DARK".forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        assertEquals(1, vm.uiState.first().starsEarned)
+    }
+
+    @Test
+    fun `win on sixth guess awards 1 star`() = runTest {
+        val vm = createViewModel(word = "ABLE")
+        awaitInit(vm)
+
+        repeat(5) {
+            "DARK".forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        assertEquals(1, vm.uiState.first().starsEarned)
+    }
+
+    @Test
+    fun `star rating saved to dao on win`() = runTest {
+        val vm = createViewModel(word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { starRatingDao.upsert(match { it.stars == 3 && it.difficultyKey == "easy" && it.level == 1 }) }
+    }
+
+    @Test
+    fun `replay win also saves star rating`() = runTest {
+        val progress = PlayerProgress(easyLevel = 5)
+        val vm = createViewModel(level = 3, progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        assertEquals(3, vm.uiState.first().starsEarned)
+        coVerify { starRatingDao.upsert(any()) }
+    }
+
+    @Test
+    fun `better star rating replaces existing`() = runTest {
+        val vm = createViewModel(word = "ABLE")
+        // Override mock after creation (starRatingDao already initialized)
+        coEvery { starRatingDao.get("easy", 1) } returns StarRatingEntity(
+            id = 1, difficultyKey = "easy", level = 1, stars = 1, guessCount = 5
+        )
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // Should upsert with 3 stars (first guess)
+        coVerify { starRatingDao.upsert(match { it.stars == 3 }) }
+    }
+
+    @Test
+    fun `worse star rating does not overwrite`() = runTest {
+        val vm = createViewModel(word = "ABLE")
+        // Override mock after creation
+        coEvery { starRatingDao.get("easy", 1) } returns StarRatingEntity(
+            id = 1, difficultyKey = "easy", level = 1, stars = 3, guessCount = 1
+        )
+        awaitInit(vm)
+
+        repeat(4) {
+            "DARK".forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // 5th guess = 1 star, should NOT overwrite existing 3 stars
+        coVerify(exactly = 0) { starRatingDao.upsert(match { it.stars < 3 }) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 19. SHOW LETTER ITEM
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `useShowLetterItem reveals a letter with inventory`() = runTest {
+        val progress = PlayerProgress(showLetterItems = 2)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        vm.useShowLetterItem()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertTrue(state.revealedLetters.isNotEmpty())
+        assertEquals(1, state.showLetterItems) // decremented
+        assertNotNull(state.snackbarMessage) // position hint message
+    }
+
+    @Test
+    fun `useShowLetterItem uses coins when no inventory`() = runTest {
+        val progress = PlayerProgress(showLetterItems = 0, coins = 500L)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        vm.useShowLetterItem()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertTrue(state.revealedLetters.isNotEmpty())
+        assertEquals(250L, state.coins) // 500 - 250
+    }
+
+    @Test
+    fun `useShowLetterItem fails with no coins and no inventory`() = runTest {
+        val progress = PlayerProgress(showLetterItems = 0, coins = 100L)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        vm.useShowLetterItem()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertTrue(state.revealedLetters.isEmpty())
+        assertNotNull(state.snackbarMessage) // error message
+    }
+
+    @Test
+    fun `useShowLetterItem persists progress`() = runTest {
+        val progress = PlayerProgress(showLetterItems = 1)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        vm.useShowLetterItem()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.showLetterItems == 0 }) }
+    }
+
+    @Test
+    fun `showLetterItems reflected from player progress`() = runTest {
+        val progress = PlayerProgress(showLetterItems = 5)
+        val vm = createViewModel(progress = progress)
+        awaitInit(vm)
+
+        assertEquals(5, vm.uiState.first().showLetterItems)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 20. DAILY CHALLENGE MODE
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `daily challenge initializes correctly`() = runTest {
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertFalse(state.isLoading)
+        assertTrue(state.isDailyChallenge)
+        assertEquals(Difficulty.EASY, state.difficulty)
+    }
+
+    @Test
+    fun `daily_5 maps to REGULAR difficulty`() = runTest {
+        val vm = createViewModel(difficulty = "daily_5", word = "CRANE")
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertTrue(state.isDailyChallenge)
+        assertEquals(Difficulty.REGULAR, state.difficulty)
+    }
+
+    @Test
+    fun `daily_6 maps to HARD difficulty`() = runTest {
+        val vm = createViewModel(difficulty = "daily_6", word = "BRIDGE")
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertTrue(state.isDailyChallenge)
+        assertEquals(Difficulty.HARD, state.difficulty)
+    }
+
+    @Test
+    fun `daily challenge win saves result`() = runTest {
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
+        awaitInit(vm)
+
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertEquals(GameStatus.WON, state.status)
+        assertTrue(state.isDailyChallenge)
+        coVerify { dailyChallengeRepository.saveResult(wordLength = 4, word = "QUIZ", guessCount = 1, won = true, stars = 3, dateStr = any()) }
+    }
+
+    @Test
+    fun `daily challenge win awards higher coins`() = runTest {
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
+        awaitInit(vm)
+
+        // Win on first guess: 150 + 5*15 = 225 coins
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertEquals(225L, state.winCoinEarned) // 150 + 5*15
+    }
+
+    @Test
+    fun `daily challenge win increments streak`() = runTest {
+        val progress = PlayerProgress(dailyChallengeStreak = 2, dailyChallengeBestStreak = 5)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // Streak should be 3 now (2 + 1), streak reward at 3 = +100 coins
+        coVerify { playerRepository.saveProgress(match {
+            it.dailyChallengeStreak == 3 && it.dailyChallengeBestStreak == 5
+        }) }
+    }
+
+    @Test
+    fun `daily challenge win at streak 3 gives 100 coin reward`() = runTest {
+        val progress = PlayerProgress(dailyChallengeStreak = 2, coins = 0L)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // Base: 225 coins + streak reward 100 = 325
+        coVerify { playerRepository.saveProgress(match { it.coins >= 325L }) }
+    }
+
+    @Test
+    fun `daily challenge is not replay mode`() = runTest {
+        val vm = createViewModel(difficulty = "daily_5", word = "CRANE")
+        awaitInit(vm)
+
+        assertFalse(vm.uiState.first().isReplay)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 21. DAILY CHALLENGE LOSS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `daily challenge loss shows LOST status`() = runTest {
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
+        awaitInit(vm)
+
+        // Exhaust all guesses with wrong words
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        for (guess in wrongGuesses) {
+            guess.forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+
+        val state = vm.uiState.first()
+        assertEquals(GameStatus.LOST, state.status)
+        assertTrue(state.showDailyLossDialog)
+        assertEquals("QUIZ", state.dailyLossWord)
+    }
+
+    @Test
+    fun `daily challenge loss resets streak`() = runTest {
+        val progress = PlayerProgress(dailyChallengeStreak = 5)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        for (guess in wrongGuesses) {
+            guess.forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+
+        coVerify { playerRepository.saveProgress(match { it.dailyChallengeStreak == 0 }) }
+    }
+
+    @Test
+    fun `daily challenge loss saves result to repository`() = runTest {
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
+        awaitInit(vm)
+
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        for (guess in wrongGuesses) {
+            guess.forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+
+        coVerify { dailyChallengeRepository.saveResult(
+            wordLength = 4, word = "QUIZ", guessCount = 6, won = false, stars = 0, dateStr = any()
+        ) }
+    }
+
+    @Test
+    fun `daily challenge loss does not give extra guesses`() = runTest {
+        val progress = PlayerProgress(lives = 5)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        for (guess in wrongGuesses) {
+            guess.forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+
+        val state = vm.uiState.first()
+        // Should show LOST, not WAITING_FOR_LIFE
+        assertEquals(GameStatus.LOST, state.status)
+        assertFalse(state.showNeedMoreGuessesDialog)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 22. CUMULATIVE STATISTICS TRACKING
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `win updates totalWins`() = runTest {
+        val progress = PlayerProgress(totalWins = 5)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.totalWins == 6 }) }
+    }
+
+    @Test
+    fun `win updates totalGuesses`() = runTest {
+        val progress = PlayerProgress(totalGuesses = 10)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        // Two guesses total
+        "DARK".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.totalGuesses == 12 }) }
+    }
+
+    @Test
+    fun `win updates totalLevelsCompleted`() = runTest {
+        val progress = PlayerProgress(totalLevelsCompleted = 3)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.totalLevelsCompleted == 4 }) }
+    }
+
+    @Test
+    fun `win updates totalCoinsEarned`() = runTest {
+        val progress = PlayerProgress(totalCoinsEarned = 500L)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // First guess: 100 + 5*10 = 150
+        coVerify { playerRepository.saveProgress(match { it.totalCoinsEarned == 650L }) }
+    }
+
+    @Test
+    fun `useAddGuessItem increments totalItemsUsed`() = runTest {
+        val progress = PlayerProgress(addGuessItems = 1, totalItemsUsed = 3)
+        val vm = createViewModel(progress = progress)
+        awaitInit(vm)
+
+        vm.useAddGuessItem()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.totalItemsUsed == 4 }) }
+    }
+
+    @Test
+    fun `useShowLetterItem increments totalItemsUsed`() = runTest {
+        val progress = PlayerProgress(showLetterItems = 1, totalItemsUsed = 5)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        vm.useShowLetterItem()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.totalItemsUsed == 6 }) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 23. STREAK REWARDS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `streak 7 awards 500 coins and 1 diamond`() = runTest {
+        val progress = PlayerProgress(dailyChallengeStreak = 6, coins = 0L, diamonds = 0)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // Base: 225 coins + 500 streak reward = 725
+        coVerify { playerRepository.saveProgress(match {
+            it.dailyChallengeStreak == 7 && it.diamonds == 1 && it.coins >= 725L
+        }) }
+    }
+
+    @Test
+    fun `streak 14 awards 1000 coins and 3 diamonds`() = runTest {
+        val progress = PlayerProgress(dailyChallengeStreak = 13, coins = 0L, diamonds = 0)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match {
+            it.dailyChallengeStreak == 14 && it.diamonds == 3
+        }) }
+    }
+
+    @Test
+    fun `streak 30 awards bonus life`() = runTest {
+        val progress = PlayerProgress(dailyChallengeStreak = 29, coins = 0L, diamonds = 0, lives = 5)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match {
+            it.dailyChallengeStreak == 30 && it.diamonds == 5 && it.lives == 6
+        }) }
     }
 }

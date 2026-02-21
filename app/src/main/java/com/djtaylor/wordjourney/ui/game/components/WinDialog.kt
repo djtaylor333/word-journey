@@ -45,6 +45,8 @@ fun WinDialog(
     definition: String,
     coinsEarned: Long,
     bonusLifeEarned: Boolean,
+    starsEarned: Int = 0,
+    isDailyChallenge: Boolean = false,
     onNextLevel: () -> Unit,
     onMainMenu: () -> Unit
 ) {
@@ -175,8 +177,24 @@ fun WinDialog(
                         modifier = Modifier.graphicsLayer { translationY = bounce }
                     )
 
+                    // Star rating
+                    if (starsEarned > 0) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            repeat(3) { i ->
+                                Text(
+                                    if (i < starsEarned) "⭐" else "☆",
+                                    fontSize = if (i < starsEarned) 32.sp else 28.sp,
+                                    color = if (i < starsEarned)
+                                        Color.Unspecified
+                                    else
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                )
+                            }
+                        }
+                    }
+
                     Text(
-                        "Congratulations!",
+                        if (isDailyChallenge) "Daily Challenge Complete!" else "Congratulations!",
                         style = MaterialTheme.typography.headlineMedium,
                         color = Primary,
                         fontWeight = FontWeight.Bold,
@@ -251,11 +269,12 @@ fun WinDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("❤️", fontSize = 20.sp)
+                                Text("❤️", fontSize = 22.sp)
                                 Text(
-                                    "Bonus life earned!",
+                                    "+1 Bonus Life!",
                                     color = HeartRed,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
                                 )
                             }
                         }
@@ -264,18 +283,20 @@ fun WinDialog(
                     Spacer(Modifier.height(4.dp))
 
                     // Buttons
-                    Button(
-                        onClick = onNextLevel,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = TileCorrect)
-                    ) {
-                        Text("Next Level ➡", fontWeight = FontWeight.Bold)
+                    if (!isDailyChallenge) {
+                        Button(
+                            onClick = onNextLevel,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = TileCorrect)
+                        ) {
+                            Text("Next Level ➡", fontWeight = FontWeight.Bold)
+                        }
                     }
                     OutlinedButton(
                         onClick = onMainMenu,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Main Menu")
+                        Text(if (isDailyChallenge) "Back to Challenges" else "Main Menu")
                     }
                 }
             }

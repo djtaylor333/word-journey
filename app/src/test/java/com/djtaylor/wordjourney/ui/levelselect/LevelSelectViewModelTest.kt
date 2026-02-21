@@ -3,6 +3,7 @@ package com.djtaylor.wordjourney.ui.levelselect
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.db.StarRatingDao
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -32,6 +33,7 @@ class LevelSelectViewModelTest {
     private lateinit var progressFlow: MutableStateFlow<PlayerProgress>
     private lateinit var playerRepository: PlayerRepository
     private lateinit var audioManager: WordJourneysAudioManager
+    private lateinit var starRatingDao: StarRatingDao
 
     @Before
     fun setUp() {
@@ -54,11 +56,19 @@ class LevelSelectViewModelTest {
         }
         audioManager = mockk(relaxed = true)
 
+        starRatingDao = mockk {
+            coEvery { getAllForDifficulty(any()) } returns emptyList()
+            coEvery { totalStars() } returns 0
+            coEvery { totalStarsForDifficulty(any()) } returns 0
+            coEvery { countPerfectLevels() } returns 0
+        }
+
         return LevelSelectViewModel(
             savedStateHandle = SavedStateHandle(mapOf("difficulty" to difficulty)),
             playerRepository = playerRepository,
             lifeRegenUseCase = LifeRegenUseCase(),
-            audioManager = audioManager
+            audioManager = audioManager,
+            starRatingDao = starRatingDao
         )
     }
 
@@ -216,5 +226,57 @@ class LevelSelectViewModelTest {
         testDispatcher.scheduler.runCurrent()
 
         coVerify { playerRepository.saveProgress(any()) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 6. STAR RATINGS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `star ratings loaded from dao`() = runTest {
+        val ratings = listOf(
+            com.djtaylor.wordjourney.data.db.StarRatingEntity(id = 1, difficultyKey = "easy", level = 1, stars = 3, guessCount = 1),
+            com.djtaylor.wordjourney.data.db.StarRatingEntity(id = 2, difficultyKey = "easy", level = 2, stars = 2, guessCount = 3),
+            com.djtaylor.wordjourney.data.db.StarRatingEntity(id = 3, difficultyKey = "easy", level = 3, stars = 1, guessCount = 5)
+        )
+        progressFlow = MutableStateFlow(PlayerProgress(easyLevel = 5))
+        playerRepository = mockk {
+            every { playerProgressFlow } returns progressFlow
+            coEvery { saveProgress(any()) } just Runs
+        }
+        audioManager = mockk(relaxed = true)
+        starRatingDao = mockk {
+            coEvery { getAllForDifficulty("easy") } returns ratings
+            coEvery { totalStars() } returns 6
+        }
+
+        val vm = LevelSelectViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("difficulty" to "easy")),
+            playerRepository = playerRepository,
+            lifeRegenUseCase = LifeRegenUseCase(),
+            audioManager = audioManager,
+            starRatingDao = starRatingDao
+        )
+        testDispatcher.scheduler.runCurrent()
+
+        val state = vm.uiState.first()
+        assertEquals(3, state.starRatings[1])
+        assertEquals(2, state.starRatings[2])
+        assertEquals(1, state.starRatings[3])
+        assertEquals(6, state.totalStars)
+
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `empty star ratings map when no ratings exist`() = testWithVm { vm ->
+        val state = vm.uiState.first()
+        assertTrue(state.starRatings.isEmpty())
+        assertEquals(0, state.totalStars)
+    }
+
+    @Test
+    fun `star ratings only loads for current difficulty`() = testWithVm("regular") { vm ->
+        coVerify { starRatingDao.getAllForDifficulty("regular") }
     }
 }

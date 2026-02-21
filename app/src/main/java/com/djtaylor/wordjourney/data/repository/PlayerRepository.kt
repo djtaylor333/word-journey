@@ -41,8 +41,16 @@ class PlayerRepository @Inject constructor(
         dataStore.clearInProgressGame(difficulty.saveKey)
     }
 
+    suspend fun clearInProgressGame(difficultyKey: String) {
+        dataStore.clearInProgressGame(difficultyKey)
+    }
+
     suspend fun loadInProgressGame(difficulty: Difficulty): SavedGameState? {
         return dataStore.loadInProgressGame(difficulty.saveKey)
+    }
+
+    suspend fun loadInProgressGame(difficultyKey: String): SavedGameState? {
+        return dataStore.loadInProgressGame(difficultyKey)
     }
 
     suspend fun markFirstLaunchDone() {

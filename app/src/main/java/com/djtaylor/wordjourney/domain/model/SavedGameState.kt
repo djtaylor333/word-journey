@@ -32,6 +32,24 @@ data class PlayerProgress(
     val addGuessItems: Int = 0,
     val removeLetterItems: Int = 0,
     val definitionItems: Int = 0,
+    val showLetterItems: Int = 0,
+    // Streak tracking
+    val dailyChallengeStreak: Int = 0,
+    val dailyChallengeBestStreak: Int = 0,
+    val dailyChallengeLastDate: String = "",   // YYYY-MM-DD
+    val loginStreak: Int = 0,
+    val loginBestStreak: Int = 0,
+    val lastLoginDate: String = "",            // YYYY-MM-DD
+    // Cumulative statistics
+    val totalCoinsEarned: Long = 0L,
+    val totalLevelsCompleted: Int = 0,
+    val totalGuesses: Int = 0,
+    val totalWins: Int = 0,
+    val totalItemsUsed: Int = 0,
+    val totalDailyChallengesCompleted: Int = 0,
+    // VIP
+    val isVip: Boolean = false,
+    val vipExpiryTimestamp: Long = 0L,
     // Settings flags
     val musicEnabled: Boolean = true,
     val musicVolume: Float = 0.7f,
@@ -40,5 +58,12 @@ data class PlayerProgress(
     val notifyLivesFull: Boolean = true,
     val highContrast: Boolean = false,
     val darkMode: Boolean = true,
-    val playGamesSignedIn: Boolean = false
+    val playGamesSignedIn: Boolean = false,
+    // Cosmetics
+    val selectedTileTheme: String = "default",
+    val selectedKeyboardTheme: String = "default",
+    val ownedTileThemes: String = "default",          // comma-separated
+    val ownedKeyboardThemes: String = "default",      // comma-separated
+    // Onboarding
+    val hasCompletedOnboarding: Boolean = false
 )

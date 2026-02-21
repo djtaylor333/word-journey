@@ -30,6 +30,8 @@ fun HomeScreen(
     onNavigateToLevelSelect: (String) -> Unit,
     onNavigateToStore: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToDailyChallenge: () -> Unit,
+    onNavigateToStatistics: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -108,11 +110,11 @@ fun HomeScreen(
             // ── Animated logo ─────────────────────────────────────────────────
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(130.dp)
+                modifier = Modifier.size(110.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(130.dp)
+                        .size(110.dp)
                         .rotate(compassRotation)
                         .clip(CircleShape)
                         .border(3.dp, Primary, CircleShape)
@@ -132,8 +134,6 @@ fun HomeScreen(
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-
             Text(
                 text = "Word Journeys",
                 style = MaterialTheme.typography.headlineLarge,
@@ -147,24 +147,19 @@ fun HomeScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // ── Hearts display — redesigned ───────────────────────────────────
+            // ── Hearts display ────────────────────────────────────────────────
             HeartsBar(
                 lives = uiState.progress.lives,
                 timerMs = uiState.timerDisplayMs
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
-            // ── Difficulty cards ──────────────────────────────────────────────
-            Text(
-                "Choose Your Journey",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                fontSize = 20.sp
-            )
-            Spacer(Modifier.height(12.dp))
+            // ── ADVENTURE MODE ───────────────────────────────────────────────
+            SectionHeader(emoji = "🗺️", title = "Adventure")
+            Spacer(Modifier.height(8.dp))
 
             for (difficulty in Difficulty.entries) {
                 DifficultyCard(
@@ -175,10 +170,203 @@ fun HomeScreen(
                         onNavigateToLevelSelect(difficulty.saveKey)
                     }
                 )
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(10.dp))
             }
 
             Spacer(Modifier.height(16.dp))
+
+            // ── DAILY CHALLENGE ──────────────────────────────────────────────
+            SectionHeader(emoji = "📅", title = "Daily Challenge")
+            Spacer(Modifier.height(8.dp))
+
+            DailyChallengeCard(
+                streak = uiState.dailyChallengeStreak,
+                onClick = {
+                    viewModel.playButtonClick()
+                    onNavigateToDailyChallenge()
+                }
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── THEMED PACKS ─────────────────────────────────────────────────
+            SectionHeader(emoji = "🎁", title = "Themed Packs")
+            Spacer(Modifier.height(8.dp))
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("🎃🎄🐣☀️❄️🦃", fontSize = 28.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Seasonal word packs — Coming Soon!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        "Halloween, Christmas, Easter & more",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── STATS & ACHIEVEMENTS ROW ─────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                QuickNavCard(
+                    emoji = "📊",
+                    title = "Statistics",
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        viewModel.playButtonClick()
+                        onNavigateToStatistics()
+                    }
+                )
+                QuickNavCard(
+                    emoji = "🏆",
+                    title = "Achievements",
+                    modifier = Modifier.weight(1f),
+                    enabled = false,
+                    onClick = { /* Coming soon */ }
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(emoji: String, title: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(emoji, fontSize = 22.sp)
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun DailyChallengeCard(
+    streak: Int,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(2.dp, Primary.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text("📅", fontSize = 42.sp)
+                Column {
+                    Text(
+                        "Daily Challenge",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Primary,
+                        fontSize = 22.sp
+                    )
+                    Text(
+                        "3 new words every day\n4, 5, and 6 letters",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+            if (streak > 0) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("🔥", fontSize = 24.sp)
+                    Text(
+                        "$streak",
+                        fontWeight = FontWeight.Bold,
+                        color = Primary,
+                        fontSize = 18.sp
+                    )
+                }
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Primary.copy(alpha = 0.2f)
+                ) {
+                    Text(
+                        "Play!",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        color = Primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickNavCard(
+    emoji: String,
+    title: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(14.dp),
+        color = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        border = BorderStroke(1.dp, if (enabled) Primary.copy(alpha = 0.3f) else Color.Transparent),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(emoji, fontSize = 28.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                title,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
+            if (!enabled) {
+                Text(
+                    "Soon",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                )
+            }
         }
     }
 }

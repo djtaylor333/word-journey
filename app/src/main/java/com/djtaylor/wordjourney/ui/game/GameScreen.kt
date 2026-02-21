@@ -114,16 +114,43 @@ fun GameScreen(
 
                 Spacer(Modifier.height(8.dp))
 
+                // ── REVEALED LETTERS HINT ──────────────────────────────────────
+                if (uiState.revealedLetters.isNotEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Primary.copy(alpha = 0.15f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("💡", fontSize = 16.sp)
+                            uiState.revealedLetters.toSortedMap().forEach { (pos, ch) ->
+                                Text(
+                                    "#${pos + 1}=$ch",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Primary
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
+
                 // ── ITEMS BAR ─────────────────────────────────────────────────
                 ItemsBar(
                     coins = uiState.coins,
                     addGuessCount = uiState.addGuessItems,
                     removeLetterCount = uiState.removeLetterItems,
                     definitionCount = uiState.definitionItems,
+                    showLetterCount = uiState.showLetterItems,
                     definitionUsed = uiState.definitionUsedThisLevel,
+                    isDailyChallenge = uiState.isDailyChallenge,
                     onAddGuess = { viewModel.useAddGuessItem() },
                     onRemoveLetter = { viewModel.useRemoveLetterItem() },
-                    onDefinition = { viewModel.useDefinitionItem() }
+                    onDefinition = { viewModel.useDefinitionItem() },
+                    onShowLetter = { viewModel.useShowLetterItem() }
                 )
 
                 Spacer(Modifier.height(8.dp))
@@ -149,6 +176,8 @@ fun GameScreen(
             definition = uiState.winDefinition,
             coinsEarned = uiState.winCoinEarned,
             bonusLifeEarned = uiState.bonusLifeEarned,
+            starsEarned = uiState.starsEarned,
+            isDailyChallenge = uiState.isDailyChallenge,
             onNextLevel = {
                 val (diff, lvl) = viewModel.getNextLevelRoute()
                 viewModel.nextLevel()
@@ -199,6 +228,38 @@ fun GameScreen(
             }
         )
     }
+
+    if (uiState.showDailyLossDialog) {
+        AlertDialog(
+            onDismissRequest = { /* non-dismissable */ },
+            title = { Text("📅 Challenge Failed", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text(
+                        "The word was:",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        uiState.dailyLossWord.uppercase(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Primary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Your daily challenge streak has been reset. Try again tomorrow!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = onNavigateHome) {
+                    Text("Back to Challenges")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -207,7 +268,7 @@ private fun GameTopBar(
     onBack: () -> Unit,
     onStore: () -> Unit
 ) {
-    val difficultyColor = when (uiState.difficulty) {
+    val difficultyColor = if (uiState.isDailyChallenge) Primary else when (uiState.difficulty) {
         Difficulty.EASY    -> AccentEasy
         Difficulty.REGULAR -> AccentRegular
         Difficulty.HARD    -> AccentHard
@@ -233,9 +294,9 @@ private fun GameTopBar(
         // Level + difficulty
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "Level ${uiState.level}",
+                if (uiState.isDailyChallenge) "Daily Challenge" else "Level ${uiState.level}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 25.sp,
+                fontSize = if (uiState.isDailyChallenge) 20.sp else 25.sp,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Surface(
@@ -243,7 +304,7 @@ private fun GameTopBar(
                 color = difficultyColor.copy(alpha = 0.2f)
             ) {
                 Text(
-                    uiState.difficulty.displayName,
+                    if (uiState.isDailyChallenge) "${uiState.difficulty.wordLength} Letters" else uiState.difficulty.displayName,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                     color = difficultyColor,
                     fontSize = 16.sp,
@@ -311,14 +372,17 @@ private fun ItemsBar(
     addGuessCount: Int,
     removeLetterCount: Int,
     definitionCount: Int,
+    showLetterCount: Int,
     definitionUsed: Boolean,
+    isDailyChallenge: Boolean,
     onAddGuess: () -> Unit,
     onRemoveLetter: () -> Unit,
-    onDefinition: () -> Unit
+    onDefinition: () -> Unit,
+    onShowLetter: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
     ) {
         ItemButton(
             icon = "➕",
@@ -336,14 +400,24 @@ private fun ItemsBar(
             enabled = removeLetterCount > 0 || coins >= 150,
             onClick = onRemoveLetter
         )
+        if (!isDailyChallenge) {
+            ItemButton(
+                icon = "📖",
+                label = "Define",
+                ownedCount = definitionCount,
+                coinCost = 300,
+                enabled = definitionUsed || definitionCount > 0 || coins >= 300,
+                subtitle = if (definitionUsed) "View 📖" else null,
+                onClick = onDefinition
+            )
+        }
         ItemButton(
-            icon = "📖",
-            label = "Define",
-            ownedCount = definitionCount,
-            coinCost = 300,
-            enabled = definitionUsed || definitionCount > 0 || coins >= 300,
-            subtitle = if (definitionUsed) "View 📖" else null,
-            onClick = onDefinition
+            icon = "💡",
+            label = "Reveal",
+            ownedCount = showLetterCount,
+            coinCost = 250,
+            enabled = showLetterCount > 0 || coins >= 250,
+            onClick = onShowLetter
         )
     }
 }

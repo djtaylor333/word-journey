@@ -244,4 +244,77 @@ class StoreViewModelTest {
 
         assertEquals("$0.99", vm.getPriceLabel("coins_500"))
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 7. SHOW LETTER ITEM
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `buyShowLetterItem deducts 250 coins`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 500L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.buyShowLetterItem()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.coins == 250L && it.showLetterItems == 1 }) }
+    }
+
+    @Test
+    fun `buyShowLetterItem fails with insufficient coins`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 100L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.buyShowLetterItem()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertTrue(state.message!!.contains("250 coins"))
+    }
+
+    @Test
+    fun `buyShowLetterItem increments count`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 500L, showLetterItems = 2))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.buyShowLetterItem()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.showLetterItems == 3 }) }
+    }
+
+    @Test
+    fun `buyShowLetterItem shows success message`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 500L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.buyShowLetterItem()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertNotNull(state.message)
+        assertTrue(state.message!!.contains("Show Letter"))
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 8. MULTIPLE ITEM PURCHASES
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `buying all item types tracks inventory correctly`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 2000L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.buyAddGuessItem()
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.buyRemoveLetterItem()
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.buyDefinitionItem()
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.buyShowLetterItem()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Verify all four purchases were saved
+        coVerify(atLeast = 4) { playerRepository.saveProgress(any()) }
+    }
 }

@@ -204,6 +204,7 @@ fun LevelSelectScreen(
                         accent = accent,
                         floatPhase = floatPhase,
                         difficultyKey = difficultyKey,
+                        starRatings = state.starRatings,
                         onLevelClick = { level ->
                             val completed = level < state.currentLevel
                             val current = level == state.currentLevel
@@ -254,6 +255,7 @@ private fun ZoneSection(
     accent: Color,
     floatPhase: Float,
     difficultyKey: String,
+    starRatings: Map<Int, Int>,
     onLevelClick: (Int) -> Unit
 ) {
     Box(
@@ -269,7 +271,7 @@ private fun ZoneSection(
             ZoneBanner(zone, levels.first(), levels.last())
 
             // Pathway
-            Pathway(levels, currentLevel, zone, accent, floatPhase, onLevelClick)
+            Pathway(levels, currentLevel, zone, accent, floatPhase, starRatings, onLevelClick)
         }
     }
 }
@@ -312,6 +314,7 @@ private fun Pathway(
     zone: ZoneTheme,
     accent: Color,
     floatPhase: Float,
+    starRatings: Map<Int, Int>,
     onLevelClick: (Int) -> Unit
 ) {
     val alignments = listOf(Arrangement.Start, Arrangement.Center, Arrangement.End, Arrangement.Center)
@@ -344,7 +347,7 @@ private fun Pathway(
                 }
                 if (posIdx == 0) Spacer(Modifier.width(24.dp))
 
-                LevelNode(level, completed, current, locked, zone, accent, onLevelClick = { onLevelClick(level) })
+                LevelNode(level, completed, current, locked, zone, accent, starRatings[level] ?: 0, onLevelClick = { onLevelClick(level) })
 
                 if (posIdx == 2) Spacer(Modifier.width(24.dp))
                 // Right decor
@@ -370,6 +373,7 @@ private fun LevelNode(
     locked: Boolean,
     zone: ZoneTheme,
     accent: Color,
+    stars: Int,
     onLevelClick: () -> Unit
 ) {
     val pulse = if (current) {
@@ -427,15 +431,24 @@ private fun LevelNode(
             }
         }
 
-        // Star for milestones
-        if (level % 10 == 0 && completed) {
-            Box(modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp)) {
-                Text("⭐", fontSize = 18.sp)
+        // Star rating for completed levels
+        if (completed && stars > 0) {
+            Row(
+                modifier = Modifier.align(Alignment.BottomCenter).offset(y = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy((-2).dp)
+            ) {
+                for (i in 1..3) {
+                    Text(
+                        if (i <= stars) "⭐" else "☆",
+                        fontSize = if (i <= stars) 11.sp else 10.sp,
+                        color = if (i <= stars) Color.Unspecified else Color.Gray.copy(alpha = 0.5f)
+                    )
+                }
             }
         }
         // Current arrow
         if (current) {
-            Box(modifier = Modifier.align(Alignment.BottomCenter).offset(y = 8.dp)) {
+            Box(modifier = Modifier.align(Alignment.BottomCenter).offset(y = if (stars > 0 && completed) 22.dp else 8.dp)) {
                 Text("▲", fontSize = 12.sp, color = accent)
             }
         }

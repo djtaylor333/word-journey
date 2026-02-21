@@ -155,4 +155,92 @@ class HomeViewModelTest {
 
         assertEquals(500L, vm.uiState.first().progress.coins)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 6. LOGIN STREAK
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `first login sets streak to 1`() = testWithVm(
+        PlayerProgress(lastLoginDate = "", loginStreak = 0)
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(1, state.progress.loginStreak)
+        coVerify { playerRepository.saveProgress(match { it.loginStreak == 1 }) }
+    }
+
+    @Test
+    fun `same day login does not change streak`() = testWithVm(
+        PlayerProgress(
+            lastLoginDate = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE),
+            loginStreak = 5
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(5, state.progress.loginStreak)
+    }
+
+    @Test
+    fun `consecutive day login increments streak`() = testWithVm(
+        PlayerProgress(
+            lastLoginDate = java.time.LocalDate.now().minusDays(1).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE),
+            loginStreak = 3
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(4, state.progress.loginStreak)
+        coVerify { playerRepository.saveProgress(match { it.loginStreak == 4 }) }
+    }
+
+    @Test
+    fun `non-consecutive day resets streak to 1`() = testWithVm(
+        PlayerProgress(
+            lastLoginDate = java.time.LocalDate.now().minusDays(3).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE),
+            loginStreak = 10
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(1, state.progress.loginStreak)
+        coVerify { playerRepository.saveProgress(match { it.loginStreak == 1 }) }
+    }
+
+    @Test
+    fun `login streak updates loginBestStreak`() = testWithVm(
+        PlayerProgress(
+            lastLoginDate = java.time.LocalDate.now().minusDays(1).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE),
+            loginStreak = 9,
+            loginBestStreak = 9
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(10, state.progress.loginStreak)
+        assertEquals(10, state.progress.loginBestStreak)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 7. DAILY CHALLENGE STREAK DISPLAY
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `dailyChallengeStreak displayed from progress`() = testWithVm(
+        PlayerProgress(dailyChallengeStreak = 7)
+    ) { vm ->
+        assertEquals(7, vm.uiState.first().dailyChallengeStreak)
+    }
+
+    @Test
+    fun `zero daily streak when new player`() = testWithVm { vm ->
+        assertEquals(0, vm.uiState.first().dailyChallengeStreak)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 8. SHOW LETTER ITEMS IN PROGRESS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `showLetterItems tracked in progress`() = testWithVm(
+        PlayerProgress(showLetterItems = 3)
+    ) { vm ->
+        assertEquals(3, vm.uiState.first().progress.showLetterItems)
+    }
 }

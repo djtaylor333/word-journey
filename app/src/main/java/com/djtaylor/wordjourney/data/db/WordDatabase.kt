@@ -5,12 +5,26 @@ import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import org.json.JSONObject
 
-@Database(entities = [WordEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [
+        WordEntity::class,
+        StarRatingEntity::class,
+        DailyChallengeResultEntity::class,
+        AchievementEntity::class
+    ],
+    version = 2,
+    exportSchema = false
+)
 abstract class WordDatabase : RoomDatabase() {
 
     abstract fun wordDao(): WordDao
+    abstract fun starRatingDao(): StarRatingDao
+    abstract fun dailyChallengeDao(): DailyChallengeDao
+    abstract fun achievementDao(): AchievementDao
 
     /**
      * Checks if the word database is empty and populates it from assets/words.json.
@@ -55,12 +69,53 @@ abstract class WordDatabase : RoomDatabase() {
         private const val TAG = "WordDatabase"
         const val DATABASE_NAME = "word_journeys.db"
 
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `star_ratings` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `difficultyKey` TEXT NOT NULL,
+                        `level` INTEGER NOT NULL,
+                        `stars` INTEGER NOT NULL,
+                        `guessCount` INTEGER NOT NULL
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_star_ratings_difficultyKey_level` ON `star_ratings` (`difficultyKey`, `level`)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `daily_challenge_results` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `date` TEXT NOT NULL,
+                        `wordLength` INTEGER NOT NULL,
+                        `word` TEXT NOT NULL,
+                        `guessCount` INTEGER NOT NULL,
+                        `won` INTEGER NOT NULL DEFAULT 0,
+                        `stars` INTEGER NOT NULL
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_daily_challenge_results_date_wordLength` ON `daily_challenge_results` (`date`, `wordLength`)")
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `achievements` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `key` TEXT NOT NULL,
+                        `unlockedAt` INTEGER NOT NULL DEFAULT 0,
+                        `progress` INTEGER NOT NULL DEFAULT 0,
+                        `target` INTEGER NOT NULL DEFAULT 1
+                    )
+                """)
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_achievements_key` ON `achievements` (`key`)")
+            }
+        }
+
         fun buildDatabase(context: Context): WordDatabase {
             return Room.databaseBuilder(
                 context.applicationContext,
                 WordDatabase::class.java,
                 DATABASE_NAME
-            ).build()
+            )
+            .addMigrations(MIGRATION_1_2)
+            .build()
         }
     }
 }
