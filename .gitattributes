@@ -1,0 +1,26 @@
+# Ensure gradlew always has LF line endings (required for Linux CI)
+gradlew text eol=lf
+
+# Common settings
+*.kt text diff=kotlin
+*.java text diff=java
+*.xml text
+*.gradle text
+*.properties text
+*.md text
+*.yml text
+*.yaml text
+*.json text
+*.pro text
+
+# Binary files
+*.jar binary
+*.jks binary
+*.keystore binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.wav binary
+*.mp3 binary
+*.apk binary
+*.aab binary

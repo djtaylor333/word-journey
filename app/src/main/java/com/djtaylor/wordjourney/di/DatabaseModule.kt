@@ -8,6 +8,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import javax.inject.Singleton
 
 @Module
@@ -17,7 +19,12 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideWordDatabase(@ApplicationContext context: Context): WordDatabase {
-        return WordDatabase.buildDatabase(context)
+        val db = WordDatabase.buildDatabase(context)
+        // Populate on first launch — runs once per install, ~731 words, fast.
+        runBlocking(Dispatchers.IO) {
+            db.ensurePopulated(context)
+        }
+        return db
     }
 
     @Provides

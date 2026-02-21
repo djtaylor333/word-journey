@@ -95,7 +95,17 @@ class GameViewModel @Inject constructor(
     }
 
     private suspend fun startFreshLevel(level: Int) {
-        val word = wordRepository.getWordForLevel(difficulty, level) ?: ""
+        val word = wordRepository.getWordForLevel(difficulty, level)
+        if (word.isNullOrEmpty()) {
+            // Database not populated yet — show error rather than blank screen
+            _uiState.update { s ->
+                s.copy(
+                    isLoading = false,
+                    snackbarMessage = "Error loading level. Please restart the app."
+                )
+            }
+            return
+        }
         targetWord = word
         _uiState.update { s ->
             s.copy(
