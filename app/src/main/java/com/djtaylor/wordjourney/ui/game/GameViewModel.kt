@@ -41,6 +41,10 @@ class GameViewModel @Inject constructor(
     private var playerProgress: PlayerProgress = PlayerProgress()
     private var isReplay: Boolean = false
 
+    companion object {
+        private const val TAG = "GameViewModel"
+    }
+
     private val _uiState = MutableStateFlow(
         GameUiState(difficulty = difficulty, isLoading = true)
     )
@@ -70,29 +74,45 @@ class GameViewModel @Inject constructor(
 
     // ── Initialisation ────────────────────────────────────────────────────────
     private suspend fun initGame() {
-        // Sync life regen
-        playerRepository.playerProgressFlow.first().let { progress ->
-            val regen = lifeRegenUseCase(progress.lives, progress.lastLifeRegenTimestamp)
-            playerProgress = if (regen.livesAdded > 0) {
-                val p = progress.copy(
-                    lives = regen.updatedLives,
-                    lastLifeRegenTimestamp = regen.updatedTimestamp
+        try {
+            // Sync life regen
+            playerRepository.playerProgressFlow.first().let { progress ->
+                val regen = lifeRegenUseCase(progress.lives, progress.lastLifeRegenTimestamp)
+                playerProgress = if (regen.livesAdded > 0) {
+                    val p = progress.copy(
+                        lives = regen.updatedLives,
+                        lastLifeRegenTimestamp = regen.updatedTimestamp
+                    )
+                    playerRepository.saveProgress(p)
+                    p
+                } else progress
+            }
+
+            // Determine if this is a replay of a completed level
+            val currentLevel = playerProgress.levelFor(difficulty)
+            isReplay = levelArg < currentLevel
+
+            // Try to restore in-progress game (only for current level, not replays)
+            val saved = if (!isReplay) playerRepository.loadInProgressGame(difficulty) else null
+            if (saved != null && saved.level == levelArg) {
+                try {
+                    restoreFromSave(saved)
+                } catch (restoreEx: Exception) {
+                    android.util.Log.e(TAG, "Failed to restore saved game, starting fresh", restoreEx)
+                    playerRepository.clearInProgressGame(difficulty)
+                    startFreshLevel(levelArg)
+                }
+            } else {
+                startFreshLevel(levelArg)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Failed to initialize game", e)
+            _uiState.update { s ->
+                s.copy(
+                    isLoading = false,
+                    snackbarMessage = "Error loading game: ${e.message}"
                 )
-                playerRepository.saveProgress(p)
-                p
-            } else progress
-        }
-
-        // Determine if this is a replay of a completed level
-        val currentLevel = playerProgress.levelFor(difficulty)
-        isReplay = levelArg < currentLevel
-
-        // Try to restore in-progress game (only for current level, not replays)
-        val saved = if (!isReplay) playerRepository.loadInProgressGame(difficulty) else null
-        if (saved != null && saved.level == levelArg) {
-            restoreFromSave(saved)
-        } else {
-            startFreshLevel(levelArg)
+            }
         }
     }
 

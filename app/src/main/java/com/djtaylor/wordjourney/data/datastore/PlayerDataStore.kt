@@ -9,6 +9,7 @@ import com.djtaylor.wordjourney.domain.model.SavedGameState
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -139,13 +140,7 @@ class PlayerDataStore @Inject constructor(
             "regular" -> KEY_GAME_STATE_REGULAR
             else      -> KEY_GAME_STATE_HARD
         }
-        val json = ds.data.map { it[key] }.catch { emit(null) }
-            .let { flow ->
-                var result: String? = null
-                // Collect single value
-                flow.collect { result = it }
-                result
-            }
+        val json = ds.data.map { it[key] }.catch { emit(null) }.first()
         return json?.let { runCatching { Json.decodeFromString<SavedGameState>(it) }.getOrNull() }
     }
 
