@@ -85,21 +85,21 @@ fun LevelSelectScreen(
                         Text(
                             "${difficulty.displayName} Levels",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
+                            fontSize = 23.sp
                         )
                         Text(
                             "${difficulty.wordLength}-letter words",
-                            fontSize = 13.sp,
+                            fontSize = 15.sp,
                             color = accent
                         )
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(52.dp)) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 },
@@ -112,12 +112,12 @@ fun LevelSelectScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 "❤️",
-                                fontSize = 28.sp,
+                                fontSize = 32.sp,
                                 modifier = Modifier.scale(heartScale)
                             )
                             Text(
                                 "${state.lives}",
-                                fontSize = 12.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color.White,
                                 modifier = Modifier.offset(y = 1.dp)
@@ -126,16 +126,16 @@ fun LevelSelectScreen(
                         if (state.bonusLives > 0) {
                             Text(
                                 "+",
-                                fontSize = 14.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = BonusHeartBlue,
                                 modifier = Modifier.padding(horizontal = 2.dp)
                             )
                             Box(contentAlignment = Alignment.Center) {
-                                Text("💙", fontSize = 28.sp)
+                                Text("💙", fontSize = 32.sp)
                                 Text(
                                     "${state.bonusLives}",
-                                    fontSize = 12.sp,
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color.White,
                                     modifier = Modifier.offset(y = 1.dp)
@@ -190,7 +190,7 @@ fun LevelSelectScreen(
                     ) {
                         Text(
                             "Continue — Level ${state.currentLevel}",
-                            fontSize = 18.sp,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -252,12 +252,12 @@ fun LevelSelectScreen(
     if (state.showNoLivesDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissNoLivesDialog() },
-            title = { Text("Out of Lives!", fontSize = 20.sp) },
+            title = { Text("Out of Lives!", fontSize = 22.sp) },
             text = {
                 Column {
                     Text(
                         "You need at least 1 life to start a new level.",
-                        fontSize = 16.sp
+                        fontSize = 17.sp
                     )
                     if (state.timerDisplayMs > 0L) {
                         Spacer(Modifier.height(8.dp))
@@ -265,14 +265,14 @@ fun LevelSelectScreen(
                             "⏱ Next life in ${formatTimerMs(state.timerDisplayMs)}",
                             color = accent,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                            fontSize = 17.sp
                         )
                     }
                 }
             },
             confirmButton = {
                 Button(onClick = { viewModel.dismissNoLivesDialog() }) {
-                    Text("OK", fontSize = 16.sp)
+                    Text("OK", fontSize = 17.sp)
                 }
             }
         )
@@ -309,15 +309,15 @@ private fun LevelCell(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     "%02d".format(level),
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isLocked) textColor.copy(alpha = 0.4f) else textColor
                 )
                 if (isCompleted) {
-                    Text("✓", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                    Text("✓", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.9f))
                 }
                 if (isLocked) {
-                    Text("🔒", fontSize = 10.sp)
+                    Text("🔒", fontSize = 16.sp)
                 }
             }
         }

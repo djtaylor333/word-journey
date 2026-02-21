@@ -1,9 +1,9 @@
 {
-  "versionName": "1.7.0",
-  "versionCode": 8,
+  "versionName": "1.8.0",
+  "versionCode": 9,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
   "buildDate": "2026-02-21",
-  "releaseNotes": "v1.7.0 \u2014 Comprehensive dictionary (32K+ valid words), randomized word order per player, bigger keyboard/UI, scrollable guesses, persistent definition access, next-level navigation, light mode tile fix. 186 tests."
+  "releaseNotes": "v1.8.0 \u2014 Fixed tile letter visibility (letters now clearly visible on all tile states), expanded dictionary to 55K+ words (plurals/inflections), all UI text enlarged 10-15%, bigger item icons, bigger lock/checkmarks on level screen. 197 tests."
 }

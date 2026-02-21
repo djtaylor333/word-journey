@@ -1052,4 +1052,84 @@ class GameViewModelTest {
         assertEquals(0, vm.uiState.first().definitionItems) // still 0
         assertTrue(vm.uiState.first().showDefinitionDialog)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 16. NEXT LEVEL NAVIGATION EDGE CASES
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `getNextLevelRoute for hard difficulty returns correct route`() = runTest {
+        val vm = createViewModel(difficulty = "hard", level = 3, word = "BRIDGE")
+        awaitInit(vm)
+
+        val (diff, lvl) = vm.getNextLevelRoute()
+        assertEquals("hard", diff)
+        assertEquals(4, lvl)
+    }
+
+    @Test
+    fun `getNextLevelRoute increments from first level`() = runTest {
+        val vm = createViewModel(difficulty = "easy", level = 1, word = "ABLE")
+        awaitInit(vm)
+
+        val (diff, lvl) = vm.getNextLevelRoute()
+        assertEquals("easy", diff)
+        assertEquals(2, lvl)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 17. TEXT INPUT EDGE CASES
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `cannot type more letters than word length allows`() = runTest {
+        val vm = createViewModel(difficulty = "easy", level = 1, word = "ABLE")
+        awaitInit(vm)
+
+        // Type 4 letters (full word length for EASY)
+        vm.onKeyPressed('A')
+        vm.onKeyPressed('B')
+        vm.onKeyPressed('L')
+        vm.onKeyPressed('E')
+        awaitInit(vm)
+
+        // Try typing a 5th letter — should be ignored
+        vm.onKeyPressed('X')
+        awaitInit(vm)
+
+        assertEquals(4, vm.uiState.first().currentInput.size)
+    }
+
+    @Test
+    fun `delete on empty input does nothing`() = runTest {
+        val vm = createViewModel(difficulty = "easy", level = 1, word = "ABLE")
+        awaitInit(vm)
+
+        vm.onDelete()
+        awaitInit(vm)
+
+        assertEquals(0, vm.uiState.first().currentInput.size)
+    }
+
+    @Test
+    fun `multiple definitions can be viewed in non-replay mode`() = runTest {
+        val progress = PlayerProgress(definitionItems = 2)
+        val vm = createViewModel(progress = progress)
+        awaitInit(vm)
+
+        // First use
+        vm.useDefinitionItem()
+        awaitInit(vm)
+        assertTrue(vm.uiState.first().showDefinitionDialog)
+        assertEquals(1, vm.uiState.first().definitionItems)
+
+        vm.dismissDefinitionDialog()
+        awaitInit(vm)
+
+        // Second view — re-view, no item consumed
+        vm.useDefinitionItem()
+        awaitInit(vm)
+        assertTrue(vm.uiState.first().showDefinitionDialog)
+        assertEquals(1, vm.uiState.first().definitionItems) // still 1 (re-view)
+    }
 }

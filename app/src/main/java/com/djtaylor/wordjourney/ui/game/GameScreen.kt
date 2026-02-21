@@ -93,7 +93,7 @@ fun GameScreen(
                         Text(
                             "🔄 Replay — No rewards or life cost",
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            fontSize = 13.sp,
+                            fontSize = 15.sp,
                             color = AccentEasy
                         )
                     }
@@ -220,13 +220,13 @@ private fun GameTopBar(
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier.size(52.dp)
+            modifier = Modifier.size(56.dp)
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(34.dp)
             )
         }
 
@@ -235,7 +235,7 @@ private fun GameTopBar(
             Text(
                 "Level ${uiState.level}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
+                fontSize = 25.sp,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Surface(
@@ -246,7 +246,7 @@ private fun GameTopBar(
                     uiState.difficulty.displayName,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                     color = difficultyColor,
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -260,22 +260,22 @@ private fun GameTopBar(
             // Hearts: red with count + blue bonus
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("❤️", fontSize = 30.sp)
+                    Text("❤️", fontSize = 34.sp)
                     Text(
                         "${uiState.regularLives}",
-                        fontSize = 11.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
                         modifier = Modifier.offset(y = 1.dp)
                     )
                 }
                 if (uiState.bonusLives > 0) {
-                    Text("+", fontSize = 12.sp, color = BonusHeartBlue, fontWeight = FontWeight.Bold)
+                    Text("+", fontSize = 14.sp, color = BonusHeartBlue, fontWeight = FontWeight.Bold)
                     Box(contentAlignment = Alignment.Center) {
-                        Text("💙", fontSize = 22.sp)
+                        Text("💙", fontSize = 26.sp)
                         Text(
                             "${uiState.bonusLives}",
-                            fontSize = 10.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
                             modifier = Modifier.offset(y = 1.dp)
@@ -285,20 +285,20 @@ private fun GameTopBar(
             }
             // Coins
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("⬡", fontSize = 18.sp, color = CoinGold)
+                Text("⬡", fontSize = 20.sp, color = CoinGold)
                 Text(
                     "${uiState.coins}",
                     fontWeight = FontWeight.Bold,
                     color = CoinGold,
-                    fontSize = 17.sp
+                    fontSize = 19.sp
                 )
             }
-            IconButton(onClick = onStore, modifier = Modifier.size(44.dp)) {
+            IconButton(onClick = onStore, modifier = Modifier.size(48.dp)) {
                 Icon(
                     Icons.Default.ShoppingCart,
                     contentDescription = "Store",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }
@@ -375,7 +375,7 @@ private fun ItemButton(
         ) {
             // Icon row — show owned badge if any
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(icon, fontSize = 20.sp)
+                Text(icon, fontSize = 24.sp)
                 if (ownedCount > 0) {
                     Spacer(Modifier.width(3.dp))
                     Surface(
@@ -386,7 +386,7 @@ private fun ItemButton(
                         Text(
                             "×$ownedCount",
                             modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = AccentEasy.copy(alpha = alpha)
                         )
@@ -395,14 +395,14 @@ private fun ItemButton(
             }
             Text(
                 label,
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
             )
             // Subtitle / cost
             Text(
                 text = subtitle ?: if (ownedCount > 0) "$ownedCount left" else "$coinCost ⬡",
-                fontSize = 11.sp,
+                fontSize = 13.sp,
                 fontWeight = if (ownedCount > 0 && subtitle == null) FontWeight.Bold else FontWeight.Normal,
                 color = if (ownedCount > 0 && subtitle == null)
                     AccentEasy.copy(alpha = alpha)

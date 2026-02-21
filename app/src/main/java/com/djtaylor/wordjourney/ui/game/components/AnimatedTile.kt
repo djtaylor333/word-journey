@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -65,7 +64,12 @@ fun AnimatedTile(
 
     val bgColor = tileBackground(state, flipAngle, highContrast, isLightTheme)
     val borderColor = tileBorder(state, isLightTheme)
-    val textColor = if (isEvaluated) Color.White else MaterialTheme.colorScheme.onSurface
+    // High-contrast letters: white on dark/colored tiles, dark on light tiles
+    val textColor = when {
+        isEvaluated -> Color.White
+        isLightTheme -> Color(0xFF1A1A1B)   // dark text on light tile background
+        else -> Color.White                 // white text on dark tile background
+    }
 
     Box(
         contentAlignment = Alignment.Center,
@@ -86,8 +90,8 @@ fun AnimatedTile(
     ) {
         if (letter != null) {
             Text(
-                // Flip the letter back on the second half of rotation so it's readable
-                text = if (flipAngle > 90f && flipAngle < 270f) "" else letter.toString(),
+                // Hide only during the brief edge-on moment of the flip (around 90°)
+                text = if (flipAngle in 80f..100f) "" else letter.toString(),
                 fontSize = fontSize.sp,
                 fontWeight = FontWeight.Bold,
                 color = textColor

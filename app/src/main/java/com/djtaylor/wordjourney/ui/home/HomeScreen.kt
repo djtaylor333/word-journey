@@ -80,24 +80,24 @@ fun HomeScreen(
                 Row {
                     IconButton(
                         onClick = { viewModel.playButtonClick(); onNavigateToStore() },
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(52.dp)
                     ) {
                         Icon(
                             Icons.Default.ShoppingCart,
                             contentDescription = "Store",
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                     IconButton(
                         onClick = { viewModel.playButtonClick(); onNavigateToSettings() },
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(52.dp)
                     ) {
                         Icon(
                             Icons.Default.Settings,
                             contentDescription = "Settings",
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 }
@@ -162,7 +162,7 @@ fun HomeScreen(
                 "Choose Your Journey",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                fontSize = 18.sp
+                fontSize = 20.sp
             )
             Spacer(Modifier.height(12.dp))
 
@@ -208,8 +208,8 @@ private fun CurrencyChip(value: String, color: Color, symbol: String) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(symbol, color = color, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(value, color = color, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(symbol, color = color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -234,10 +234,10 @@ private fun HeartsBar(lives: Int, timerMs: Long) {
             ) {
                 // Red heart with count inside
                 Box(contentAlignment = Alignment.Center) {
-                    Text("❤️", fontSize = 40.sp)
+                    Text("❤️", fontSize = 44.sp)
                     Text(
                         "$regularLives",
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
                         modifier = Modifier.offset(y = 1.dp)
@@ -249,7 +249,7 @@ private fun HeartsBar(lives: Int, timerMs: Long) {
                 // Plus sign
                 Text(
                     "+",
-                    fontSize = 20.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = BonusHeartBlue,
                 )
@@ -258,10 +258,10 @@ private fun HeartsBar(lives: Int, timerMs: Long) {
 
                 // Blue heart with bonus count inside
                 Box(contentAlignment = Alignment.Center) {
-                    Text("💙", fontSize = 40.sp)
+                    Text("💙", fontSize = 44.sp)
                     Text(
                         "$bonusLives",
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
                         modifier = Modifier.offset(y = 1.dp)
@@ -275,7 +275,7 @@ private fun HeartsBar(lives: Int, timerMs: Long) {
                     "Next life in ${formatTimerMs(timerMs)}",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    fontSize = 14.sp
+                    fontSize = 16.sp
                 )
             }
         }
@@ -320,19 +320,19 @@ private fun DifficultyCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(emoji, fontSize = 38.sp)
+                Text(emoji, fontSize = 42.sp)
                 Column {
                     Text(
                         difficulty.displayName,
                         style = MaterialTheme.typography.titleLarge,
                         color = accent,
-                        fontSize = 22.sp
+                        fontSize = 24.sp
                     )
                     Text(
                         description,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        fontSize = 14.sp
+                        fontSize = 16.sp
                     )
                 }
             }
@@ -346,7 +346,7 @@ private fun DifficultyCard(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                         color = accent,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 18.sp
                     )
                 }
             }

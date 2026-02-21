@@ -192,4 +192,67 @@ class WordRepositoryTest {
         val letter = repo.findAbsentLetter("ABLE", emptySet(), revealed)
         assertNull(letter)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 4. WORD ORDERING — ADDITIONAL TESTS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `getWordForLevel returns different words for different levels`() = runTest {
+        val repo = createRepo()
+        val words = (1..5).map { repo.getWordForLevel(Difficulty.EASY, it)!! }
+        // All 5 should be distinct
+        assertEquals(5, words.toSet().size)
+    }
+
+    @Test
+    fun `getWordForLevel for regular difficulty works`() = runTest {
+        val repo = createRepo()
+        val word = repo.getWordForLevel(Difficulty.REGULAR, 1)
+        assertNotNull(word)
+        assertTrue(word!! in sampleWords5.map { it.word })
+    }
+
+    @Test
+    fun `getWordForLevel regular wraps at 5 words`() = runTest {
+        val repo = createRepo()
+        val word1 = repo.getWordForLevel(Difficulty.REGULAR, 1)
+        val word6 = repo.getWordForLevel(Difficulty.REGULAR, 6) // wraps at 5
+        assertEquals(word1, word6)
+    }
+
+    @Test
+    fun `getDefinition for regular difficulty returns correct definition`() = runTest {
+        val repo = createRepo(seed = 42L)
+        val word = repo.getWordForLevel(Difficulty.REGULAR, 1)!!
+        val definition = repo.getDefinition(Difficulty.REGULAR, 1)
+        val entity = sampleWords5.first { it.word == word }
+        assertEquals(entity.definition, definition)
+    }
+
+    @Test
+    fun `findAbsentLetter returns different letters for different targets`() = runTest {
+        val repo = createRepo()
+        val letter1 = repo.findAbsentLetter("ABLE", emptySet(), emptySet())
+        val letter2 = repo.findAbsentLetter("BIRD", emptySet(), emptySet())
+        // Both should be non-null and not in their respective targets
+        assertNotNull(letter1)
+        assertNotNull(letter2)
+        assertTrue(letter1!! !in setOf('A', 'B', 'L', 'E'))
+        assertTrue(letter2!! !in setOf('B', 'I', 'R', 'D'))
+    }
+
+    @Test
+    fun `cache is reset when seed changes`() = runTest {
+        val repo = createRepo(seed = 100L)
+        val words1 = (1..10).map { repo.getWordForLevel(Difficulty.EASY, it) }
+        
+        // Change seed
+        repo.setPlayerSeedForTesting(200L)
+        val words2 = (1..10).map { repo.getWordForLevel(Difficulty.EASY, it) }
+        
+        // Same set, different order
+        assertEquals(words1.filterNotNull().toSet(), words2.filterNotNull().toSet())
+        assertNotEquals("Different seed should produce different order", words1, words2)
+    }
 }
