@@ -14,6 +14,8 @@ import com.djtaylor.wordjourney.domain.model.SavedGameState
 import com.djtaylor.wordjourney.domain.model.TileState
 import com.djtaylor.wordjourney.domain.usecase.EvaluateGuessUseCase
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
+import com.djtaylor.wordjourney.engine.GameEngine
+import com.djtaylor.wordjourney.engine.SubmitResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -34,8 +36,8 @@ class GameViewModel @Inject constructor(
     private val difficulty: Difficulty = Difficulty.entries.first { it.saveKey == difficultyKey }
     private val levelArg: Int = savedStateHandle["level"] ?: 1
 
-    // The secret target word — NEVER included in GameUiState until WON
-    private var targetWord: String = ""
+    /** Pure game engine — all game logic is tested via GameEngineTest */
+    private var engine: GameEngine? = null
     private var playerProgress: PlayerProgress = PlayerProgress()
     private var isReplay: Boolean = false
 
@@ -97,7 +99,6 @@ class GameViewModel @Inject constructor(
     private suspend fun startFreshLevel(level: Int) {
         val word = wordRepository.getWordForLevel(difficulty, level)
         if (word.isNullOrEmpty()) {
-            // Database not populated yet — show error rather than blank screen
             _uiState.update { s ->
                 s.copy(
                     isLoading = false,
@@ -106,7 +107,15 @@ class GameViewModel @Inject constructor(
             }
             return
         }
-        targetWord = word
+
+        engine = GameEngine(
+            difficulty = difficulty,
+            targetWord = word,
+            evaluateGuess = evaluateGuess,
+            wordValidator = { guess, len -> wordRepository.isValidWord(guess, len) }
+        )
+        _targetWordCache = word
+
         _uiState.update { s ->
             s.copy(
                 level = level,
@@ -136,139 +145,134 @@ class GameViewModel @Inject constructor(
     }
 
     private fun restoreFromSave(saved: SavedGameState) {
-        targetWord = saved.targetWord
         val restoredGuesses = saved.completedGuesses.map { row ->
             row.map { (ch, state) ->
                 Pair(ch.first(), TileState.valueOf(state))
             }
         }
         val restoredInput = saved.currentInput.map { it.first() }
-        val letterMap = buildLetterMap(restoredGuesses)
 
+        engine = GameEngine(
+            difficulty = difficulty,
+            targetWord = saved.targetWord,
+            evaluateGuess = evaluateGuess,
+            wordValidator = { guess, len -> wordRepository.isValidWord(guess, len) }
+        )
+        _targetWordCache = saved.targetWord
+        engine!!.restore(restoredGuesses, restoredInput, saved.maxGuesses)
+
+        syncEngineToUiState()
         _uiState.update { s ->
             s.copy(
                 level = saved.level,
-                guesses = restoredGuesses,
-                currentInput = restoredInput,
-                maxGuesses = saved.maxGuesses,
-                letterStates = letterMap,
                 lives = playerProgress.lives,
                 coins = playerProgress.coins,
                 diamonds = playerProgress.diamonds,
                 addGuessItems = playerProgress.addGuessItems,
                 removeLetterItems = playerProgress.removeLetterItems,
                 definitionItems = playerProgress.definitionItems,
-                status = GameStatus.IN_PROGRESS,
                 isLoading = false
             )
         }
     }
 
-    // ── Input handling ────────────────────────────────────────────────────────
+    // ── Input handling — delegates to GameEngine ──────────────────────────────
     fun onKeyPressed(char: Char) {
-        val state = _uiState.value
-        if (state.status != GameStatus.IN_PROGRESS) return
-        if (state.currentInput.size >= difficulty.wordLength) return
-        if (char in state.removedLetters) return  // removed-letter item active
-        audioManager.playSfx(SfxSound.KEY_TAP)
-        _uiState.update { it.copy(currentInput = it.currentInput + char) }
-        persistCurrentState()
+        val e = engine ?: return
+        if (e.onKeyPressed(char)) {
+            audioManager.playSfx(SfxSound.KEY_TAP)
+            syncEngineToUiState()
+            persistCurrentState()
+        }
     }
 
     fun onDelete() {
-        val state = _uiState.value
-        if (state.currentInput.isEmpty()) return
-        _uiState.update { it.copy(currentInput = it.currentInput.dropLast(1)) }
-        persistCurrentState()
+        val e = engine ?: return
+        if (e.onDelete()) {
+            syncEngineToUiState()
+            persistCurrentState()
+        }
     }
 
     fun onSubmit() {
-        val state = _uiState.value
-        if (!state.canSubmit) return
-
-        val guess = state.currentInput.joinToString("").uppercase()
+        val e = engine ?: return
+        if (!e.canSubmit) return
 
         viewModelScope.launch {
-            // Validate word
-            if (!wordRepository.isValidWord(guess, difficulty.wordLength)) {
-                audioManager.playSfx(SfxSound.INVALID_WORD)
-                _uiState.update { it.copy(shakeCurrentRow = true, snackbarMessage = "Not a valid word") }
-                delay(600)
-                _uiState.update { it.copy(shakeCurrentRow = false, snackbarMessage = null) }
-                return@launch
-            }
+            when (val result = e.onSubmit()) {
+                is SubmitResult.InvalidWord -> {
+                    audioManager.playSfx(SfxSound.INVALID_WORD)
+                    _uiState.update { it.copy(
+                        shakeCurrentRow = true,
+                        snackbarMessage = "Not a valid word"
+                    )}
+                    delay(600)
+                    _uiState.update { it.copy(
+                        shakeCurrentRow = false,
+                        snackbarMessage = null
+                    )}
+                }
 
-            // Evaluate
-            val evaluated = evaluateGuess(guess, targetWord)
-            val newGuesses = state.guesses + listOf(evaluated)
-            val newLetterStates = buildLetterMap(newGuesses)
+                is SubmitResult.Evaluated -> {
+                    audioManager.playSfx(SfxSound.TILE_FLIP)
+                    syncEngineToUiState()
 
-            audioManager.playSfx(SfxSound.TILE_FLIP)
-
-            val won = evaluated.all { it.second == TileState.CORRECT }
-            if (won) {
-                val definition = wordRepository.getDefinition(difficulty, state.level)
-
-                if (isReplay) {
-                    // Replay — reveal word but no rewards
-                    audioManager.playSfx(SfxSound.WIN)
-                    _uiState.update { s ->
-                        s.copy(
-                            guesses = newGuesses,
-                            currentInput = emptyList(),
-                            letterStates = newLetterStates,
-                            status = GameStatus.WON,
-                            showWinDialog = true,
-                            winCoinEarned = 0L,
-                            winDefinition = definition,
-                            winWord = targetWord,
-                            bonusLifeEarned = false,
-                            isReplay = true
-                        )
+                    if (result.isWin) {
+                        handleWin()
+                    } else if (result.isOutOfGuesses) {
+                        handleOutOfGuesses()
+                    } else {
+                        persistCurrentState()
                     }
-                } else {
-                    // Normal — coin reward: 100 base + 10 per remaining guess
-                    val remaining = state.maxGuesses - newGuesses.size
-                    val coinsEarned = 100L + (remaining * 10L)
-                    val (updatedProgress, bonusLife) = applyLevelCompletion(coinsEarned)
-
-                    audioManager.playSfx(SfxSound.WIN)
-                    audioManager.playSfx(SfxSound.COIN_EARN)
-
-                    _uiState.update { s ->
-                        s.copy(
-                            guesses = newGuesses,
-                            currentInput = emptyList(),
-                            letterStates = newLetterStates,
-                            status = GameStatus.WON,
-                            showWinDialog = true,
-                            winCoinEarned = coinsEarned,
-                            winDefinition = definition,
-                            winWord = targetWord,
-                            bonusLifeEarned = bonusLife,
-                            lives = updatedProgress.lives,
-                            coins = updatedProgress.coins,
-                            diamonds = updatedProgress.diamonds
-                        )
-                    }
-                    playerRepository.clearInProgressGame(difficulty)
-                }
-            } else {
-                _uiState.update { s ->
-                    s.copy(
-                        guesses = newGuesses,
-                        currentInput = emptyList(),
-                        letterStates = newLetterStates
-                    )
                 }
 
-                // Check if out of guesses
-                if (newGuesses.size >= state.maxGuesses) {
-                    handleOutOfGuesses()
-                } else {
-                    persistCurrentState()
-                }
+                is SubmitResult.NotReady -> { /* shouldn't reach here */ }
             }
+        }
+    }
+
+    private suspend fun handleWin() {
+        val e = engine ?: return
+        val level = _uiState.value.level
+        val definition = wordRepository.getDefinition(difficulty, level)
+        val targetWord = e.guesses.last()
+            .joinToString("") { it.first.toString() } // reconstruct from last guess (all CORRECT)
+
+        if (isReplay) {
+            audioManager.playSfx(SfxSound.WIN)
+            _uiState.update { s ->
+                s.copy(
+                    status = GameStatus.WON,
+                    showWinDialog = true,
+                    winCoinEarned = 0L,
+                    winDefinition = definition,
+                    winWord = targetWord,
+                    bonusLifeEarned = false,
+                    isReplay = true
+                )
+            }
+        } else {
+            val remaining = e.remainingGuesses
+            val coinsEarned = 100L + (remaining * 10L)
+            val (updatedProgress, bonusLife) = applyLevelCompletion(coinsEarned)
+
+            audioManager.playSfx(SfxSound.WIN)
+            audioManager.playSfx(SfxSound.COIN_EARN)
+
+            _uiState.update { s ->
+                s.copy(
+                    status = GameStatus.WON,
+                    showWinDialog = true,
+                    winCoinEarned = coinsEarned,
+                    winDefinition = definition,
+                    winWord = targetWord,
+                    bonusLifeEarned = bonusLife,
+                    lives = updatedProgress.lives,
+                    coins = updatedProgress.coins,
+                    diamonds = updatedProgress.diamonds
+                )
+            }
+            playerRepository.clearInProgressGame(difficulty)
         }
     }
 
@@ -304,10 +308,12 @@ class GameViewModel @Inject constructor(
         playerProgress = updated
         viewModelScope.launch { playerRepository.saveProgress(updated) }
 
+        val e = engine ?: return
+        e.addBonusGuesses(difficulty.bonusAttemptsPerLife)
+        syncEngineToUiState()
+
         _uiState.update { s ->
             s.copy(
-                maxGuesses = s.maxGuesses + difficulty.bonusAttemptsPerLife,
-                status = GameStatus.IN_PROGRESS,
                 showNeedMoreGuessesDialog = false,
                 showNoLivesDialog = false,
                 lives = updated.lives
@@ -333,7 +339,6 @@ class GameViewModel @Inject constructor(
         _uiState.update { s ->
             s.copy(lives = updated.lives, coins = updated.coins, showNoLivesDialog = false)
         }
-        // If we now have a life and were waiting, show the "use for guesses" dialog
         _uiState.update { it.copy(showNeedMoreGuessesDialog = true) }
     }
 
@@ -358,17 +363,17 @@ class GameViewModel @Inject constructor(
 
     // ── Items ─────────────────────────────────────────────────────────────────
     fun useAddGuessItem() {
+        val e = engine ?: return
         val progress = playerProgress
-        // Use from inventory first, else buy with coins
         if (progress.addGuessItems > 0) {
             audioManager.playSfx(SfxSound.BUTTON_CLICK)
             val updated = progress.copy(addGuessItems = progress.addGuessItems - 1)
             playerProgress = updated
             viewModelScope.launch { playerRepository.saveProgress(updated) }
+            e.addBonusGuesses(1)
+            syncEngineToUiState()
             _uiState.update { s ->
                 s.copy(
-                    maxGuesses = s.maxGuesses + 1,
-                    status = GameStatus.IN_PROGRESS,
                     showNeedMoreGuessesDialog = false,
                     addGuessItems = updated.addGuessItems
                 )
@@ -383,10 +388,10 @@ class GameViewModel @Inject constructor(
             val updated = progress.copy(coins = progress.coins - coinCost)
             playerProgress = updated
             viewModelScope.launch { playerRepository.saveProgress(updated) }
+            e.addBonusGuesses(1)
+            syncEngineToUiState()
             _uiState.update { s ->
                 s.copy(
-                    maxGuesses = s.maxGuesses + 1,
-                    status = GameStatus.IN_PROGRESS,
                     showNeedMoreGuessesDialog = false,
                     coins = updated.coins
                 )
@@ -396,29 +401,27 @@ class GameViewModel @Inject constructor(
     }
 
     fun useRemoveLetterItem() {
+        val e = engine ?: return
         val progress = playerProgress
         viewModelScope.launch {
-            val letter = wordRepository.findAbsentLetter(
-                targetWord,
-                _uiState.value.removedLetters,
-                _uiState.value.letterStates.keys
+            val absent = wordRepository.findAbsentLetter(
+                getTargetWord(),
+                e.removedLetters,
+                e.letterStates.keys
             ) ?: run {
                 _uiState.update { it.copy(snackbarMessage = "No more letters to remove!") }
                 return@launch
             }
 
-            // Use from inventory first, else buy with coins
             if (progress.removeLetterItems > 0) {
                 audioManager.playSfx(SfxSound.BUTTON_CLICK)
                 val updated = progress.copy(removeLetterItems = progress.removeLetterItems - 1)
                 playerProgress = updated
                 playerRepository.saveProgress(updated)
+                e.removeLetter(absent)
+                syncEngineToUiState()
                 _uiState.update { s ->
-                    s.copy(
-                        removedLetters = s.removedLetters + letter,
-                        letterStates = s.letterStates + (letter to TileState.ABSENT),
-                        removeLetterItems = updated.removeLetterItems
-                    )
+                    s.copy(removeLetterItems = updated.removeLetterItems)
                 }
             } else {
                 val coinCost = 150L
@@ -430,22 +433,19 @@ class GameViewModel @Inject constructor(
                 val updated = progress.copy(coins = progress.coins - coinCost)
                 playerProgress = updated
                 playerRepository.saveProgress(updated)
+                e.removeLetter(absent)
+                syncEngineToUiState()
                 _uiState.update { s ->
-                    s.copy(
-                        removedLetters = s.removedLetters + letter,
-                        letterStates = s.letterStates + (letter to TileState.ABSENT),
-                        coins = updated.coins
-                    )
+                    s.copy(coins = updated.coins)
                 }
             }
             persistCurrentState()
         }
     }
 
-    // ── Win → Next Level — dismiss dialog; the LevelSelect screen handles navigation
+    // ── Win → Next Level ──────────────────────────────────────────────────────
     fun nextLevel() {
         _uiState.update { it.copy(showWinDialog = false) }
-        // The calling screen should pop back to level-select or home
     }
 
     // ── Definition item ───────────────────────────────────────────────────────
@@ -459,7 +459,6 @@ class GameViewModel @Inject constructor(
             val definition = wordRepository.getDefinition(difficulty, _uiState.value.level)
             val hint = definition.ifBlank { "No definition available" }
 
-            // Use from inventory first, else buy with coins
             if (progress.definitionItems > 0) {
                 audioManager.playSfx(SfxSound.BUTTON_CLICK)
                 val updated = progress.copy(definitionItems = progress.definitionItems - 1)
@@ -504,21 +503,38 @@ class GameViewModel @Inject constructor(
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /** Sync engine state → UI state. Called after every engine mutation. */
+    private fun syncEngineToUiState() {
+        val e = engine ?: return
+        _uiState.update { s ->
+            s.copy(
+                guesses = e.guesses,
+                currentInput = e.currentInput,
+                maxGuesses = e.maxGuesses,
+                letterStates = e.letterStates,
+                removedLetters = e.removedLetters,
+                status = e.status
+            )
+        }
+    }
+
+    /** Get the target word (cached at level start, needed for findAbsentLetter). */
+    private fun getTargetWord(): String = _targetWordCache
+    private var _targetWordCache: String = ""
+
     private suspend fun applyLevelCompletion(coinsEarned: Long): Pair<PlayerProgress, Boolean> {
         var p = playerProgress
         val newLevel = _uiState.value.level + 1
 
-        // Advance level
         p = when (difficulty) {
             Difficulty.EASY    -> p.copy(easyLevel = newLevel)
             Difficulty.REGULAR -> p.copy(regularLevel = newLevel)
             Difficulty.HARD    -> p.copy(hardLevel = newLevel)
         }
 
-        // Add coins
         p = p.copy(coins = p.coins + coinsEarned)
 
-        // Check level-completion bonus life
         val counter = when (difficulty) {
             Difficulty.EASY    -> p.easyLevelsCompletedSinceBonusLife
             Difficulty.REGULAR -> p.regularLevelsCompletedSinceBonusLife
@@ -547,45 +563,24 @@ class GameViewModel @Inject constructor(
         return Pair(p, bonusLife)
     }
 
-    private fun buildLetterMap(
-        guesses: List<List<Pair<Char, TileState>>>
-    ): Map<Char, TileState> {
-        val map = mutableMapOf<Char, TileState>()
-        for (row in guesses) {
-            for ((ch, state) in row) {
-                val current = map[ch]
-                val priority = state.priority
-                if (current == null || priority > current.priority) map[ch] = state
-            }
-        }
-        return map
-    }
-
     private fun persistCurrentState() {
+        val e = engine ?: return
         val s = _uiState.value
-        if (s.isLoading || targetWord.isEmpty()) return
+        if (s.isLoading || _targetWordCache.isEmpty()) return
         viewModelScope.launch {
             val saved = SavedGameState(
                 difficultyKey = difficultyKey,
                 level = s.level,
-                targetWord = targetWord,
-                completedGuesses = s.guesses.map { row ->
+                targetWord = _targetWordCache,
+                completedGuesses = e.guesses.map { row ->
                     row.map { (ch, state) -> Pair(ch.toString(), state.name) }
                 },
-                currentInput = s.currentInput.map { it.toString() },
-                maxGuesses = s.maxGuesses
+                currentInput = e.currentInput.map { it.toString() },
+                maxGuesses = e.maxGuesses
             )
             playerRepository.saveInProgressGame(saved)
         }
     }
-
-    private val TileState.priority: Int
-        get() = when (this) {
-            TileState.CORRECT  -> 3
-            TileState.PRESENT  -> 2
-            TileState.ABSENT   -> 1
-            else               -> 0
-        }
 
     private fun PlayerProgress.levelFor(d: Difficulty) = when (d) {
         Difficulty.EASY    -> easyLevel
