@@ -66,6 +66,8 @@ class PlayerDataStore @Inject constructor(
         val KEY_NOTIFY_LIVES_FULL              = booleanPreferencesKey("notify_lives_full")
         val KEY_HIGH_CONTRAST                  = booleanPreferencesKey("high_contrast")
         val KEY_DARK_MODE                      = booleanPreferencesKey("dark_mode")
+        val KEY_COLORBLIND_MODE                = stringPreferencesKey("colorblind_mode")
+        val KEY_TEXT_SCALE_FACTOR              = floatPreferencesKey("text_scale_factor")
         val KEY_PLAY_GAMES_SIGNED_IN           = booleanPreferencesKey("play_games_signed_in")
         // Cosmetics
         val KEY_SELECTED_TILE_THEME            = stringPreferencesKey("selected_tile_theme")
@@ -125,6 +127,8 @@ class PlayerDataStore @Inject constructor(
                 notifyLivesFull   = prefs[KEY_NOTIFY_LIVES_FULL] ?: true,
                 highContrast      = prefs[KEY_HIGH_CONTRAST] ?: false,
                 darkMode          = prefs[KEY_DARK_MODE] ?: true,
+                colorblindMode    = prefs[KEY_COLORBLIND_MODE] ?: "none",
+                textScaleFactor   = prefs[KEY_TEXT_SCALE_FACTOR] ?: 1.0f,
                 playGamesSignedIn = prefs[KEY_PLAY_GAMES_SIGNED_IN] ?: false,
                 selectedTileTheme     = prefs[KEY_SELECTED_TILE_THEME] ?: "default",
                 selectedKeyboardTheme = prefs[KEY_SELECTED_KEYBOARD_THEME] ?: "default",
@@ -176,6 +180,8 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_NOTIFY_LIVES_FULL]        = progress.notifyLivesFull
             prefs[KEY_HIGH_CONTRAST]            = progress.highContrast
             prefs[KEY_DARK_MODE]                = progress.darkMode
+            prefs[KEY_COLORBLIND_MODE]          = progress.colorblindMode
+            prefs[KEY_TEXT_SCALE_FACTOR]        = progress.textScaleFactor
             prefs[KEY_PLAY_GAMES_SIGNED_IN]     = progress.playGamesSignedIn
             prefs[KEY_SELECTED_TILE_THEME]      = progress.selectedTileTheme
             prefs[KEY_SELECTED_KEYBOARD_THEME]  = progress.selectedKeyboardTheme

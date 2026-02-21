@@ -21,9 +21,11 @@ data class SettingsUiState(
     val notifyLivesFull: Boolean = true,
     val highContrast: Boolean = false,
     val darkMode: Boolean = true,
+    val colorblindMode: String = "none",
+    val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.0.0"
+    val appVersion: String = "2.1.0"
 )
 
 @HiltViewModel
@@ -51,6 +53,8 @@ class SettingsViewModel @Inject constructor(
                         notifyLivesFull   = progress.notifyLivesFull,
                         highContrast      = progress.highContrast,
                         darkMode          = progress.darkMode,
+                        colorblindMode    = progress.colorblindMode,
+                        textScaleFactor   = progress.textScaleFactor,
                         playGamesSignedIn = progress.playGamesSignedIn
                     )
                 }
@@ -104,6 +108,8 @@ class SettingsViewModel @Inject constructor(
 
     fun setHighContrast(enabled: Boolean) = saveField { it.copy(highContrast = enabled) }
     fun setDarkMode(enabled: Boolean) = saveField { it.copy(darkMode = enabled) }
+    fun setColorblindMode(mode: String) = saveField { it.copy(colorblindMode = mode) }
+    fun setTextScaleFactor(factor: Float) = saveField { it.copy(textScaleFactor = factor.coerceIn(0.8f, 1.5f)) }
 
     private fun saveField(block: (PlayerProgress) -> PlayerProgress) {
         viewModelScope.launch {
@@ -118,7 +124,9 @@ class SettingsViewModel @Inject constructor(
                     sfxVolume       = updated.sfxVolume,
                     notifyLivesFull = updated.notifyLivesFull,
                     highContrast    = updated.highContrast,
-                    darkMode        = updated.darkMode
+                    darkMode        = updated.darkMode,
+                    colorblindMode  = updated.colorblindMode,
+                    textScaleFactor = updated.textScaleFactor
                 )
             }
         }

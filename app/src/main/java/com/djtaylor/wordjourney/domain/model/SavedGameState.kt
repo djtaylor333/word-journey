@@ -58,6 +58,8 @@ data class PlayerProgress(
     val notifyLivesFull: Boolean = true,
     val highContrast: Boolean = false,
     val darkMode: Boolean = true,
+    val colorblindMode: String = "none",
+    val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     // Cosmetics
     val selectedTileTheme: String = "default",

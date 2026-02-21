@@ -1,7 +1,10 @@
 package com.djtaylor.wordjourney.ui.store
 
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.billing.AdRewardResult
+import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.IBillingManager
+import com.djtaylor.wordjourney.billing.ProductIds
 import com.djtaylor.wordjourney.billing.PurchaseResult
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -33,6 +36,7 @@ class StoreViewModelTest {
     private lateinit var progressFlow: MutableStateFlow<PlayerProgress>
     private lateinit var playerRepository: PlayerRepository
     private lateinit var billingManager: IBillingManager
+    private lateinit var adManager: IAdManager
     private lateinit var audioManager: WordJourneysAudioManager
 
     @Before
@@ -60,11 +64,17 @@ class StoreViewModelTest {
                 callback(PurchaseResult(firstArg(), success = true, coinsGranted = 500L))
             }
         }
+        adManager = mockk {
+            every { isRewardedAdReady } returns true
+            coEvery { loadRewardedAd() } just Runs
+            coEvery { showRewardedAd() } returns AdRewardResult(watched = true, rewardType = "coins", rewardAmount = 100)
+        }
         audioManager = mockk(relaxed = true)
 
         return StoreViewModel(
             playerRepository = playerRepository,
             billingManager = billingManager,
+            adManager = adManager,
             audioManager = audioManager
         )
     }
@@ -316,5 +326,126 @@ class StoreViewModelTest {
 
         // Verify all four purchases were saved
         coVerify(atLeast = 4) { playerRepository.saveProgress(any()) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 9. AD REWARDS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `watchAdForCoins grants 100 coins when ad watched`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 0L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForCoins()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.coins == 100L }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.message)
+        assertTrue(state.message!!.contains("100 coins"))
+    }
+
+    @Test
+    fun `watchAdForCoins does nothing when ad not watched`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 0L))
+        coEvery { adManager.showRewardedAd() } returns AdRewardResult(watched = false, rewardType = "", rewardAmount = 0)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForCoins()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { playerRepository.saveProgress(any()) }
+    }
+
+    @Test
+    fun `watchAdForLife grants 1 life when ad watched`() = runTest {
+        val vm = createViewModel(PlayerProgress(lives = 5))
+        coEvery { adManager.showRewardedAd() } returns AdRewardResult(watched = true, rewardType = "life", rewardAmount = 1)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForLife()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.lives == 6 }) }
+    }
+
+    @Test
+    fun `isAdReady reflects ad manager state`() = runTest {
+        val vm = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertTrue(state.isAdReady)
+    }
+
+    @Test
+    fun `isAdReady is false when ad not loaded`() = runTest {
+        val vm = createViewModel()
+        every { adManager.isRewardedAdReady } returns false
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Trigger a re-emission by updating progress
+        progressFlow.value = progressFlow.value.copy()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertFalse(state.isAdReady)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 10. BUNDLE PURCHASES
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `purchase starter bundle grants coins, diamonds, lives, and items`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 0L, diamonds = 0, lives = 0))
+        coEvery { billingManager.purchase(ProductIds.STARTER_BUNDLE, any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(ProductIds.STARTER_BUNDLE, success = true, coinsGranted = 1000L, diamondsGranted = 5, livesGranted = 5))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.STARTER_BUNDLE)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match {
+            it.coins == 1000L && it.diamonds == 5 && it.lives == 5 &&
+            it.addGuessItems == 5 && it.removeLetterItems == 5 && it.definitionItems == 5 && it.showLetterItems == 5
+        }) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 11. VIP SUBSCRIPTION
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `purchase VIP monthly sets isVip`() = runTest {
+        val vm = createViewModel(PlayerProgress(isVip = false))
+        coEvery { billingManager.purchase(ProductIds.VIP_MONTHLY, any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(ProductIds.VIP_MONTHLY, success = true))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.VIP_MONTHLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.isVip }) }
+    }
+
+    @Test
+    fun `purchase VIP yearly sets isVip`() = runTest {
+        val vm = createViewModel(PlayerProgress(isVip = false))
+        coEvery { billingManager.purchase(ProductIds.VIP_YEARLY, any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(ProductIds.VIP_YEARLY, success = true))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.VIP_YEARLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.isVip }) }
     }
 }

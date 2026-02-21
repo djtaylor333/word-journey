@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.IBillingManager
 import com.djtaylor.wordjourney.billing.ProductIds
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
@@ -16,13 +17,16 @@ import javax.inject.Inject
 data class StoreUiState(
     val progress: PlayerProgress = PlayerProgress(),
     val isPurchasing: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    val isAdReady: Boolean = false,
+    val isWatchingAd: Boolean = false
 )
 
 @HiltViewModel
 class StoreViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
     private val billingManager: IBillingManager,
+    private val adManager: IAdManager,
     private val audioManager: WordJourneysAudioManager
 ) : ViewModel() {
 
@@ -32,9 +36,11 @@ class StoreViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             playerRepository.playerProgressFlow.collectLatest { progress ->
-                _uiState.update { it.copy(progress = progress) }
+                _uiState.update { it.copy(progress = progress, isAdReady = adManager.isRewardedAdReady) }
             }
         }
+        // Pre-fetch a rewarded ad
+        viewModelScope.launch { adManager.loadRewardedAd() }
     }
 
     fun purchase(productId: String) {
@@ -44,11 +50,39 @@ class StoreViewModel @Inject constructor(
                 if (result.success) {
                     viewModelScope.launch {
                         val current = _uiState.value.progress
-                        val updated = current.copy(
+                        var updated = current.copy(
                             coins    = current.coins + result.coinsGranted,
                             diamonds = current.diamonds + result.diamondsGranted,
                             lives    = current.lives + result.livesGranted
                         )
+                        // Handle bundle item grants
+                        updated = when (productId) {
+                            ProductIds.STARTER_BUNDLE -> updated.copy(
+                                addGuessItems = updated.addGuessItems + 5,
+                                removeLetterItems = updated.removeLetterItems + 5,
+                                definitionItems = updated.definitionItems + 5,
+                                showLetterItems = updated.showLetterItems + 5
+                            )
+                            ProductIds.ADVENTURER_BUNDLE -> updated.copy(
+                                addGuessItems = updated.addGuessItems + 10,
+                                removeLetterItems = updated.removeLetterItems + 10,
+                                definitionItems = updated.definitionItems + 10,
+                                showLetterItems = updated.showLetterItems + 10
+                            )
+                            ProductIds.CHAMPION_BUNDLE -> updated.copy(
+                                addGuessItems = updated.addGuessItems + 25,
+                                removeLetterItems = updated.removeLetterItems + 25,
+                                definitionItems = updated.definitionItems + 25,
+                                showLetterItems = updated.showLetterItems + 25
+                            )
+                            ProductIds.VIP_MONTHLY, ProductIds.VIP_YEARLY -> updated.copy(
+                                isVip = true,
+                                vipExpiryTimestamp = System.currentTimeMillis() +
+                                    if (productId == ProductIds.VIP_YEARLY) 365L * 24 * 60 * 60 * 1000
+                                    else 30L * 24 * 60 * 60 * 1000
+                            )
+                            else -> updated
+                        }
                         playerRepository.saveProgress(updated)
                         audioManager.playSfx(SfxSound.COIN_EARN)
                         _uiState.update { it.copy(
@@ -62,6 +96,74 @@ class StoreViewModel @Inject constructor(
             }
         }
     }
+
+    // ── Ad Rewards ────────────────────────────────────────────────────────────
+
+    fun watchAdForCoins() {
+        _uiState.update { it.copy(isWatchingAd = true) }
+        viewModelScope.launch {
+            val result = adManager.showRewardedAd()
+            if (result.watched) {
+                val current = _uiState.value.progress
+                val updated = current.copy(coins = current.coins + 100)
+                playerRepository.saveProgress(updated)
+                audioManager.playSfx(SfxSound.COIN_EARN)
+                _uiState.update { it.copy(isWatchingAd = false, message = "✅ +100 coins from ad!") }
+            } else {
+                _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
+            }
+            adManager.loadRewardedAd()
+            _uiState.update { it.copy(isAdReady = adManager.isRewardedAdReady) }
+        }
+    }
+
+    fun watchAdForLife() {
+        _uiState.update { it.copy(isWatchingAd = true) }
+        viewModelScope.launch {
+            val result = adManager.showRewardedAd()
+            if (result.watched) {
+                val current = _uiState.value.progress
+                val updated = current.copy(lives = current.lives + 1)
+                playerRepository.saveProgress(updated)
+                audioManager.playSfx(SfxSound.LIFE_GAINED)
+                _uiState.update { it.copy(isWatchingAd = false, message = "✅ +1 life from ad!") }
+            } else {
+                _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
+            }
+            adManager.loadRewardedAd()
+            _uiState.update { it.copy(isAdReady = adManager.isRewardedAdReady) }
+        }
+    }
+
+    fun watchAdForItem() {
+        _uiState.update { it.copy(isWatchingAd = true) }
+        viewModelScope.launch {
+            val result = adManager.showRewardedAd()
+            if (result.watched) {
+                val current = _uiState.value.progress
+                // Grant a random item
+                val itemIndex = (System.currentTimeMillis() % 4).toInt()
+                val updated = when (itemIndex) {
+                    0 -> current.copy(addGuessItems = current.addGuessItems + 1)
+                    1 -> current.copy(removeLetterItems = current.removeLetterItems + 1)
+                    2 -> current.copy(definitionItems = current.definitionItems + 1)
+                    else -> current.copy(showLetterItems = current.showLetterItems + 1)
+                }
+                val itemName = when (itemIndex) {
+                    0 -> "Add Guess"; 1 -> "Remove Letter"; 2 -> "Definition"; else -> "Show Letter"
+                }
+                playerRepository.saveProgress(updated)
+                audioManager.playSfx(SfxSound.COIN_EARN)
+                _uiState.update { it.copy(isWatchingAd = false, message = "✅ +1 $itemName item from ad!") }
+            } else {
+                _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
+            }
+            adManager.loadRewardedAd()
+            _uiState.update { it.copy(isAdReady = adManager.isRewardedAdReady) }
+        }
+    }
+
+    // ── Currency Trading ──────────────────────────────────────────────────────
 
     fun tradeCoinsForLife() {
         val progress = _uiState.value.progress

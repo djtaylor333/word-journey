@@ -5,9 +5,11 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -138,6 +140,118 @@ fun SettingsScreen(
                 checked = state.highContrast,
                 onCheckedChange = viewModel::setHighContrast
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // ── Accessibility ─────────────────────────────────────────────────
+            SettingsSection(title = "Accessibility")
+
+            // Colorblind mode selector
+            var colorblindExpanded by remember { mutableStateOf(false) }
+            val colorblindOptions = listOf(
+                "none" to "None",
+                "protanopia" to "Protanopia (Red-weak)",
+                "deuteranopia" to "Deuteranopia (Green-weak)",
+                "tritanopia" to "Tritanopia (Blue-weak)"
+            )
+            val selectedLabel = colorblindOptions.firstOrNull { it.first == state.colorblindMode }?.second ?: "None"
+
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                Text(
+                    text = "Colorblind Mode",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Adjust tile colors for color vision deficiency",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Spacer(Modifier.height(6.dp))
+                ExposedDropdownMenuBox(
+                    expanded = colorblindExpanded,
+                    onExpandedChange = { colorblindExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedLabel,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = colorblindExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = colorblindExpanded,
+                        onDismissRequest = { colorblindExpanded = false }
+                    ) {
+                        colorblindOptions.forEach { (value, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    viewModel.setColorblindMode(value)
+                                    colorblindExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Text scale slider
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = "Text Size",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Scale text throughout the app",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    Text(
+                        text = "${(state.textScaleFactor * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+                Slider(
+                    value = state.textScaleFactor,
+                    onValueChange = viewModel::setTextScaleFactor,
+                    valueRange = 0.8f..1.5f,
+                    steps = 6,
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+                // Preview text
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Preview: The quick brown fox",
+                        modifier = Modifier.padding(12.dp),
+                        fontSize = (16 * state.textScaleFactor).sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 

@@ -76,6 +76,7 @@ fun AppNavigation(navController: NavHostController) {
                     }
                 },
                 onNavigateToStore = { navController.navigate(Screen.Store.route) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToNextLevel = { diff, nextLevel ->
                     navController.navigate(Screen.Game.route(diff, nextLevel)) {
                         popUpTo("level_select/{difficulty}") { inclusive = false }

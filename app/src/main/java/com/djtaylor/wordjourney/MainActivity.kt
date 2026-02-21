@@ -50,7 +50,9 @@ class MainActivity : ComponentActivity() {
 
             WordJourneysTheme(
                 darkTheme = progress.darkMode,
-                highContrast = progress.highContrast
+                highContrast = progress.highContrast,
+                colorblindMode = progress.colorblindMode,
+                textScale = progress.textScaleFactor
             ) {
                 val navController = rememberNavController()
                 AppNavigation(navController = navController)

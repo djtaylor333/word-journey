@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djtaylor.wordjourney.domain.model.Difficulty
+import com.djtaylor.wordjourney.domain.model.SeasonalThemeManager
 import com.djtaylor.wordjourney.ui.theme.*
 import java.util.concurrent.TimeUnit
 
@@ -193,30 +194,108 @@ fun HomeScreen(
             SectionHeader(emoji = "🎁", title = "Themed Packs")
             Spacer(Modifier.height(8.dp))
 
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            val seasonStatuses = remember { SeasonalThemeManager.getAllSeasonStatuses() }
+            val activeSeason = seasonStatuses.firstOrNull { it.isActive }
+
+            if (activeSeason != null) {
+                // Active seasonal pack
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(2.dp, Primary.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("🎃🎄🐣☀️❄️🦃", fontSize = 28.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Seasonal word packs — Coming Soon!",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        "Halloween, Christmas, Easter & more",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center
-                    )
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(activeSeason.season.emoji, fontSize = 48.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "${activeSeason.season.displayName} Pack",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Primary,
+                            textAlign = TextAlign.Center
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = AccentEasy.copy(alpha = 0.2f)
+                        ) {
+                            Text(
+                                "🟢 Active Now!",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                color = AccentEasy,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            activeSeason.season.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Primary.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                "Word pack coming soon",
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                color = Primary,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Upcoming seasons grid
+            val upcomingSeasons = seasonStatuses.filter { !it.isActive }.take(4)
+            if (upcomingSeasons.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                upcomingSeasons.chunked(2).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        row.forEach { status ->
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(14.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(status.season.emoji, fontSize = 28.sp)
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        status.season.displayName,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Text(
+                                        "${status.daysUntil} days",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                }
+                            }
+                        }
+                        // Fill empty slot if odd number
+                        if (row.size < 2) {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
                 }
             }
 

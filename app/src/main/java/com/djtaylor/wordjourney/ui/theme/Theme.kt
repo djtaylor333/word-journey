@@ -10,6 +10,15 @@ import androidx.compose.ui.graphics.Color
 /** Provides the current high‑contrast flag to all composables. */
 val LocalHighContrast = staticCompositionLocalOf { false }
 
+/**
+ * Provides the current colorblind mode to all composables.
+ * Values: "none", "protanopia", "deuteranopia", "tritanopia"
+ */
+val LocalColorblindMode = staticCompositionLocalOf { "none" }
+
+/** Provides the text scale factor (0.8 – 1.5) to all composables. */
+val LocalTextScale = staticCompositionLocalOf { 1.0f }
+
 private val DarkColorScheme = darkColorScheme(
     primary            = Primary,
     onPrimary          = OnPrimary,
@@ -74,6 +83,8 @@ private val HighContrastLightScheme = lightColorScheme(
 fun WordJourneysTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     highContrast: Boolean = false,
+    colorblindMode: String = "none",
+    textScale: Float = 1.0f,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -83,7 +94,11 @@ fun WordJourneysTheme(
         else                       -> LightColorScheme
     }
 
-    CompositionLocalProvider(LocalHighContrast provides highContrast) {
+    CompositionLocalProvider(
+        LocalHighContrast provides highContrast,
+        LocalColorblindMode provides colorblindMode,
+        LocalTextScale provides textScale
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography  = WordJourneysTypography,

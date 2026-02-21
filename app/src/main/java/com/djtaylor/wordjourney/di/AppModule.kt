@@ -1,6 +1,8 @@
 package com.djtaylor.wordjourney.di
 
+import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.IBillingManager
+import com.djtaylor.wordjourney.billing.StubAdManager
 import com.djtaylor.wordjourney.billing.StubBillingManager
 import dagger.Binds
 import dagger.Module
@@ -15,4 +17,8 @@ abstract class AppModule {
     @Binds
     @Singleton
     abstract fun bindBillingManager(stub: StubBillingManager): IBillingManager
+
+    @Binds
+    @Singleton
+    abstract fun bindAdManager(stub: StubAdManager): IAdManager
 }

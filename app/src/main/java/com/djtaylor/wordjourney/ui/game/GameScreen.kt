@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +25,8 @@ import com.djtaylor.wordjourney.domain.model.GameStatus
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
 import com.djtaylor.wordjourney.ui.game.components.*
 import com.djtaylor.wordjourney.ui.theme.*
+import com.djtaylor.wordjourney.ui.theme.LocalHighContrast
+import com.djtaylor.wordjourney.ui.theme.LocalColorblindMode
 import kotlinx.coroutines.delay
 
 @Composable
@@ -32,6 +35,7 @@ fun GameScreen(
     levelArg: Int,
     onNavigateHome: () -> Unit,
     onNavigateToStore: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onNavigateToNextLevel: (String, Int) -> Unit,
     viewModel: GameViewModel = hiltViewModel()
 ) {
@@ -74,7 +78,8 @@ fun GameScreen(
             GameTopBar(
                 uiState = uiState,
                 onBack = onNavigateHome,
-                onStore = onNavigateToStore
+                onStore = onNavigateToStore,
+                onSettings = onNavigateToSettings
             )
 
             Spacer(Modifier.height(8.dp))
@@ -107,7 +112,7 @@ fun GameScreen(
                 ) {
                     GameGrid(
                         uiState = uiState,
-                        highContrast = false,
+                        highContrast = LocalHighContrast.current || LocalColorblindMode.current != "none",
                         isLightTheme = isLightTheme
                     )
                 }
@@ -266,7 +271,8 @@ fun GameScreen(
 private fun GameTopBar(
     uiState: GameUiState,
     onBack: () -> Unit,
-    onStore: () -> Unit
+    onStore: () -> Unit,
+    onSettings: () -> Unit
 ) {
     val difficultyColor = if (uiState.isDailyChallenge) Primary else when (uiState.difficulty) {
         Difficulty.EASY    -> AccentEasy
@@ -360,6 +366,14 @@ private fun GameTopBar(
                     contentDescription = "Store",
                     tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(32.dp)
+                )
+            }
+            IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = "Settings",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }

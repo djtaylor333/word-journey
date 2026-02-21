@@ -66,7 +66,7 @@ fun StoreScreen(
                 }
 
                 // Tabs
-                val tabs = listOf("Items", "Lives", "Coins", "Diamonds")
+                val tabs = listOf("Items", "Bundles", "Lives", "Coins", "Diamonds", "VIP")
                 ScrollableTabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -92,9 +92,11 @@ fun StoreScreen(
             Box(Modifier.fillMaxSize().padding(padding)) {
                 when (selectedTab) {
                     0 -> ItemsTab(uiState, viewModel)
-                    1 -> LivesTab(uiState, viewModel)
-                    2 -> CoinsTab(uiState, viewModel)
-                    3 -> DiamondsTab(uiState, viewModel)
+                    1 -> BundlesTab(uiState, viewModel)
+                    2 -> LivesTab(uiState, viewModel)
+                    3 -> CoinsTab(uiState, viewModel)
+                    4 -> DiamondsTab(uiState, viewModel)
+                    5 -> VipTab(uiState, viewModel)
                 }
             }
         }
@@ -176,6 +178,44 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             ownedCount = uiState.progress.showLetterItems,
             enabled = uiState.progress.coins >= 250,
             onBuy = { viewModel.buyShowLetterItem() }
+        )
+
+        HorizontalDivider()
+
+        // ── Ad Rewards ──────────────────────────────────────────────────
+        Text("Free Rewards", style = MaterialTheme.typography.titleLarge, color = Primary)
+        Text(
+            "Watch a short video ad to earn free rewards!",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+
+        StoreCard(
+            emoji = "🎬",
+            title = "Watch Ad → 100 Coins",
+            description = "Watch a short video to earn 100 free coins",
+            costLabel = if (uiState.isAdReady) "Watch" else "Loading…",
+            costColor = AccentEasy,
+            enabled = uiState.isAdReady && !uiState.isWatchingAd,
+            onBuy = { viewModel.watchAdForCoins() }
+        )
+        StoreCard(
+            emoji = "🎬",
+            title = "Watch Ad → 1 Life",
+            description = "Watch a short video to earn 1 free life",
+            costLabel = if (uiState.isAdReady) "Watch" else "Loading…",
+            costColor = HeartRed,
+            enabled = uiState.isAdReady && !uiState.isWatchingAd,
+            onBuy = { viewModel.watchAdForLife() }
+        )
+        StoreCard(
+            emoji = "🎬",
+            title = "Watch Ad → Random Item",
+            description = "Watch a short video to earn 1 random power-up",
+            costLabel = if (uiState.isAdReady) "Watch" else "Loading…",
+            costColor = Primary,
+            enabled = uiState.isAdReady && !uiState.isWatchingAd,
+            onBuy = { viewModel.watchAdForItem() }
         )
     }
 }
@@ -265,6 +305,213 @@ private fun DiamondsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
         IapCard("◆", "10 Diamonds", "Starter pack", ProductIds.DIAMONDS_10, viewModel)
         IapCard("◆◆", "50 Diamonds", "Popular pack", ProductIds.DIAMONDS_50, viewModel)
         IapCard("◆◆◆", "200 Diamonds", "Best value", ProductIds.DIAMONDS_200, viewModel)
+    }
+}
+
+@Composable
+private fun BundlesTab(uiState: StoreUiState, viewModel: StoreViewModel) {
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Value Bundles", style = MaterialTheme.typography.titleLarge, color = Primary)
+        Text(
+            "Save big with curated bundles!",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+        )
+
+        // Starter
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🎒", fontSize = 32.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Starter Bundle", fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        Text("Perfect for getting started",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Button(
+                        onClick = { viewModel.purchase(ProductIds.STARTER_BUNDLE) },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentEasy)
+                    ) {
+                        Text(viewModel.getPriceLabel(ProductIds.STARTER_BUNDLE),
+                            fontWeight = FontWeight.Bold, color = OnPrimary)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("⬡ 1,000 coins • ◆ 5 diamonds • 5× each item",
+                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            }
+        }
+
+        // Adventurer
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp,
+            border = androidx.compose.foundation.BorderStroke(2.dp, AccentRegular.copy(alpha = 0.5f))
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("⚔️", fontSize = 32.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Adventurer Bundle", fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.width(8.dp))
+                            Surface(shape = RoundedCornerShape(6.dp), color = AccentRegular.copy(alpha = 0.2f)) {
+                                Text("Popular", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AccentRegular)
+                            }
+                        }
+                        Text("Best for regular players",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Button(
+                        onClick = { viewModel.purchase(ProductIds.ADVENTURER_BUNDLE) },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentRegular)
+                    ) {
+                        Text(viewModel.getPriceLabel(ProductIds.ADVENTURER_BUNDLE),
+                            fontWeight = FontWeight.Bold, color = OnPrimary)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("⬡ 3,000 coins • ◆ 20 diamonds • ❤️ 10 lives • 10× each item",
+                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            }
+        }
+
+        // Champion
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp,
+            border = androidx.compose.foundation.BorderStroke(2.dp, Primary.copy(alpha = 0.6f))
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🏆", fontSize = 32.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Champion Bundle", fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.width(8.dp))
+                            Surface(shape = RoundedCornerShape(6.dp), color = Primary.copy(alpha = 0.2f)) {
+                                Text("Best Value", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Primary)
+                            }
+                        }
+                        Text("Ultimate power-up package",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    }
+                    Button(
+                        onClick = { viewModel.purchase(ProductIds.CHAMPION_BUNDLE) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                    ) {
+                        Text(viewModel.getPriceLabel(ProductIds.CHAMPION_BUNDLE),
+                            fontWeight = FontWeight.Bold, color = OnPrimary)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("⬡ 10,000 coins • ◆ 100 diamonds • ❤️ 25 lives • 25× each item",
+                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VipTab(uiState: StoreUiState, viewModel: StoreViewModel) {
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("VIP Pass", style = MaterialTheme.typography.titleLarge, color = Primary)
+
+        if (uiState.progress.isVip) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Primary.copy(alpha = 0.15f),
+                border = androidx.compose.foundation.BorderStroke(2.dp, Primary)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("👑", fontSize = 48.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Text("You're a VIP!", fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Primary)
+                    Text("Your subscription is active", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                }
+            }
+        } else {
+            Text(
+                "Unlock premium perks with a VIP subscription!",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            )
+        }
+
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text("VIP Benefits:", fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(8.dp))
+                val benefits = listOf(
+                    "👑 No ads — ever",
+                    "❤️ +5 bonus lives per month",
+                    "⬡ 500 bonus coins per month",
+                    "⭐ 2× star rewards on all levels",
+                    "🎁 Exclusive seasonal themes",
+                    "📊 Advanced statistics"
+                )
+                benefits.forEach { benefit ->
+                    Text(
+                        benefit,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+                }
+            }
+        }
+
+        if (!uiState.progress.isVip) {
+            StoreCard(
+                emoji = "👑",
+                title = "VIP Monthly",
+                description = "All VIP perks, billed monthly",
+                costLabel = viewModel.getPriceLabel(ProductIds.VIP_MONTHLY),
+                costColor = Primary,
+                enabled = true,
+                onBuy = { viewModel.purchase(ProductIds.VIP_MONTHLY) }
+            )
+            StoreCard(
+                emoji = "👑",
+                title = "VIP Yearly",
+                description = "Save 33% — best VIP value",
+                costLabel = viewModel.getPriceLabel(ProductIds.VIP_YEARLY),
+                costColor = AccentEasy,
+                enabled = true,
+                onBuy = { viewModel.purchase(ProductIds.VIP_YEARLY) }
+            )
+        }
     }
 }
 
