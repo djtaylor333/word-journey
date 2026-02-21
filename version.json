@@ -1,9 +1,9 @@
 {
-  "versionName": "1.6.0",
-  "versionCode": 7,
+  "versionName": "1.7.0",
+  "versionCode": 8,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
   "buildDate": "2026-02-21",
-  "releaseNotes": "v1.6.0 — Fix blank game screen on all difficulties. Add comprehensive test suite (169 tests). Error handling for corrupted saves."
+  "releaseNotes": "v1.7.0 \u2014 Comprehensive dictionary (32K+ valid words), randomized word order per player, bigger keyboard/UI, scrollable guesses, persistent definition access, next-level navigation, light mode tile fix. 186 tests."
 }

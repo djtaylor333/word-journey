@@ -2,20 +2,28 @@ package com.djtaylor.wordjourney.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ── Tile states ───────────────────────────────────────────────────────────────
+// ── Tile states (dark mode) ───────────────────────────────────────────────────
 val TileCorrect   = Color(0xFF538D4E)    // green
 val TilePresent   = Color(0xFFC9A84C)    // gold/yellow
 val TileAbsent    = Color(0xFF555759)    // dark grey
 val TileEmpty     = Color(0xFF121213)
 val TileFilled    = Color(0xFF1C1B1F)
 
+// ── Tile states (light mode) ─────────────────────────────────────────────────
+val TileEmptyLight   = Color(0xFFFFFFFF)    // white
+val TileFilledLight  = Color(0xFFF5F0E8)    // warm off-white
+
 // High-contrast alternatives
 val TileCorrectHC = Color(0xFFF5793A)   // orange
 val TilePresentHC = Color(0xFF85C0F9)   // blue
 
-// Tile borders
+// Tile borders (dark mode)
 val TileBorderEmpty  = Color(0xFF3A3A3C)
 val TileBorderFilled = Color(0xFF565758)
+
+// Tile borders (light mode)
+val TileBorderEmptyLight  = Color(0xFFD3CFC5)
+val TileBorderFilledLight = Color(0xFFA9A49C)
 
 // ── Difficulty accents ────────────────────────────────────────────────────────
 val AccentEasy    = Color(0xFF2DD4BF)   // teal

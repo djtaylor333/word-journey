@@ -93,9 +93,9 @@ private fun LetterKey(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .width(32.dp)
-            .height(48.dp)
-            .clip(RoundedCornerShape(5.dp))
+            .width(36.dp)
+            .height(56.dp)
+            .clip(RoundedCornerShape(6.dp))
             .background(bg.copy(alpha = alpha))
             .clickable(enabled = enabled) {
                 pressed = true
@@ -105,7 +105,7 @@ private fun LetterKey(
     ) {
         Text(
             text = letter.toString(),
-            fontSize = 13.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = textColor.copy(alpha = alpha)
         )
@@ -117,16 +117,16 @@ private fun ActionKey(label: String, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .height(48.dp)
-            .defaultMinSize(minWidth = 44.dp)
-            .clip(RoundedCornerShape(5.dp))
+            .height(56.dp)
+            .defaultMinSize(minWidth = 52.dp)
+            .clip(RoundedCornerShape(6.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable { onClick() }
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = 10.dp)
     ) {
         Text(
             text = label,
-            fontSize = if (label == "ENTER") 11.sp else 16.sp,
+            fontSize = if (label == "ENTER") 13.sp else 18.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )

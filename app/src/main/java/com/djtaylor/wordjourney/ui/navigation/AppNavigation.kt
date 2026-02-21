@@ -59,7 +59,13 @@ fun AppNavigation(navController: NavHostController) {
                 onNavigateHome   = {
                     navController.popBackStack(Screen.Home.route, inclusive = false)
                 },
-                onNavigateToStore = { navController.navigate(Screen.Store.route) }
+                onNavigateToStore = { navController.navigate(Screen.Store.route) },
+                onNavigateToNextLevel = { diff, nextLevel ->
+                    navController.navigate(Screen.Game.route(diff, nextLevel)) {
+                        // Pop current game screen so pressing back goes to level select, not the old level
+                        popUpTo("level_select/{difficulty}") { inclusive = false }
+                    }
+                }
             )
         }
 

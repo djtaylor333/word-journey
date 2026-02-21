@@ -2,9 +2,9 @@ package com.djtaylor.wordjourney.ui.game
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -32,10 +32,12 @@ fun GameScreen(
     levelArg: Int,
     onNavigateHome: () -> Unit,
     onNavigateToStore: () -> Unit,
+    onNavigateToNextLevel: (String, Int) -> Unit,
     viewModel: GameViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val isLightTheme = !isSystemInDarkTheme()
 
     // Show snackbar for transient messages
     LaunchedEffect(uiState.snackbarMessage) {
@@ -105,7 +107,8 @@ fun GameScreen(
                 ) {
                     GameGrid(
                         uiState = uiState,
-                        highContrast = false
+                        highContrast = false,
+                        isLightTheme = isLightTheme
                     )
                 }
 
@@ -147,8 +150,9 @@ fun GameScreen(
             coinsEarned = uiState.winCoinEarned,
             bonusLifeEarned = uiState.bonusLifeEarned,
             onNextLevel = {
+                val (diff, lvl) = viewModel.getNextLevelRoute()
                 viewModel.nextLevel()
-                onNavigateHome()
+                onNavigateToNextLevel(diff, lvl)
             },
             onMainMenu = onNavigateHome
         )
@@ -216,13 +220,13 @@ private fun GameTopBar(
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(52.dp)
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(32.dp)
             )
         }
 
@@ -231,7 +235,7 @@ private fun GameTopBar(
             Text(
                 "Level ${uiState.level}",
                 fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
+                fontSize = 22.sp,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Surface(
@@ -256,7 +260,7 @@ private fun GameTopBar(
             // Hearts: red with count + blue bonus
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("❤️", fontSize = 26.sp)
+                    Text("❤️", fontSize = 30.sp)
                     Text(
                         "${uiState.regularLives}",
                         fontSize = 11.sp,
@@ -281,20 +285,20 @@ private fun GameTopBar(
             }
             // Coins
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("⬡", fontSize = 16.sp, color = CoinGold)
+                Text("⬡", fontSize = 18.sp, color = CoinGold)
                 Text(
                     "${uiState.coins}",
                     fontWeight = FontWeight.Bold,
                     color = CoinGold,
-                    fontSize = 15.sp
+                    fontSize = 17.sp
                 )
             }
-            IconButton(onClick = onStore, modifier = Modifier.size(40.dp)) {
+            IconButton(onClick = onStore, modifier = Modifier.size(44.dp)) {
                 Icon(
                     Icons.Default.ShoppingCart,
                     contentDescription = "Store",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }
@@ -337,8 +341,8 @@ private fun ItemsBar(
             label = "Define",
             ownedCount = definitionCount,
             coinCost = 300,
-            enabled = !definitionUsed && (definitionCount > 0 || coins >= 300),
-            subtitle = if (definitionUsed) "Used" else null,
+            enabled = definitionUsed || definitionCount > 0 || coins >= 300,
+            subtitle = if (definitionUsed) "View 📖" else null,
             onClick = onDefinition
         )
     }
@@ -371,7 +375,7 @@ private fun ItemButton(
         ) {
             // Icon row — show owned badge if any
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(icon, fontSize = 16.sp)
+                Text(icon, fontSize = 20.sp)
                 if (ownedCount > 0) {
                     Spacer(Modifier.width(3.dp))
                     Surface(
@@ -391,13 +395,13 @@ private fun ItemButton(
             }
             Text(
                 label,
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
             )
             // Subtitle / cost
             Text(
-                text = subtitle ?: if (ownedCount > 0) "FREE" else "$coinCost ⬡",
+                text = subtitle ?: if (ownedCount > 0) "$ownedCount left" else "$coinCost ⬡",
                 fontSize = 11.sp,
                 fontWeight = if (ownedCount > 0 && subtitle == null) FontWeight.Bold else FontWeight.Normal,
                 color = if (ownedCount > 0 && subtitle == null)

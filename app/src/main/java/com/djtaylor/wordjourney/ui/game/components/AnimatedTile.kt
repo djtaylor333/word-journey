@@ -34,6 +34,7 @@ fun AnimatedTile(
     tileSize: Dp,
     fontSize: Int,
     highContrast: Boolean = false,
+    isLightTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val isEvaluated = state in listOf(TileState.CORRECT, TileState.PRESENT, TileState.ABSENT)
@@ -62,8 +63,8 @@ fun AnimatedTile(
         label = "tileScale"
     )
 
-    val bgColor = tileBackground(state, flipAngle, highContrast)
-    val borderColor = tileBorder(state)
+    val bgColor = tileBackground(state, flipAngle, highContrast, isLightTheme)
+    val borderColor = tileBorder(state, isLightTheme)
     val textColor = if (isEvaluated) Color.White else MaterialTheme.colorScheme.onSurface
 
     Box(
@@ -95,25 +96,25 @@ fun AnimatedTile(
     }
 }
 
-private fun tileBackground(state: TileState, flipAngle: Float, highContrast: Boolean): Color {
+private fun tileBackground(state: TileState, flipAngle: Float, highContrast: Boolean, isLightTheme: Boolean): Color {
     if (flipAngle <= 90f) {
         return when (state) {
-            TileState.FILLED -> TileFilled
-            else             -> TileEmpty
+            TileState.FILLED -> if (isLightTheme) TileFilledLight else TileFilled
+            else             -> if (isLightTheme) TileEmptyLight else TileEmpty
         }
     }
     return when (state) {
         TileState.CORRECT -> if (highContrast) TileCorrectHC else TileCorrect
         TileState.PRESENT -> if (highContrast) TilePresentHC else TilePresent
         TileState.ABSENT  -> TileAbsent
-        TileState.FILLED  -> TileFilled
-        TileState.EMPTY   -> TileEmpty
+        TileState.FILLED  -> if (isLightTheme) TileFilledLight else TileFilled
+        TileState.EMPTY   -> if (isLightTheme) TileEmptyLight else TileEmpty
     }
 }
 
-private fun tileBorder(state: TileState): Color = when (state) {
-    TileState.EMPTY   -> TileBorderEmpty
-    TileState.FILLED  -> TileBorderFilled
+private fun tileBorder(state: TileState, isLightTheme: Boolean): Color = when (state) {
+    TileState.EMPTY   -> if (isLightTheme) TileBorderEmptyLight else TileBorderEmpty
+    TileState.FILLED  -> if (isLightTheme) TileBorderFilledLight else TileBorderFilled
     TileState.CORRECT -> TileCorrect
     TileState.PRESENT -> TilePresent
     TileState.ABSENT  -> TileAbsent

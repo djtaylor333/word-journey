@@ -136,6 +136,17 @@ class GameViewModel @Inject constructor(
         )
         _targetWordCache = word
 
+        // For replay mode, auto-load definition so player can always view it
+        var defHint: String? = null
+        var defUsed = false
+        if (isReplay) {
+            val definition = wordRepository.getDefinition(difficulty, level)
+            if (definition.isNotBlank()) {
+                defHint = definition
+                defUsed = true
+            }
+        }
+
         _uiState.update { s ->
             s.copy(
                 level = level,
@@ -156,9 +167,9 @@ class GameViewModel @Inject constructor(
                 definitionItems = playerProgress.definitionItems,
                 isLoading = false,
                 isReplay = isReplay,
-                definitionHint = null,
+                definitionHint = defHint,
                 showDefinitionDialog = false,
-                definitionUsedThisLevel = false
+                definitionUsedThisLevel = defUsed
             )
         }
         if (!isReplay) persistCurrentState()
@@ -468,10 +479,16 @@ class GameViewModel @Inject constructor(
         _uiState.update { it.copy(showWinDialog = false) }
     }
 
+    /** Returns (difficultyKey, nextLevel) for navigation. */
+    fun getNextLevelRoute(): Pair<String, Int> {
+        return Pair(difficultyKey, _uiState.value.level + 1)
+    }
+
     // ── Definition item ───────────────────────────────────────────────────────
     fun useDefinitionItem() {
-        if (_uiState.value.definitionUsedThisLevel) {
-            _uiState.update { it.copy(snackbarMessage = "Definition already used this level") }
+        // If definition already used/available this level, just re-show it
+        if (_uiState.value.definitionUsedThisLevel && _uiState.value.definitionHint != null) {
+            _uiState.update { it.copy(showDefinitionDialog = true) }
             return
         }
         val progress = playerProgress

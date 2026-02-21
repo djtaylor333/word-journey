@@ -629,7 +629,7 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `useDefinitionItem cannot be used twice per level`() = runTest {
+    fun `useDefinitionItem can be re-viewed after first use`() = runTest {
         val progress = PlayerProgress(definitionItems = 2)
         val vm = createViewModel(progress = progress)
         awaitInit(vm)
@@ -639,12 +639,14 @@ class GameViewModelTest {
         vm.dismissDefinitionDialog()
         awaitInit(vm)
 
-        vm.useDefinitionItem() // second use
+        vm.useDefinitionItem() // second use — should re-show without consuming item
         awaitInit(vm)
 
         val state = vm.uiState.first()
-        assertNotNull(state.snackbarMessage)
-        assertTrue(state.snackbarMessage!!.contains("already used"))
+        assertTrue("Should re-show definition dialog", state.showDefinitionDialog)
+        assertEquals("A test definition", state.definitionHint)
+        // Should still have 1 item left (only consumed on first use)
+        assertEquals(1, state.definitionItems)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -974,5 +976,80 @@ class GameViewModelTest {
         val state = vm.uiState.first()
         assertEquals(Difficulty.HARD, state.difficulty)
         assertEquals(6, state.difficulty.wordLength)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 14. NEXT LEVEL NAVIGATION
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `getNextLevelRoute returns correct difficulty and next level`() = runTest {
+        val vm = createViewModel(difficulty = "easy", level = 3, word = "ABLE")
+        awaitInit(vm)
+
+        val (diff, lvl) = vm.getNextLevelRoute()
+        assertEquals("easy", diff)
+        assertEquals(4, lvl)
+    }
+
+    @Test
+    fun `getNextLevelRoute for regular difficulty`() = runTest {
+        val vm = createViewModel(difficulty = "regular", level = 7, word = "CRANE")
+        awaitInit(vm)
+
+        val (diff, lvl) = vm.getNextLevelRoute()
+        assertEquals("regular", diff)
+        assertEquals(8, lvl)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 15. DEFINITION PERSISTENCE & REPLAY
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `replay mode auto-loads definition`() = runTest {
+        val progress = PlayerProgress(easyLevel = 5, definitionItems = 0)
+        val vm = createViewModel(level = 3, progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertTrue("Replay should auto-set definitionUsedThisLevel", state.definitionUsedThisLevel)
+        assertEquals("A test definition", state.definitionHint)
+    }
+
+    @Test
+    fun `replay mode definition viewable via define button`() = runTest {
+        val progress = PlayerProgress(easyLevel = 5, definitionItems = 0)
+        val vm = createViewModel(level = 3, progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        // Click define — should show cached definition without consuming items
+        vm.useDefinitionItem()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertTrue(state.showDefinitionDialog)
+        assertEquals("A test definition", state.definitionHint)
+    }
+
+    @Test
+    fun `definition re-view does not consume additional items`() = runTest {
+        val progress = PlayerProgress(definitionItems = 1)
+        val vm = createViewModel(progress = progress)
+        awaitInit(vm)
+
+        // First use — consumes 1 item
+        vm.useDefinitionItem()
+        awaitInit(vm)
+        assertEquals(0, vm.uiState.first().definitionItems)
+
+        vm.dismissDefinitionDialog()
+        awaitInit(vm)
+
+        // Second use — should NOT consume anything (re-view)
+        vm.useDefinitionItem()
+        awaitInit(vm)
+        assertEquals(0, vm.uiState.first().definitionItems) // still 0
+        assertTrue(vm.uiState.first().showDefinitionDialog)
     }
 }

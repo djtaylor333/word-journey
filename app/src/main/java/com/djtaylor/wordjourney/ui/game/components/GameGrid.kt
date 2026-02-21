@@ -2,6 +2,8 @@ package com.djtaylor.wordjourney.ui.game.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,6 +18,7 @@ import com.djtaylor.wordjourney.ui.game.GameUiState
 fun GameGrid(
     uiState: GameUiState,
     highContrast: Boolean = false,
+    isLightTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val difficulty = uiState.difficulty
@@ -49,8 +52,23 @@ fun GameGrid(
         label = "shakeOffset"
     )
 
+    // Enable scrolling when 8+ total rows
+    val totalRows = uiState.maxGuesses
+    val needsScroll = totalRows > 8
+    val scrollState = rememberScrollState()
+
+    // Auto-scroll to bottom when new guess is added
+    val guessCount = uiState.guesses.size
+    LaunchedEffect(guessCount) {
+        if (needsScroll) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+
     Column(
-        modifier = modifier,
+        modifier = modifier.then(
+            if (needsScroll) Modifier.verticalScroll(scrollState) else Modifier
+        ),
         verticalArrangement = Arrangement.spacedBy(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -64,7 +82,8 @@ fun GameGrid(
                         tileIndex = colIndex,
                         tileSize = tileSize,
                         fontSize = fontSize,
-                        highContrast = highContrast
+                        highContrast = highContrast,
+                        isLightTheme = isLightTheme
                     )
                 }
             }
@@ -88,7 +107,8 @@ fun GameGrid(
                         tileIndex = col,
                         tileSize = tileSize,
                         fontSize = fontSize,
-                        highContrast = highContrast
+                        highContrast = highContrast,
+                        isLightTheme = isLightTheme
                     )
                 }
             }
@@ -108,7 +128,8 @@ fun GameGrid(
                         tileIndex = col,
                         tileSize = tileSize,
                         fontSize = fontSize,
-                        highContrast = highContrast
+                        highContrast = highContrast,
+                        isLightTheme = isLightTheme
                     )
                 }
             }
