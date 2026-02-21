@@ -1,5 +1,7 @@
 package com.djtaylor.wordjourney.ui.navigation
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -12,11 +14,17 @@ import com.djtaylor.wordjourney.ui.levelselect.LevelSelectScreen
 import com.djtaylor.wordjourney.ui.settings.SettingsScreen
 import com.djtaylor.wordjourney.ui.store.StoreScreen
 
+private const val ANIM_MS = 350
+
 @Composable
 fun AppNavigation(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = Screen.Home.route,
+        enterTransition = { fadeIn(tween(ANIM_MS)) + slideInHorizontally(tween(ANIM_MS)) { it / 4 } },
+        exitTransition = { fadeOut(tween(ANIM_MS)) + slideOutHorizontally(tween(ANIM_MS)) { -it / 4 } },
+        popEnterTransition = { fadeIn(tween(ANIM_MS)) + slideInHorizontally(tween(ANIM_MS)) { -it / 4 } },
+        popExitTransition = { fadeOut(tween(ANIM_MS)) + slideOutHorizontally(tween(ANIM_MS)) { it / 4 } }
     ) {
         composable(Screen.Home.route) {
             HomeScreen(

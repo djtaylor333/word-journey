@@ -17,11 +17,20 @@ class WordRepository @Inject constructor(
     // ── Comprehensive dictionary for guess validation (loaded from valid_words.json) ──
     private val validWordSets: Map<Int, Set<String>> by lazy { loadValidWords() }
 
-    // ── Per-player seed for deterministic but randomized word ordering ──
-    private var _playerSeed: Long? = null
+    /**
+     * Fixed global seed used to shuffle word order.
+     * Every player sees the same word for the same level number.
+     * Changing this seed would reset the order for everyone.
+     */
+    companion object {
+        const val GLOBAL_WORD_SEED = 2025_06_28L
+    }
 
     // ── Cached shuffled word lists per length ──
     private val shuffledWordsCache = mutableMapOf<Int, List<WordEntity>>()
+
+    /** Allow overriding the seed in tests. Defaults to GLOBAL_WORD_SEED. */
+    private var _testSeed: Long? = null
 
     private fun loadValidWords(): Map<Int, Set<String>> {
         return try {
@@ -51,42 +60,30 @@ class WordRepository @Inject constructor(
      * Returns the per-player random seed, generating one on first use.
      * Stored in SharedPreferences (separate from DataStore) for simplicity.
      */
-    fun getPlayerSeed(): Long {
-        _playerSeed?.let { return it }
-        val prefs = context.getSharedPreferences("word_journey_seed", Context.MODE_PRIVATE)
-        var seed = prefs.getLong("player_seed", 0L)
-        if (seed == 0L) {
-            seed = System.nanoTime() xor (Math.random() * Long.MAX_VALUE).toLong()
-            if (seed == 0L) seed = 1L // avoid 0
-            prefs.edit().putLong("player_seed", seed).apply()
-        }
-        _playerSeed = seed
-        return seed
-    }
+    private fun getEffectiveSeed(): Long = _testSeed ?: GLOBAL_WORD_SEED
 
     /** Visible for testing — allows injecting a known seed. */
-    fun setPlayerSeedForTesting(seed: Long) {
-        _playerSeed = seed
+    fun setSeedForTesting(seed: Long) {
+        _testSeed = seed
         shuffledWordsCache.clear()
     }
 
     /**
      * Returns the shuffled word list for a given word length.
-     * Uses the player's unique seed so each player gets a different order,
-     * but the same player always sees the same sequence.
+     * Uses a fixed global seed so every player gets the SAME word order.
      */
     private suspend fun getShuffledWords(length: Int): List<WordEntity> {
         return shuffledWordsCache.getOrPut(length) {
             val allWords = wordDao.getAllByLength(length)
             allWords.toMutableList().also {
-                java.util.Collections.shuffle(it, java.util.Random(getPlayerSeed() + length))
+                java.util.Collections.shuffle(it, java.util.Random(getEffectiveSeed() + length))
             }
         }
     }
 
     /**
      * Returns the target word for a given [difficulty] and [level].
-     * Uses per-player seeded shuffle so different players get different word orders.
+     * Uses a fixed global seed so all players get the same word for the same level.
      * Returns null only if the word list is unexpectedly empty.
      */
     suspend fun getWordForLevel(difficulty: Difficulty, level: Int): String? {

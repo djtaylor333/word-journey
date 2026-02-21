@@ -11,8 +11,9 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests for WordRepository — word ordering randomization and validation.
+ * Tests for WordRepository — word ordering and validation.
  *
+ * Uses a fixed global seed (same for all players).
  * Note: These tests mock the WordDao and skip valid_words.json loading
  * (which requires Android Context). Word validation against the dictionary
  * is tested via integration tests on device.
@@ -57,18 +58,14 @@ class WordRepositoryTest {
      * Note: The valid_words.json loading will fail gracefully (returns empty map),
      * so isValidWord tests that depend on the dictionary are skipped here.
      */
-    private fun createRepo(seed: Long = 12345L): WordRepository {
+    private fun createRepo(seed: Long = WordRepository.GLOBAL_WORD_SEED): WordRepository {
         val context = mockk<android.content.Context>(relaxed = true) {
-            every { getSharedPreferences(any(), any()) } returns mockk {
-                every { getLong(any(), any()) } returns seed
-                every { edit() } returns mockk(relaxed = true)
-            }
             every { assets } returns mockk {
                 every { open(any()) } throws java.io.FileNotFoundException("test mode")
             }
         }
         return WordRepository(wordDao, context).also {
-            it.setPlayerSeedForTesting(seed)
+            it.setSeedForTesting(seed)
         }
     }
 
@@ -93,7 +90,18 @@ class WordRepositoryTest {
     }
 
     @Test
-    fun `different seeds produce different word orders`() = runTest {
+    fun `global seed gives all players the same word order`() = runTest {
+        val repo1 = createRepo() // uses GLOBAL_WORD_SEED
+        val repo2 = createRepo() // same seed
+
+        val words1 = (1..10).map { repo1.getWordForLevel(Difficulty.EASY, it) }
+        val words2 = (1..10).map { repo2.getWordForLevel(Difficulty.EASY, it) }
+
+        assertEquals("All players must see the same order", words1, words2)
+    }
+
+    @Test
+    fun `different test seeds produce different word orders`() = runTest {
         val repo1 = createRepo(seed = 100L)
         val repo2 = createRepo(seed = 200L)
 
@@ -103,17 +111,6 @@ class WordRepositoryTest {
         // Same set of words, but different order
         assertEquals(words1.toSet(), words2.toSet())
         assertNotEquals("Different seeds should produce different orderings", words1, words2)
-    }
-
-    @Test
-    fun `same seed always produces same word order`() = runTest {
-        val repo1 = createRepo(seed = 42L)
-        val repo2 = createRepo(seed = 42L)
-
-        val words1 = (1..10).map { repo1.getWordForLevel(Difficulty.EASY, it) }
-        val words2 = (1..10).map { repo2.getWordForLevel(Difficulty.EASY, it) }
-
-        assertEquals("Same seed must produce identical order", words1, words2)
     }
 
     @Test
@@ -248,7 +245,7 @@ class WordRepositoryTest {
         val words1 = (1..10).map { repo.getWordForLevel(Difficulty.EASY, it) }
         
         // Change seed
-        repo.setPlayerSeedForTesting(200L)
+        repo.setSeedForTesting(200L)
         val words2 = (1..10).map { repo.getWordForLevel(Difficulty.EASY, it) }
         
         // Same set, different order
