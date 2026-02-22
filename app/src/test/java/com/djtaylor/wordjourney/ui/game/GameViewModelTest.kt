@@ -73,8 +73,10 @@ class GameViewModelTest {
 
         wordRepository = mockk {
             coEvery { getWordForLevel(any(), any(), any()) } returns word
+            coEvery { getWordForLevel(any(), any(), isNull()) } returns word
             coEvery { isValidWord(any(), any()) } returns wordValidator
-            coEvery { getDefinition(any(), any()) } returns "A test definition"
+            coEvery { getDefinition(any(), any(), any()) } returns "A test definition"
+            coEvery { getDefinition(any(), any(), isNull()) } returns "A test definition"
             coEvery { findAbsentLetter(any(), any(), any()) } returns 'X'
         }
 
@@ -1742,5 +1744,175 @@ class GameViewModelTest {
         coVerify { playerRepository.saveProgress(match {
             it.dailyChallengeStreak == 30 && it.diamonds == 5 && it.lives == 6
         }) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // v2.4.0 — LIVES DEDUCTION ON LEVEL START
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `startFreshLevel deducts 1 life for non-replay non-daily`() = runTest {
+        val progress = PlayerProgress(lives = 5, easyLevel = 1)
+        val vm = createViewModel(difficulty = "easy", level = 1, word = "ABLE", progress = progress)
+        awaitInit(vm)
+
+        // After init, 1 life should be deducted
+        coVerify { playerRepository.saveProgress(match { it.lives == 4 }) }
+    }
+
+    @Test
+    fun `startFreshLevel does NOT deduct life for replay`() = runTest {
+        // Replaying level 1 when already on level 5
+        val progress = PlayerProgress(lives = 5, easyLevel = 5)
+        val vm = createViewModel(difficulty = "easy", level = 1, word = "ABLE", progress = progress)
+        awaitInit(vm)
+
+        // level < currentLevel → replay → no life deduction
+        coVerify(exactly = 0) { playerRepository.saveProgress(match { it.lives == 4 }) }
+    }
+
+    @Test
+    fun `startFreshLevel does NOT deduct life for daily challenge`() = runTest {
+        val progress = PlayerProgress(lives = 5)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        // Daily challenge → no life deduction
+        coVerify(exactly = 0) { playerRepository.saveProgress(match { it.lives == 4 }) }
+    }
+
+    @Test
+    fun `startFreshLevel with 0 lives blocks level start`() = runTest {
+        val progress = PlayerProgress(lives = 0, easyLevel = 1)
+        val vm = createViewModel(difficulty = "easy", level = 1, word = "ABLE", progress = progress)
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertTrue("Should show no lives dialog", state.showNoLivesDialog)
+        assertEquals(GameStatus.WAITING_FOR_LIFE, state.status)
+    }
+
+    @Test
+    fun `startFreshLevel with 1 life allows but deducts to 0`() = runTest {
+        val progress = PlayerProgress(lives = 1, easyLevel = 1)
+        progressFlow = MutableStateFlow(progress)
+        val pFlow = progressFlow // capture for closure
+
+        wordRepository = mockk {
+            coEvery { getWordForLevel(any(), any(), any()) } returns "ABLE"
+            coEvery { getWordForLevel(any(), any(), isNull()) } returns "ABLE"
+            coEvery { isValidWord(any(), any()) } returns true
+            coEvery { getDefinition(any(), any(), any()) } returns "A test definition"
+            coEvery { getDefinition(any(), any(), isNull()) } returns "A test definition"
+            coEvery { findAbsentLetter(any(), any(), any()) } returns 'X'
+        }
+
+        playerRepository = mockk {
+            every { playerProgressFlow } returns pFlow
+            every { isFirstLaunch } returns MutableStateFlow(false)
+            coEvery { saveProgress(any()) } coAnswers {
+                pFlow.value = firstArg()
+            }
+            coEvery { loadInProgressGame(any<Difficulty>()) } returns null
+            coEvery { loadInProgressGame(any<String>()) } returns null
+            coEvery { saveInProgressGame(any()) } just Runs
+            coEvery { clearInProgressGame(any<Difficulty>()) } just Runs
+            coEvery { clearInProgressGame(any<String>()) } just Runs
+        }
+
+        audioManager = mockk(relaxed = true)
+
+        starRatingDao = mockk {
+            coEvery { upsert(any()) } just Runs
+            coEvery { get(any(), any()) } returns null
+            coEvery { getAllForDifficulty(any()) } returns emptyList()
+            coEvery { totalStarsForDifficulty(any()) } returns 0
+            coEvery { totalStars() } returns 0
+            coEvery { countPerfectLevels() } returns 0
+        }
+
+        dailyChallengeRepository = mockk {
+            coEvery { getDailyWord(any(), any()) } returns "ABLE"
+            coEvery { getDailyWord(any()) } returns "ABLE"
+            coEvery { hasPlayedToday(any()) } returns false
+            coEvery { saveResult(any(), any(), any(), any(), any(), any()) } just Runs
+            coEvery { saveResult(any(), any(), any(), any(), any()) } just Runs
+            coEvery { getResultsForToday() } returns emptyList()
+            coEvery { totalWins() } returns 0
+            coEvery { totalPlayed() } returns 0
+            coEvery { todayDateString() } returns "2026-02-21"
+        }
+
+        val vm = GameViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("difficulty" to "easy", "level" to 1)),
+            wordRepository = wordRepository,
+            playerRepository = playerRepository,
+            evaluateGuess = EvaluateGuessUseCase(),
+            lifeRegenUseCase = LifeRegenUseCase(),
+            audioManager = audioManager,
+            starRatingDao = starRatingDao,
+            dailyChallengeRepository = dailyChallengeRepository
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertEquals(GameStatus.IN_PROGRESS, state.status)
+        assertEquals(0, state.lives)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // v2.4.0 — VIP 3 & 7 LETTER WORD GAMEPLAY
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `VIP 3-letter word level initialises correctly`() = runTest {
+        val vm = createViewModel(difficulty = "vip", level = 1, word = "CAT")
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertFalse(state.isLoading)
+        assertEquals(GameStatus.IN_PROGRESS, state.status)
+        assertEquals(3, state.wordLength)
+    }
+
+    @Test
+    fun `VIP 7-letter word level initialises correctly`() = runTest {
+        val vm = createViewModel(difficulty = "vip", level = 5, word = "KITCHEN")
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertFalse(state.isLoading)
+        assertEquals(GameStatus.IN_PROGRESS, state.status)
+        assertEquals(7, state.wordLength)
+    }
+
+    @Test
+    fun `VIP 3-letter word can be solved`() = runTest {
+        val progress = PlayerProgress(lives = 5, isVip = true, vipLevel = 1)
+        val vm = createViewModel(difficulty = "vip", level = 1, word = "CAT", progress = progress)
+        awaitInit(vm)
+
+        "CAT".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertEquals(GameStatus.WON, state.status)
+    }
+
+    @Test
+    fun `VIP 7-letter word can be solved`() = runTest {
+        val progress = PlayerProgress(lives = 5, isVip = true, vipLevel = 5)
+        val vm = createViewModel(difficulty = "vip", level = 5, word = "KITCHEN", progress = progress)
+        awaitInit(vm)
+
+        "KITCHEN".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertEquals(GameStatus.WON, state.status)
     }
 }

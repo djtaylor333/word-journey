@@ -2,6 +2,12 @@ package com.djtaylor.wordjourney.domain.model
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import com.djtaylor.wordjourney.ui.theme.CoinGold
+import com.djtaylor.wordjourney.ui.theme.CoinGoldDark
+import com.djtaylor.wordjourney.ui.theme.DiamondCyan
+import com.djtaylor.wordjourney.ui.theme.DiamondCyanDark
+import com.djtaylor.wordjourney.ui.theme.adaptiveCoinColor
+import com.djtaylor.wordjourney.ui.theme.adaptiveDiamondColor
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -297,5 +303,92 @@ class ThemeRegistryTest {
         assertTrue(values.contains("FREE"))
         assertTrue(values.contains("VIP"))
         assertTrue(values.contains("SEASONAL"))
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 9. GRADIENT PROPERTIES (v2.4.0)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `all themes have gradient colours set`() {
+        ThemeRegistry.ALL_THEMES.forEach { theme ->
+            assertNotEquals(
+                "Theme ${theme.id}: gradientTop should not be transparent",
+                Color.Transparent,
+                theme.gradientTop
+            )
+            assertNotEquals(
+                "Theme ${theme.id}: gradientMid should not be transparent",
+                Color.Transparent,
+                theme.gradientMid
+            )
+            assertNotEquals(
+                "Theme ${theme.id}: gradientBottom should not be transparent",
+                Color.Transparent,
+                theme.gradientBottom
+            )
+        }
+    }
+
+    @Test
+    fun `gradient colours are distinct within each theme`() {
+        ThemeRegistry.ALL_THEMES.forEach { theme ->
+            // At least 2 of the 3 gradient colours should differ
+            val distinct = setOf(theme.gradientTop, theme.gradientMid, theme.gradientBottom).size
+            assertTrue(
+                "Theme ${theme.id}: gradient should have at least 2 distinct colours (got $distinct)",
+                distinct >= 2
+            )
+        }
+    }
+
+    @Test
+    fun `GameTheme data class has gradient properties`() {
+        val theme = ThemeRegistry.getThemeById("classic")!!
+        assertNotNull(theme.gradientTop)
+        assertNotNull(theme.gradientMid)
+        assertNotNull(theme.gradientBottom)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 10. ADAPTIVE COIN & DIAMOND COLOURS (v2.4.0)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `adaptiveCoinColor returns dark variant for light mode`() {
+        assertEquals(CoinGoldDark, adaptiveCoinColor(isLight = true))
+    }
+
+    @Test
+    fun `adaptiveCoinColor returns bright variant for dark mode`() {
+        assertEquals(CoinGold, adaptiveCoinColor(isLight = false))
+    }
+
+    @Test
+    fun `adaptiveDiamondColor returns dark variant for light mode`() {
+        assertEquals(DiamondCyanDark, adaptiveDiamondColor(isLight = true))
+    }
+
+    @Test
+    fun `adaptiveDiamondColor returns bright variant for dark mode`() {
+        assertEquals(DiamondCyan, adaptiveDiamondColor(isLight = false))
+    }
+
+    @Test
+    fun `adaptive coin colours are distinct`() {
+        assertNotEquals(
+            "Light and dark coin colours should differ",
+            adaptiveCoinColor(true),
+            adaptiveCoinColor(false)
+        )
+    }
+
+    @Test
+    fun `adaptive diamond colours are distinct`() {
+        assertNotEquals(
+            "Light and dark diamond colours should differ",
+            adaptiveDiamondColor(true),
+            adaptiveDiamondColor(false)
+        )
     }
 }

@@ -1,11 +1,14 @@
 package com.djtaylor.wordjourney.ui.theme
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -19,7 +22,7 @@ import kotlin.random.Random
 
 /**
  * Subtle decorative pattern overlay matching the current theme.
- * Drawn at very low opacity so it doesn't distract from gameplay.
+ * Combines a gradient wash with drawn patterns at low opacity.
  */
 @Composable
 fun ThemeBackgroundOverlay(
@@ -27,25 +30,51 @@ fun ThemeBackgroundOverlay(
     modifier: Modifier = Modifier,
     alpha: Float = 0.06f
 ) {
-    if (theme.backgroundPattern == BackgroundPattern.NONE) return
+    val hasGradient = theme.gradientTop != Color.Transparent ||
+            theme.gradientMid != Color.Transparent ||
+            theme.gradientBottom != Color.Transparent
+    val hasPattern = theme.backgroundPattern != BackgroundPattern.NONE
 
-    val color = theme.primaryAccent.copy(alpha = alpha)
-    // Pre-compute stable random positions per theme id
-    val positions = remember(theme.id) {
-        List(40) { Offset(Random.nextFloat(), Random.nextFloat()) }
-    }
+    if (!hasGradient && !hasPattern) return
 
-    Canvas(modifier = modifier.fillMaxSize()) {
-        when (theme.backgroundPattern) {
-            BackgroundPattern.DOTS -> drawDots(color, positions)
-            BackgroundPattern.WAVES -> drawWaves(color)
-            BackgroundPattern.STARS -> drawStars(color, positions)
-            BackgroundPattern.SNOWFLAKES -> drawSnowflakes(color, positions)
-            BackgroundPattern.HEARTS -> drawHearts(color, positions)
-            BackgroundPattern.LEAVES -> drawLeaves(color, positions)
-            BackgroundPattern.DIAMONDS -> drawDiamonds(color, positions)
-            BackgroundPattern.GRID -> drawGrid(color)
-            BackgroundPattern.NONE -> {}
+    Box(modifier = modifier.fillMaxSize()) {
+        // Layer 1: Vertical gradient wash
+        if (hasGradient) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                theme.gradientTop,
+                                theme.gradientMid,
+                                theme.gradientBottom
+                            )
+                        )
+                    )
+            )
+        }
+
+        // Layer 2: Pattern overlay
+        if (hasPattern) {
+            val color = theme.primaryAccent.copy(alpha = alpha)
+            val positions = remember(theme.id) {
+                List(40) { Offset(Random.nextFloat(), Random.nextFloat()) }
+            }
+
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                when (theme.backgroundPattern) {
+                    BackgroundPattern.DOTS -> drawDots(color, positions)
+                    BackgroundPattern.WAVES -> drawWaves(color)
+                    BackgroundPattern.STARS -> drawStars(color, positions)
+                    BackgroundPattern.SNOWFLAKES -> drawSnowflakes(color, positions)
+                    BackgroundPattern.HEARTS -> drawHearts(color, positions)
+                    BackgroundPattern.LEAVES -> drawLeaves(color, positions)
+                    BackgroundPattern.DIAMONDS -> drawDiamonds(color, positions)
+                    BackgroundPattern.GRID -> drawGrid(color)
+                    BackgroundPattern.NONE -> {}
+                }
+            }
         }
     }
 }

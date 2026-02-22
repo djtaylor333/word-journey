@@ -313,6 +313,6 @@ private fun StreakRewardRow(milestone: String, reward: String) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(milestone, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
-        Text(reward, color = CoinGold, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(reward, color = adaptiveCoinColor(!isSystemInDarkTheme()), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }

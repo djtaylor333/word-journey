@@ -281,8 +281,8 @@ private fun GameTopBar(
     onSettings: () -> Unit
 ) {
     val isLight = !isSystemInDarkTheme()
-    val coinColor = if (isLight) CoinGoldDark else CoinGold
-    val diamondColor = if (isLight) DiamondCyanDark else DiamondCyan
+    val coinColor = adaptiveCoinColor(isLight)
+    val diamondColor = adaptiveDiamondColor(isLight)
     val difficultyColor = if (uiState.isDailyChallenge) Primary else when (uiState.difficulty) {
         Difficulty.EASY    -> AccentEasy
         Difficulty.REGULAR -> AccentRegular

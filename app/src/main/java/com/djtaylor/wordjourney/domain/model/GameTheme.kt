@@ -55,6 +55,11 @@ data class GameTheme(
     val backgroundPattern: BackgroundPattern = BackgroundPattern.NONE,
     val patternEmoji: String = "",
 
+    // Gradient overlay colours (top, mid, bottom) for rich background visuals
+    val gradientTop: Color = Color.Transparent,
+    val gradientMid: Color = Color.Transparent,
+    val gradientBottom: Color = Color.Transparent,
+
     // Font family
     val fontFamily: FontFamily = FontFamily.Default
 )
@@ -93,7 +98,10 @@ object ThemeRegistry {
         keyText = Color(0xFFFFFFFF),
         primaryAccent = Color(0xFFC9A84C),
         backgroundPattern = BackgroundPattern.DOTS,
-        patternEmoji = "🗺️"
+        patternEmoji = "🗺️",
+        gradientTop = Color(0x0AC9A84C),
+        gradientMid = Color(0x05D4A843),
+        gradientBottom = Color(0x0ABFA240)
     )
 
     val OCEAN_BREEZE = GameTheme(
@@ -116,7 +124,10 @@ object ThemeRegistry {
         primaryAccent = Color(0xFF00CEC9),
         musicTrack = "music_ocean",
         backgroundPattern = BackgroundPattern.WAVES,
-        patternEmoji = "🌊"
+        patternEmoji = "🌊",
+        gradientTop = Color(0x1A006994),
+        gradientMid = Color(0x0800B4D8),
+        gradientBottom = Color(0x1A00CEC9)
     )
 
     val FOREST_GROVE = GameTheme(
@@ -140,6 +151,9 @@ object ThemeRegistry {
         musicTrack = "music_forest",
         backgroundPattern = BackgroundPattern.LEAVES,
         patternEmoji = "🌿",
+        gradientTop = Color(0x1A2E8B57),
+        gradientMid = Color(0x08228B22),
+        gradientBottom = Color(0x1A3CB371),
         fontFamily = FontFamily.Serif
     )
 
@@ -169,6 +183,9 @@ object ThemeRegistry {
         musicTrack = "music_neon",
         backgroundPattern = BackgroundPattern.GRID,
         patternEmoji = "⚡",
+        gradientTop = Color(0x1AFF00FF),
+        gradientMid = Color(0x0839FF14),
+        gradientBottom = Color(0x1AFF6EC7),
         fontFamily = FontFamily.Monospace
     )
 
@@ -194,6 +211,9 @@ object ThemeRegistry {
         musicTrack = "music_royal",
         backgroundPattern = BackgroundPattern.DIAMONDS,
         patternEmoji = "💎",
+        gradientTop = Color(0x1AFFD700),
+        gradientMid = Color(0x08DA70D6),
+        gradientBottom = Color(0x1AFFD700),
         fontFamily = FontFamily.Serif
     )
 
@@ -218,7 +238,10 @@ object ThemeRegistry {
         diamondCost = 50,
         musicTrack = "music_sunset",
         backgroundPattern = BackgroundPattern.DOTS,
-        patternEmoji = "✨"
+        patternEmoji = "✨",
+        gradientTop = Color(0x1AFF6B35),
+        gradientMid = Color(0x08FF8C42),
+        gradientBottom = Color(0x1AFF1493)
     )
 
     val ARCTIC_FROST = GameTheme(
@@ -242,7 +265,10 @@ object ThemeRegistry {
         diamondCost = 50,
         musicTrack = "music_arctic",
         backgroundPattern = BackgroundPattern.SNOWFLAKES,
-        patternEmoji = "❄️"
+        patternEmoji = "❄️",
+        gradientTop = Color(0x1A80DEEA),
+        gradientMid = Color(0x084FC3F7),
+        gradientBottom = Color(0x1AB39DDB)
     )
 
     val CHERRY_BLOSSOM = GameTheme(
@@ -267,6 +293,9 @@ object ThemeRegistry {
         musicTrack = "music_cherry",
         backgroundPattern = BackgroundPattern.HEARTS,
         patternEmoji = "🌸",
+        gradientTop = Color(0x1AFF69B4),
+        gradientMid = Color(0x08DDA0DD),
+        gradientBottom = Color(0x1AFF69B4),
         fontFamily = FontFamily.Cursive
     )
 
@@ -294,7 +323,10 @@ object ThemeRegistry {
         primaryAccent = Color(0xFFFF4081),
         diamondCost = 30,
         backgroundPattern = BackgroundPattern.HEARTS,
-        patternEmoji = "💕"
+        patternEmoji = "💕",
+        gradientTop = Color(0x1AE91E63),
+        gradientMid = Color(0x08FF80AB),
+        gradientBottom = Color(0x1AFF4081)
     )
 
     val EASTER = GameTheme(
@@ -317,7 +349,10 @@ object ThemeRegistry {
         primaryAccent = Color(0xFFE6EE9C),
         diamondCost = 30,
         backgroundPattern = BackgroundPattern.DOTS,
-        patternEmoji = "🥚"
+        patternEmoji = "🥚",
+        gradientTop = Color(0x1AAED581),
+        gradientMid = Color(0x08CE93D8),
+        gradientBottom = Color(0x1AE6EE9C)
     )
 
     val SUMMER = GameTheme(
@@ -340,7 +375,10 @@ object ThemeRegistry {
         primaryAccent = Color(0xFFFFD54F),
         diamondCost = 30,
         backgroundPattern = BackgroundPattern.WAVES,
-        patternEmoji = "☀️"
+        patternEmoji = "☀️",
+        gradientTop = Color(0x1AFFEB3B),
+        gradientMid = Color(0x084DD0E1),
+        gradientBottom = Color(0x1AFFD54F)
     )
 
     val HALLOWEEN = GameTheme(
@@ -363,7 +401,10 @@ object ThemeRegistry {
         primaryAccent = Color(0xFFFF9800),
         diamondCost = 30,
         backgroundPattern = BackgroundPattern.STARS,
-        patternEmoji = "🦇"
+        patternEmoji = "🦇",
+        gradientTop = Color(0x1AFF6D00),
+        gradientMid = Color(0x089C27B0),
+        gradientBottom = Color(0x1AFF9800)
     )
 
     val THANKSGIVING = GameTheme(
@@ -386,7 +427,10 @@ object ThemeRegistry {
         primaryAccent = Color(0xFFE6A817),
         diamondCost = 30,
         backgroundPattern = BackgroundPattern.LEAVES,
-        patternEmoji = "🍂"
+        patternEmoji = "🍂",
+        gradientTop = Color(0x1AD4A017),
+        gradientMid = Color(0x08C0392B),
+        gradientBottom = Color(0x1AE6A817)
     )
 
     val CHRISTMAS = GameTheme(
@@ -409,7 +453,10 @@ object ThemeRegistry {
         primaryAccent = Color(0xFFD32F2F),
         diamondCost = 30,
         backgroundPattern = BackgroundPattern.SNOWFLAKES,
-        patternEmoji = "🎄"
+        patternEmoji = "🎄",
+        gradientTop = Color(0x1AC62828),
+        gradientMid = Color(0x082E7D32),
+        gradientBottom = Color(0x1AD32F2F)
     )
 
     /** All available themes, ordered by category. */

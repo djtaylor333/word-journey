@@ -2,6 +2,7 @@ package com.djtaylor.wordjourney.ui.game.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -236,9 +237,10 @@ fun WinDialog(
 
                     // Coins earned
                     if (coinsEarned > 0) {
+                        val cGold = adaptiveCoinColor(!isSystemInDarkTheme())
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = CoinGold.copy(alpha = 0.15f),
+                            color = cGold.copy(alpha = 0.15f),
                             modifier = Modifier.scale(coinScale.value)
                         ) {
                             Row(
@@ -246,10 +248,10 @@ fun WinDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("⬡", color = CoinGold, fontSize = 24.sp)
+                                Text("⬡", color = cGold, fontSize = 24.sp)
                                 Text(
                                     "+$displayedCoins coins",
-                                    color = CoinGold,
+                                    color = cGold,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 20.sp
                                 )

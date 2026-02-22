@@ -38,6 +38,18 @@ val DiamondCyanDark = Color(0xFF0891B2) // darker for light-mode readability
 val HeartRed      = Color(0xFFEF4444)
 val BonusHeartBlue = Color(0xFF3B82F6)
 
+/**
+ * Returns the correct coin color for the current light/dark mode.
+ * Use this everywhere instead of raw [CoinGold].
+ */
+fun adaptiveCoinColor(isLight: Boolean) = if (isLight) CoinGoldDark else CoinGold
+
+/**
+ * Returns the correct diamond color for the current light/dark mode.
+ * Use this everywhere instead of raw [DiamondCyan].
+ */
+fun adaptiveDiamondColor(isLight: Boolean) = if (isLight) DiamondCyanDark else DiamondCyan
+
 // ── Dark adventure-map theme ──────────────────────────────────────────────────
 val BackgroundDark        = Color(0xFF1C1610)
 val SurfaceDark           = Color(0xFF2A2117)

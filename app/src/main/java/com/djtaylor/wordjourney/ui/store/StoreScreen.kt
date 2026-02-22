@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djtaylor.wordjourney.billing.ProductIds
 import com.djtaylor.wordjourney.ui.theme.*
+import androidx.compose.foundation.isSystemInDarkTheme
 
 @Composable
 fun StoreScreen(
@@ -28,6 +29,9 @@ fun StoreScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
+    val isLight = !isSystemInDarkTheme()
+    val coinColor = adaptiveCoinColor(isLight)
+    val diamondColor = adaptiveDiamondColor(isLight)
 
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
@@ -59,8 +63,8 @@ fun StoreScreen(
                     )
                     // Currency display
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(end = 12.dp)) {
-                        Text("⬡ ${uiState.progress.coins}", color = CoinGold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text("◆ ${uiState.progress.diamonds}", color = DiamondCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("⬡ ${uiState.progress.coins}", color = coinColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("◆ ${uiState.progress.diamonds}", color = diamondColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         Text("❤️ ${uiState.progress.lives}", color = HeartRed, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
@@ -105,6 +109,8 @@ fun StoreScreen(
 
 @Composable
 private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
+    val isLt = !isSystemInDarkTheme()
+    val cColor = adaptiveCoinColor(isLt)
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -144,7 +150,7 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             title = "Add a Guess",
             description = "Get one extra guess row during a level",
             costLabel = "200 coins",
-            costColor = CoinGold,
+            costColor = cColor,
             ownedCount = uiState.progress.addGuessItems,
             enabled = uiState.progress.coins >= 200,
             onBuy = { viewModel.buyAddGuessItem() }
@@ -154,7 +160,7 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             title = "Remove a Letter",
             description = "Eliminate one letter guaranteed not in the word",
             costLabel = "150 coins",
-            costColor = CoinGold,
+            costColor = cColor,
             ownedCount = uiState.progress.removeLetterItems,
             enabled = uiState.progress.coins >= 150,
             onBuy = { viewModel.buyRemoveLetterItem() }
@@ -164,7 +170,7 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             title = "Definition Hint",
             description = "Reveal the word's definition as a clue (once per level)",
             costLabel = "300 coins",
-            costColor = CoinGold,
+            costColor = cColor,
             ownedCount = uiState.progress.definitionItems,
             enabled = uiState.progress.coins >= 300,
             onBuy = { viewModel.buyDefinitionItem() }
@@ -174,7 +180,7 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             title = "Show Letter",
             description = "Reveal one correct letter position in the word",
             costLabel = "250 coins",
-            costColor = CoinGold,
+            costColor = cColor,
             ownedCount = uiState.progress.showLetterItems,
             enabled = uiState.progress.coins >= 250,
             onBuy = { viewModel.buyShowLetterItem() }
@@ -232,6 +238,7 @@ private fun InventoryChip(emoji: String, label: String, count: Int) {
 
 @Composable
 private fun LivesTab(uiState: StoreUiState, viewModel: StoreViewModel) {
+    val isLt = !isSystemInDarkTheme()
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -248,7 +255,7 @@ private fun LivesTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             title = "Trade Coins for 1 Life",
             description = "Spend 1,000 coins to gain 1 extra life",
             costLabel = "1000 coins",
-            costColor = CoinGold,
+            costColor = adaptiveCoinColor(isLt),
             enabled = uiState.progress.coins >= 1000,
             onBuy = { viewModel.tradeCoinsForLife() }
         )
@@ -257,7 +264,7 @@ private fun LivesTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             title = "Trade Diamonds for 1 Life",
             description = "Spend 3 diamonds to gain 1 extra life",
             costLabel = "3 diamonds",
-            costColor = DiamondCyan,
+            costColor = adaptiveDiamondColor(isLt),
             enabled = uiState.progress.diamonds >= 3,
             onBuy = { viewModel.tradeDiamondsForLife() }
         )
@@ -283,7 +290,8 @@ private fun CoinsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Coins", style = MaterialTheme.typography.titleLarge, color = CoinGold)
+        val isLt = !isSystemInDarkTheme()
+        Text("Coins", style = MaterialTheme.typography.titleLarge, color = adaptiveCoinColor(isLt))
         Text("Current: ⬡ ${uiState.progress.coins} coins", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
         IapCard("⬡", "500 Coins", "Starter pack", ProductIds.COINS_500, viewModel)
         IapCard("⬡⬡", "1500 Coins", "Popular pack", ProductIds.COINS_1500, viewModel)
@@ -297,7 +305,8 @@ private fun DiamondsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Diamonds", style = MaterialTheme.typography.titleLarge, color = DiamondCyan)
+        val isLt = !isSystemInDarkTheme()
+        Text("Diamonds", style = MaterialTheme.typography.titleLarge, color = adaptiveDiamondColor(isLt))
         Text("Current: ◆ ${uiState.progress.diamonds} diamonds", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
         Text("Premium currency — used for lives and special items",
             style = MaterialTheme.typography.bodyMedium,

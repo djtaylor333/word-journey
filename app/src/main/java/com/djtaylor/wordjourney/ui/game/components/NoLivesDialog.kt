@@ -15,6 +15,9 @@ import com.djtaylor.wordjourney.ui.theme.AccentRegular
 import com.djtaylor.wordjourney.ui.theme.CoinGold
 import com.djtaylor.wordjourney.ui.theme.DiamondCyan
 import com.djtaylor.wordjourney.ui.theme.HeartRed
+import com.djtaylor.wordjourney.ui.theme.adaptiveCoinColor
+import com.djtaylor.wordjourney.ui.theme.adaptiveDiamondColor
+import androidx.compose.foundation.isSystemInDarkTheme
 import java.util.concurrent.TimeUnit
 
 /**
@@ -32,6 +35,8 @@ fun NoLivesDialog(
     onWait: () -> Unit
 ) {
     Dialog(onDismissRequest = onWait) {
+        val isLt = !isSystemInDarkTheme()
+        val cColor = adaptiveCoinColor(isLt)
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
@@ -81,7 +86,7 @@ fun NoLivesDialog(
                     onClick = onTradeCoins,
                     enabled = coins >= 1000,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = CoinGold)
+                    colors = ButtonDefaults.buttonColors(containerColor = cColor)
                 ) {
                     Text(
                         "⬡ Trade 1000 Coins for 1 Life   [$coins coins]",

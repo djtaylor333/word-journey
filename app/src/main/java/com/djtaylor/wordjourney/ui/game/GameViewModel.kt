@@ -148,6 +148,24 @@ class GameViewModel @Inject constructor(
     }
 
     private suspend fun startFreshLevel(level: Int) {
+        // Spend 1 life to start a non-replay, non-daily level
+        if (!isReplay && !isDailyChallenge) {
+            if (playerProgress.lives <= 0) {
+                _uiState.update { s ->
+                    s.copy(
+                        isLoading = false,
+                        lives = 0,
+                        showNoLivesDialog = true,
+                        status = GameStatus.WAITING_FOR_LIFE
+                    )
+                }
+                return
+            }
+            val updated = playerProgress.copy(lives = playerProgress.lives - 1)
+            playerProgress = updated
+            playerRepository.saveProgress(updated)
+        }
+
         // For VIP difficulty, word length varies by level
         val effectiveWordLength = if (difficulty == Difficulty.VIP) {
             Difficulty.vipWordLengthForLevel(level)

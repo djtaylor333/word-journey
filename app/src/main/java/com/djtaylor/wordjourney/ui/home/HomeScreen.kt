@@ -40,8 +40,10 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isLight = !isSystemInDarkTheme()
-    val coinColor = if (isLight) CoinGoldDark else CoinGold
-    val diamondColor = if (isLight) DiamondCyanDark else DiamondCyan
+    val coinColor = adaptiveCoinColor(isLight)
+    val diamondColor = adaptiveDiamondColor(isLight)
+    val themeAccent = MaterialTheme.colorScheme.primary
+    val theme = LocalGameTheme.current
 
     // Rotating compass animation
     val infiniteTransition = rememberInfiniteTransition(label = "compass")
@@ -60,7 +62,7 @@ fun HomeScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         // Theme background decoration
-        ThemeBackgroundOverlay(theme = LocalGameTheme.current)
+        ThemeBackgroundOverlay(theme = theme)
 
         Column(
             modifier = Modifier
@@ -127,19 +129,19 @@ fun HomeScreen(
                         .size(110.dp)
                         .rotate(compassRotation)
                         .clip(CircleShape)
-                        .border(3.dp, Primary, CircleShape)
+                        .border(3.dp, themeAccent, CircleShape)
                 )
                 Column(
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        LogoTile(TileCorrect, "W")
-                        LogoTile(TilePresent, "J")
+                        LogoTile(theme.tileCorrect, "W")
+                        LogoTile(theme.tilePresent, "J")
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        LogoTile(TileAbsent, "?")
-                        LogoTile(TilePresent, "!")
+                        LogoTile(theme.tileAbsent, "?")
+                        LogoTile(theme.tilePresent, "!")
                     }
                 }
             }
@@ -147,7 +149,7 @@ fun HomeScreen(
             Text(
                 text = "Word Journeys",
                 style = MaterialTheme.typography.headlineLarge,
-                color = Primary,
+                color = themeAccent,
                 textAlign = TextAlign.Center
             )
             Text(
@@ -234,7 +236,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 6.dp,
                     tonalElevation = 2.dp,
-                    border = BorderStroke(2.dp, Primary.copy(alpha = 0.5f)),
+                    border = BorderStroke(2.dp, themeAccent.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -247,7 +249,7 @@ fun HomeScreen(
                             "${activeSeason.season.displayName} Pack",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Primary,
+                            color = themeAccent,
                             textAlign = TextAlign.Center
                         )
                         Surface(
@@ -272,12 +274,12 @@ fun HomeScreen(
                         Spacer(Modifier.height(10.dp))
                         Surface(
                             shape = RoundedCornerShape(10.dp),
-                            color = Primary.copy(alpha = 0.15f)
+                            color = themeAccent.copy(alpha = 0.15f)
                         ) {
                             Text(
                                 "Word pack coming soon",
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                color = Primary,
+                                color = themeAccent,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 14.sp
                             )
@@ -415,13 +417,14 @@ private fun DailyChallengeCard(
     streak: Int,
     onClick: () -> Unit
 ) {
+    val accent = MaterialTheme.colorScheme.primary
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 6.dp,
         tonalElevation = 2.dp,
-        border = BorderStroke(2.dp, Primary.copy(alpha = 0.5f)),
+        border = BorderStroke(2.dp, accent.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -429,7 +432,7 @@ private fun DailyChallengeCard(
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            Primary.copy(alpha = 0.08f),
+                            accent.copy(alpha = 0.08f),
                             Color.Transparent
                         )
                     )
@@ -447,7 +450,7 @@ private fun DailyChallengeCard(
                     Text(
                         "Daily Challenge",
                         style = MaterialTheme.typography.titleLarge,
-                        color = Primary,
+                        color = accent,
                         fontSize = 22.sp
                     )
                     Text(
@@ -464,19 +467,19 @@ private fun DailyChallengeCard(
                     Text(
                         "$streak",
                         fontWeight = FontWeight.Bold,
-                        color = Primary,
+                        color = accent,
                         fontSize = 18.sp
                     )
                 }
             } else {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Primary.copy(alpha = 0.2f)
+                    color = accent.copy(alpha = 0.2f)
                 ) {
                     Text(
                         "Play!",
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        color = Primary,
+                        color = accent,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
@@ -500,7 +503,7 @@ private fun QuickNavCard(
         shape = RoundedCornerShape(14.dp),
         shadowElevation = if (enabled) 4.dp else 0.dp,
         color = if (enabled) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        border = BorderStroke(1.dp, if (enabled) Primary.copy(alpha = 0.3f) else Color.Transparent),
+        border = BorderStroke(1.dp, if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else Color.Transparent),
         modifier = modifier
     ) {
         Column(

@@ -252,4 +252,130 @@ class WordRepositoryTest {
         assertEquals(words1.filterNotNull().toSet(), words2.filterNotNull().toSet())
         assertNotEquals("Different seed should produce different order", words1, words2)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // v2.4.0 — 3 & 7 LETTER WORD SUPPORT
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private val sampleWords3 = listOf(
+        WordEntity(21, "ACE", 3, "A playing card with a single pip; also an expert"),
+        WordEntity(22, "ACT", 3, "To take action or perform a role; a deed"),
+        WordEntity(23, "ADD", 3, "To join or combine numbers or things together"),
+        WordEntity(24, "CAT", 3, "A small domesticated carnivorous mammal"),
+        WordEntity(25, "DOG", 3, "A domesticated carnivorous mammal kept as a pet")
+    )
+
+    private val sampleWords7 = listOf(
+        WordEntity(31, "ABANDON", 7, "To give up completely; to desert or leave behind"),
+        WordEntity(32, "ABILITY", 7, "The possession of skill or talent to do something"),
+        WordEntity(33, "ABOLISH", 7, "To formally put an end to a system or practice"),
+        WordEntity(34, "BALANCE", 7, "An even distribution of weight enabling stability"),
+        WordEntity(35, "CABINET", 7, "A cupboard with shelves or drawers; a body of advisors")
+    )
+
+    private fun createRepoWith3And7(seed: Long = WordRepository.GLOBAL_WORD_SEED): WordRepository {
+        val dao = mockk<WordDao> {
+            coEvery { getAllByLength(3) } returns sampleWords3
+            coEvery { getAllByLength(4) } returns sampleWords4
+            coEvery { getAllByLength(5) } returns sampleWords5
+            coEvery { getAllByLength(6) } returns emptyList()
+            coEvery { getAllByLength(7) } returns sampleWords7
+        }
+        val context = mockk<android.content.Context>(relaxed = true) {
+            every { assets } returns mockk {
+                every { open(any()) } throws java.io.FileNotFoundException("test mode")
+            }
+        }
+        return WordRepository(dao, context).also { it.setSeedForTesting(seed) }
+    }
+
+    @Test
+    fun `getWordForLevel returns 3-letter words for VIP level 1`() = runTest {
+        val repo = createRepoWith3And7()
+        val wl = Difficulty.vipWordLengthForLevel(1) // 3
+        val word = repo.getWordForLevel(Difficulty.VIP, 1, wordLengthOverride = wl)
+        assertNotNull(word)
+        assertEquals(3, word!!.length)
+        assertTrue(word in sampleWords3.map { it.word })
+    }
+
+    @Test
+    fun `getWordForLevel returns 7-letter words for VIP level 5`() = runTest {
+        val repo = createRepoWith3And7()
+        val wl = Difficulty.vipWordLengthForLevel(5) // 7
+        val word = repo.getWordForLevel(Difficulty.VIP, 5, wordLengthOverride = wl)
+        assertNotNull(word)
+        assertEquals(7, word!!.length)
+        assertTrue(word in sampleWords7.map { it.word })
+    }
+
+    @Test
+    fun `getDefinition for 3-letter word returns non-empty definition`() = runTest {
+        val repo = createRepoWith3And7()
+        val wl = Difficulty.vipWordLengthForLevel(1)
+        val word = repo.getWordForLevel(Difficulty.VIP, 1, wordLengthOverride = wl)
+        val definition = repo.getDefinition(Difficulty.VIP, 1, wordLengthOverride = wl)
+        assertNotNull(word)
+        assertTrue("3-letter word should have a definition", definition.isNotEmpty())
+        val entity = sampleWords3.first { it.word == word }
+        assertEquals(entity.definition, definition)
+    }
+
+    @Test
+    fun `getDefinition for 7-letter word returns non-empty definition`() = runTest {
+        val repo = createRepoWith3And7()
+        val wl = Difficulty.vipWordLengthForLevel(5)
+        val word = repo.getWordForLevel(Difficulty.VIP, 5, wordLengthOverride = wl)
+        val definition = repo.getDefinition(Difficulty.VIP, 5, wordLengthOverride = wl)
+        assertNotNull(word)
+        assertTrue("7-letter word should have a definition", definition.isNotEmpty())
+        val entity = sampleWords7.first { it.word == word }
+        assertEquals(entity.definition, definition)
+    }
+
+    @Test
+    fun `VIP word cycling produces correct lengths across 10 levels`() = runTest {
+        val repo = createRepoWith3And7()
+        for (level in 1..10) {
+            val expectedLen = Difficulty.vipWordLengthForLevel(level)
+            val word = repo.getWordForLevel(Difficulty.VIP, level, wordLengthOverride = expectedLen)
+            if (expectedLen == 6) {
+                // Our mock returns empty for 6-letter words
+                assertNull("Level $level (6-letter): should be null", word)
+            } else {
+                assertNotNull("Level $level ($expectedLen-letter): should return a word", word)
+                assertEquals("Level $level: expected $expectedLen-letter word", expectedLen, word!!.length)
+            }
+        }
+    }
+
+    @Test
+    fun `3-letter word definition matches word across shuffled order`() = runTest {
+        val repo = createRepoWith3And7()
+        for (level in listOf(1, 6, 11)) { // VIP levels that map to 3-letter words
+            val wl = Difficulty.vipWordLengthForLevel(level)
+            assertEquals("Level $level should be 3-letter", 3, wl)
+            val word = repo.getWordForLevel(Difficulty.VIP, level, wordLengthOverride = wl)
+            val definition = repo.getDefinition(Difficulty.VIP, level, wordLengthOverride = wl)
+            if (word != null) {
+                val entity = sampleWords3.first { it.word == word }
+                assertEquals("Definition for $word should match", entity.definition, definition)
+            }
+        }
+    }
+
+    @Test
+    fun `7-letter word definition matches word across shuffled order`() = runTest {
+        val repo = createRepoWith3And7()
+        for (level in listOf(5, 10, 15)) { // VIP levels that map to 7-letter words
+            val wl = Difficulty.vipWordLengthForLevel(level)
+            assertEquals("Level $level should be 7-letter", 7, wl)
+            val word = repo.getWordForLevel(Difficulty.VIP, level, wordLengthOverride = wl)
+            val definition = repo.getDefinition(Difficulty.VIP, level, wordLengthOverride = wl)
+            if (word != null) {
+                val entity = sampleWords7.first { it.word == word }
+                assertEquals("Definition for $word should match", entity.definition, definition)
+            }
+        }
+    }
 }

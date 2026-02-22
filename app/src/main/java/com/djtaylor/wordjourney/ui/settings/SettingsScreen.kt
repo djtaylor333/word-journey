@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -174,7 +175,7 @@ fun SettingsScreen(
                 Text(
                     "${state.diamonds} diamonds available",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = DiamondCyan,
+                    color = adaptiveDiamondColor(!isSystemInDarkTheme()),
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -624,7 +625,7 @@ private fun ThemeCard(
                     Text("Owned", fontSize = 9.sp, color = Color.White.copy(alpha = 0.5f))
                 }
                 theme.category == ThemeCategory.VIP && !isVip -> {
-                    Text("👑 VIP", fontSize = 9.sp, color = CoinGold)
+                    Text("👑 VIP", fontSize = 9.sp, color = adaptiveCoinColor(!isSystemInDarkTheme()))
                 }
                 else -> {
                     Row(
@@ -632,7 +633,7 @@ private fun ThemeCard(
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text("💎", fontSize = 9.sp)
-                        Text("${theme.diamondCost}", fontSize = 9.sp, color = DiamondCyan, fontWeight = FontWeight.Bold)
+                        Text("${theme.diamondCost}", fontSize = 9.sp, color = adaptiveDiamondColor(!isSystemInDarkTheme()), fontWeight = FontWeight.Bold)
                     }
                 }
             }
