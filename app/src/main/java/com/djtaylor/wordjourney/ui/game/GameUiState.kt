@@ -74,7 +74,10 @@ data class GameUiState(
     val definitionUsedThisLevel: Boolean = false,
 
     // Whether the current word has a definition (disables button when false)
-    val wordHasDefinition: Boolean = true
+    val wordHasDefinition: Boolean = true,
+
+    // Streak milestone reward message shown in win dialog
+    val streakRewardMessage: String? = null
 ) {
     val currentRow: Int get() = guesses.size
     val remainingGuesses: Int get() = maxGuesses - guesses.size

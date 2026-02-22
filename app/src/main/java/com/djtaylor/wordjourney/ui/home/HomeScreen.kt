@@ -38,6 +38,7 @@ fun HomeScreen(
     onNavigateToDailyChallenge: () -> Unit,
     onNavigateToStatistics: () -> Unit,
     onNavigateToInbox: () -> Unit = {},
+    onNavigateToTimerMode: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -214,8 +215,8 @@ fun HomeScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── THEMED LEVEL PACKS ──────────────────────────────────────
-            SectionHeader(emoji = "👑", title = "Themed Level Packs")
+            // ── VIP LEVELS ────────────────────────────────────────────
+            SectionHeader(emoji = "👑", title = "VIP Levels")
             Spacer(Modifier.height(8.dp))
 
             VipPackCard(
@@ -249,8 +250,19 @@ fun HomeScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── THEMED PACKS ─────────────────────────────────────────────────
-            SectionHeader(emoji = "🎁", title = "Themed Packs")
+            // ── TIMER MODE ────────────────────────────────────────────
+            SectionHeader(emoji = "⏱️", title = "Timer Mode")
+            Spacer(Modifier.height(8.dp))
+
+            TimerModeCard(
+                onClick = {
+                    viewModel.playButtonClick()
+                    onNavigateToTimerMode()
+                }
+            )
+
+            Spacer(Modifier.height(16.dp))
+            SectionHeader(emoji = "🎁", title = "Theme Level Packs")
             Spacer(Modifier.height(8.dp))
 
             val seasonStatuses = remember { SeasonalThemeManager.getAllSeasonStatuses() }
@@ -543,6 +555,67 @@ private fun DailyChallengeCard(
                         fontSize = 16.sp
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimerModeCard(onClick: () -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
+    val timerColor = Color(0xFFFF6D00)
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+        tonalElevation = 2.dp,
+        border = BorderStroke(2.dp, timerColor.copy(alpha = 0.6f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(timerColor.copy(alpha = 0.1f), Color.Transparent)
+                    )
+                )
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text("⏱️", fontSize = 42.sp)
+                Column {
+                    Text(
+                        "Timer Mode",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = timerColor,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Race the clock — Easy, Regular, Hard\nNo hearts needed · items usable",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = timerColor.copy(alpha = 0.2f)
+            ) {
+                Text(
+                    "Play!",
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    color = timerColor,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
             }
         }
     }

@@ -1500,14 +1500,48 @@ class GameViewModelTest {
         vm.onSubmit()
         awaitInit(vm)
 
-        // Streak should be 3 now (2 + 1), streak reward at 3 = +100 coins
+        // Streak should be 3 now (2 + 1), streak reward at 3 = +200 coins (2x)
         coVerify { playerRepository.saveProgress(match {
             it.dailyChallengeStreak == 3 && it.dailyChallengeBestStreak == 5
         }) }
     }
 
     @Test
-    fun `daily challenge win at streak 3 gives 100 coin reward`() = runTest {
+    fun `daily challenge win increments totalDailyChallengesPlayed`() = runTest {
+        val progress = PlayerProgress(
+            totalDailyChallengesPlayed = 4,
+            dailyChallengeLastDate = "2026-02-20"
+        )
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.totalDailyChallengesPlayed == 5 }) }
+    }
+
+    @Test
+    fun `daily challenge loss increments totalDailyChallengesPlayed`() = runTest {
+        val progress = PlayerProgress(totalDailyChallengesPlayed = 2)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        for (guess in wrongGuesses) {
+            guess.forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+
+        coVerify { playerRepository.saveProgress(match { it.totalDailyChallengesPlayed == 3 }) }
+    }
+
+    @Test
+    fun `daily challenge win at streak 3 gives 200 coin reward`() = runTest {
         val progress = PlayerProgress(
             dailyChallengeStreak = 2,
             coins = 0L,
@@ -1521,8 +1555,8 @@ class GameViewModelTest {
         vm.onSubmit()
         awaitInit(vm)
 
-        // Base: 225 coins + streak reward 100 = 325
-        coVerify { playerRepository.saveProgress(match { it.coins >= 325L }) }
+        // Base: 225 coins + streak reward 200 (2x) = 425
+        coVerify { playerRepository.saveProgress(match { it.coins >= 425L }) }
     }
 
     @Test
@@ -1708,7 +1742,7 @@ class GameViewModelTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `streak 7 awards 500 coins and 1 diamond`() = runTest {
+    fun `streak 7 awards 1000 coins and 2 diamonds`() = runTest {
         val progress = PlayerProgress(
             dailyChallengeStreak = 6,
             coins = 0L,
@@ -1723,14 +1757,14 @@ class GameViewModelTest {
         vm.onSubmit()
         awaitInit(vm)
 
-        // Base: 225 coins + 500 streak reward = 725
+        // Base: 225 coins + 1000 streak reward (2x) = 1225
         coVerify { playerRepository.saveProgress(match {
-            it.dailyChallengeStreak == 7 && it.diamonds == 1 && it.coins >= 725L
+            it.dailyChallengeStreak == 7 && it.diamonds == 2 && it.coins >= 1225L
         }) }
     }
 
     @Test
-    fun `streak 14 awards 1000 coins and 3 diamonds`() = runTest {
+    fun `streak 14 awards 2000 coins and 6 diamonds`() = runTest {
         val progress = PlayerProgress(
             dailyChallengeStreak = 13,
             coins = 0L,
@@ -1746,7 +1780,7 @@ class GameViewModelTest {
         awaitInit(vm)
 
         coVerify { playerRepository.saveProgress(match {
-            it.dailyChallengeStreak == 14 && it.diamonds == 3
+            it.dailyChallengeStreak == 14 && it.diamonds == 6
         }) }
     }
 
@@ -1768,7 +1802,8 @@ class GameViewModelTest {
         awaitInit(vm)
 
         coVerify { playerRepository.saveProgress(match {
-            it.dailyChallengeStreak == 30 && it.diamonds == 5 && it.lives == 6
+            // 2x rewards: 10 diamonds, 2 hearts (lives 5 + 2 = 7)
+            it.dailyChallengeStreak == 30 && it.diamonds == 10 && it.lives == 7
         }) }
     }
 

@@ -167,6 +167,15 @@ class WordRepository @Inject constructor(
     }
 
     /**
+     * Looks up the definition for a specific word string.
+     * Used by Timer Mode which works with arbitrary words from valid_words.json.
+     * Returns empty string if the word has no definition in the database.
+     */
+    suspend fun getDefinitionForWord(word: String): String {
+        return wordDao.getByWord(word.uppercase())?.definition ?: ""
+    }
+
+    /**
      * Returns a letter that is guaranteed NOT in [targetWord] among unused letters,
      * used by the "Remove a Letter" item.
      */

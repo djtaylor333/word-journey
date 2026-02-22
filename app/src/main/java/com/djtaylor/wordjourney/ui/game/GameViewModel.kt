@@ -455,10 +455,12 @@ class GameViewModel @Inject constructor(
                 dailyStreak6 = newStreak6,
                 dailyBestStreak6 = maxOf(p.dailyBestStreak6, newStreak6),
                 dailyLastDate6 = if (wordLen == 6) today else p.dailyLastDate6,
-                dailyWins6 = if (wordLen == 6) p.dailyWins6 + 1 else p.dailyWins6
+                dailyWins6 = if (wordLen == 6) p.dailyWins6 + 1 else p.dailyWins6,
+                totalDailyChallengesPlayed = p.totalDailyChallengesPlayed + 1
             )
-            // Apply streak rewards
-            p = applyStreakRewards(p, p.dailyChallengeStreak)
+            // Apply streak rewards (2x for normal players, 3x for VIP)
+            val (rewardedProgress, streakMsg) = applyStreakRewards(p, p.dailyChallengeStreak)
+            p = rewardedProgress
             playerProgress = p
             playerRepository.saveProgress(p)
 
@@ -474,7 +476,8 @@ class GameViewModel @Inject constructor(
                     lives = p.lives,
                     coins = p.coins,
                     diamonds = p.diamonds,
-                    isDailyChallenge = true
+                    isDailyChallenge = true,
+                    streakRewardMessage = streakMsg
                 )
             }
             playerRepository.clearInProgressGame("daily")
@@ -529,16 +532,47 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    /** Apply streak rewards at specific milestones */
-    private fun applyStreakRewards(progress: PlayerProgress, streak: Int): PlayerProgress {
+    /** Apply streak rewards at specific milestones.
+     * Normal players: 2x the original rewards.
+     * VIP players: 3x the original rewards.
+     * Returns Pair(updated progress, optional reward message for win dialog).
+     */
+    private fun applyStreakRewards(progress: PlayerProgress, streak: Int): Pair<PlayerProgress, String?> {
         var p = progress
-        when (streak) {
-            3  -> p = p.copy(coins = p.coins + 100, totalCoinsEarned = p.totalCoinsEarned + 100)
-            7  -> p = p.copy(coins = p.coins + 500, diamonds = p.diamonds + 1, totalCoinsEarned = p.totalCoinsEarned + 500)
-            14 -> p = p.copy(coins = p.coins + 1000, diamonds = p.diamonds + 3, totalCoinsEarned = p.totalCoinsEarned + 1000)
-            30 -> p = p.copy(coins = p.coins + 2000, diamonds = p.diamonds + 5, lives = p.lives + 1, totalCoinsEarned = p.totalCoinsEarned + 2000)
+        val isVip = p.isVip
+        val mult = if (isVip) 3 else 2
+        val msg: String? = when (streak) {
+            3 -> {
+                val coins = 100L * mult
+                p = p.copy(coins = p.coins + coins, totalCoinsEarned = p.totalCoinsEarned + coins)
+                val vipNote = if (isVip) " (VIP 3× bonus!)" else " (2× streak bonus!)"
+                "🔥 3-day streak! +${coins} coins$vipNote  Normal: 200 | VIP: 300"
+            }
+            7 -> {
+                val coins = 500L * mult
+                val diamonds = 1 * mult
+                p = p.copy(coins = p.coins + coins, diamonds = p.diamonds + diamonds, totalCoinsEarned = p.totalCoinsEarned + coins)
+                val vipNote = if (isVip) " (VIP 3× bonus!)" else " (2× streak bonus!)"
+                "🔥 7-day streak! +${coins} coins +${diamonds}💎$vipNote  Normal: 1000+2💎 | VIP: 1500+3💎"
+            }
+            14 -> {
+                val coins = 1000L * mult
+                val diamonds = 3 * mult
+                p = p.copy(coins = p.coins + coins, diamonds = p.diamonds + diamonds, totalCoinsEarned = p.totalCoinsEarned + coins)
+                val vipNote = if (isVip) " (VIP 3× bonus!)" else " (2× streak bonus!)"
+                "🔥 14-day streak! +${coins} coins +${diamonds}💎$vipNote  Normal: 2000+6💎 | VIP: 3000+9💎"
+            }
+            30 -> {
+                val coins = 2000L * mult
+                val diamonds = 5 * mult
+                val lives = 1 * mult
+                p = p.copy(coins = p.coins + coins, diamonds = p.diamonds + diamonds, lives = p.lives + lives, totalCoinsEarned = p.totalCoinsEarned + coins)
+                val vipNote = if (isVip) " (VIP 3× bonus!)" else " (2× streak bonus!)"
+                "🔥 30-day streak! +${coins} coins +${diamonds}💎 +${lives}❤️$vipNote  Normal: 4000+10💎+2❤️ | VIP: 6000+15💎+3❤️"
+            }
+            else -> null
         }
-        return p
+        return Pair(p, msg)
     }
 
     private fun handleOutOfGuesses() {
@@ -562,7 +596,8 @@ class GameViewModel @Inject constructor(
                     dailyStreak4 = if (wordLen == 4) 0 else playerProgress.dailyStreak4,
                     dailyStreak5 = if (wordLen == 5) 0 else playerProgress.dailyStreak5,
                     dailyStreak6 = if (wordLen == 6) 0 else playerProgress.dailyStreak6,
-                    totalGuesses = playerProgress.totalGuesses + e.guesses.size
+                    totalGuesses = playerProgress.totalGuesses + e.guesses.size,
+                    totalDailyChallengesPlayed = playerProgress.totalDailyChallengesPlayed + 1
                 )
                 playerProgress = p
                 playerRepository.saveProgress(p)

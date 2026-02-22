@@ -6,8 +6,10 @@ import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.IBillingManager
 import com.djtaylor.wordjourney.billing.ProductIds
 import com.djtaylor.wordjourney.billing.PurchaseResult
+import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
+import com.djtaylor.wordjourney.domain.usecase.VipDailyRewardUseCase
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,6 +40,8 @@ class StoreViewModelTest {
     private lateinit var billingManager: IBillingManager
     private lateinit var adManager: IAdManager
     private lateinit var audioManager: WordJourneysAudioManager
+    private lateinit var inboxRepository: InboxRepository
+    private lateinit var vipDailyRewardUseCase: VipDailyRewardUseCase
 
     @Before
     fun setUp() {
@@ -70,12 +74,18 @@ class StoreViewModelTest {
             coEvery { showRewardedAd() } returns AdRewardResult(watched = true, rewardType = "coins", rewardAmount = 100)
         }
         audioManager = mockk(relaxed = true)
+        inboxRepository = mockk(relaxed = true)
+        vipDailyRewardUseCase = mockk {
+            every { calculateRewards(any(), any()) } returns null   // no reward by default
+        }
 
         return StoreViewModel(
             playerRepository = playerRepository,
             billingManager = billingManager,
             adManager = adManager,
-            audioManager = audioManager
+            audioManager = audioManager,
+            inboxRepository = inboxRepository,
+            vipDailyRewardUseCase = vipDailyRewardUseCase
         )
     }
 
@@ -447,5 +457,31 @@ class StoreViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { playerRepository.saveProgress(match { it.isVip }) }
+    }
+
+    @Test
+    fun `VIP monthly purchase immediately triggers inbox reward`() = runTest {
+        val reward = VipDailyRewardUseCase.VipReward(
+            livesGranted = 5,
+            addGuessItemsGranted = 2,
+            removeLetterItemsGranted = 1,
+            definitionItemsGranted = 1,
+            showLetterItemsGranted = 1,
+            daysAccumulated = 1,
+            updatedLastRewardDate = "2026-02-21"
+        )
+        val vm = createViewModel(PlayerProgress(isVip = false))
+        every { vipDailyRewardUseCase.calculateRewards(any(), any()) } returns reward
+        coEvery { billingManager.purchase(ProductIds.VIP_MONTHLY, any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(ProductIds.VIP_MONTHLY, success = true))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.VIP_MONTHLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Inbox reward added immediately on purchase
+        coVerify { inboxRepository.addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any()) }
     }
 }

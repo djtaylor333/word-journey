@@ -10,6 +10,7 @@ sealed class Screen(val route: String) {
     data object Achievements : Screen("achievements")
     data object Onboarding   : Screen("onboarding")
     data object Inbox        : Screen("inbox")
+    data object TimerMode    : Screen("timer_mode")
 
     data class LevelSelect(val difficultyKey: String = "{difficulty}") :
         Screen("level_select/{difficulty}") {

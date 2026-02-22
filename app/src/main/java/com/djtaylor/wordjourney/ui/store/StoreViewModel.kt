@@ -7,8 +7,10 @@ import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.IBillingManager
 import com.djtaylor.wordjourney.billing.ProductIds
+import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
+import com.djtaylor.wordjourney.domain.usecase.VipDailyRewardUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -27,7 +29,9 @@ class StoreViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
     private val billingManager: IBillingManager,
     private val adManager: IAdManager,
-    private val audioManager: WordJourneysAudioManager
+    private val audioManager: WordJourneysAudioManager,
+    private val inboxRepository: InboxRepository,
+    private val vipDailyRewardUseCase: VipDailyRewardUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StoreUiState())
@@ -82,6 +86,23 @@ class StoreViewModel @Inject constructor(
                                     else 30L * 24 * 60 * 60 * 1000
                             )
                             else -> updated
+                        }
+                        // For VIP purchases: grant today's daily reward immediately into inbox
+                        if (productId == ProductIds.VIP_MONTHLY || productId == ProductIds.VIP_YEARLY) {
+                            val reward = vipDailyRewardUseCase.calculateRewards(
+                                lastVipRewardDate = updated.lastVipRewardDate
+                            )
+                            if (reward != null) {
+                                updated = updated.copy(lastVipRewardDate = reward.updatedLastRewardDate)
+                                inboxRepository.addVipDailyRewardIfNeeded(
+                                    livesGranted = reward.livesGranted,
+                                    addGuessItems = reward.addGuessItemsGranted,
+                                    removeLetterItems = reward.removeLetterItemsGranted,
+                                    definitionItems = reward.definitionItemsGranted,
+                                    showLetterItems = reward.showLetterItemsGranted,
+                                    daysAccumulated = 1
+                                )
+                            }
                         }
                         playerRepository.saveProgress(updated)
                         audioManager.playSfx(SfxSound.COIN_EARN)

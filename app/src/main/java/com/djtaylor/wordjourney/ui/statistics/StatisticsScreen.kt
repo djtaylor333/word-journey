@@ -60,8 +60,8 @@ fun StatisticsScreen(
                 StatRow("Total Levels Completed", "${p.totalLevelsCompleted}")
                 StatRow("Total Wins", "${p.totalWins}")
                 StatRow("Total Guesses", "${p.totalGuesses}")
-                StatRow("Win Rate", if (p.totalGuesses > 0)
-                    "${(p.totalWins * 100.0 / maxOf(p.totalLevelsCompleted + p.totalDailyChallengesCompleted, 1)).toInt()}%"
+                StatRow("Win Rate", if (p.totalDailyChallengesPlayed + p.totalLevelsCompleted > 0)
+                    "${(p.totalWins * 100.0 / (p.totalLevelsCompleted + maxOf(p.totalDailyChallengesPlayed, p.totalDailyChallengesCompleted))).toInt()}%"
                 else "N/A")
                 StatRow("Avg Guesses/Win", if (p.totalWins > 0)
                     "%.1f".format(p.totalGuesses.toFloat() / p.totalWins) else "N/A")

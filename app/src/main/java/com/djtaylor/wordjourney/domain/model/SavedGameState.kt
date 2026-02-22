@@ -63,6 +63,14 @@ data class PlayerProgress(
     val totalWins: Int = 0,
     val totalItemsUsed: Int = 0,
     val totalDailyChallengesCompleted: Int = 0,
+    val totalDailyChallengesPlayed: Int = 0,   // includes losses (for win rate)
+    // Timer Mode best records
+    val timerBestLevelsEasy: Int = 0,
+    val timerBestLevelsRegular: Int = 0,
+    val timerBestLevelsHard: Int = 0,
+    val timerBestTimeSecsEasy: Int = 0,        // total session seconds (base + bonus)
+    val timerBestTimeSecsRegular: Int = 0,
+    val timerBestTimeSecsHard: Int = 0,
     // VIP
     val isVip: Boolean = false,
     val vipExpiryTimestamp: Long = 0L,

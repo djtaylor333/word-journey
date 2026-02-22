@@ -68,6 +68,14 @@ class PlayerDataStore @Inject constructor(
         val KEY_TOTAL_WINS                     = intPreferencesKey("total_wins")
         val KEY_TOTAL_ITEMS_USED               = intPreferencesKey("total_items_used")
         val KEY_TOTAL_DAILY_COMPLETED          = intPreferencesKey("total_daily_completed")
+        val KEY_TOTAL_DAILY_PLAYED             = intPreferencesKey("total_daily_played")
+        // Timer Mode best records
+        val KEY_TIMER_BEST_LEVELS_EASY         = intPreferencesKey("timer_best_levels_easy")
+        val KEY_TIMER_BEST_LEVELS_REGULAR      = intPreferencesKey("timer_best_levels_regular")
+        val KEY_TIMER_BEST_LEVELS_HARD         = intPreferencesKey("timer_best_levels_hard")
+        val KEY_TIMER_BEST_TIME_EASY           = intPreferencesKey("timer_best_time_easy")
+        val KEY_TIMER_BEST_TIME_REGULAR        = intPreferencesKey("timer_best_time_regular")
+        val KEY_TIMER_BEST_TIME_HARD           = intPreferencesKey("timer_best_time_hard")
         // VIP
         val KEY_IS_VIP                         = booleanPreferencesKey("is_vip")
         val KEY_VIP_EXPIRY                     = longPreferencesKey("vip_expiry")
@@ -152,6 +160,13 @@ class PlayerDataStore @Inject constructor(
                 totalWins         = prefs[KEY_TOTAL_WINS] ?: 0,
                 totalItemsUsed    = prefs[KEY_TOTAL_ITEMS_USED] ?: 0,
                 totalDailyChallengesCompleted = prefs[KEY_TOTAL_DAILY_COMPLETED] ?: 0,
+                totalDailyChallengesPlayed    = prefs[KEY_TOTAL_DAILY_PLAYED] ?: 0,
+                timerBestLevelsEasy    = prefs[KEY_TIMER_BEST_LEVELS_EASY] ?: 0,
+                timerBestLevelsRegular = prefs[KEY_TIMER_BEST_LEVELS_REGULAR] ?: 0,
+                timerBestLevelsHard    = prefs[KEY_TIMER_BEST_LEVELS_HARD] ?: 0,
+                timerBestTimeSecsEasy    = prefs[KEY_TIMER_BEST_TIME_EASY] ?: 0,
+                timerBestTimeSecsRegular = prefs[KEY_TIMER_BEST_TIME_REGULAR] ?: 0,
+                timerBestTimeSecsHard    = prefs[KEY_TIMER_BEST_TIME_HARD] ?: 0,
                 isVip             = prefs[KEY_IS_VIP] ?: false,
                 vipExpiryTimestamp = prefs[KEY_VIP_EXPIRY] ?: 0L,
                 lastVipRewardDate = prefs[KEY_LAST_VIP_REWARD_DATE] ?: "",
@@ -223,6 +238,13 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_TOTAL_WINS]               = progress.totalWins
             prefs[KEY_TOTAL_ITEMS_USED]         = progress.totalItemsUsed
             prefs[KEY_TOTAL_DAILY_COMPLETED]    = progress.totalDailyChallengesCompleted
+            prefs[KEY_TOTAL_DAILY_PLAYED]       = progress.totalDailyChallengesPlayed
+            prefs[KEY_TIMER_BEST_LEVELS_EASY]   = progress.timerBestLevelsEasy
+            prefs[KEY_TIMER_BEST_LEVELS_REGULAR]= progress.timerBestLevelsRegular
+            prefs[KEY_TIMER_BEST_LEVELS_HARD]   = progress.timerBestLevelsHard
+            prefs[KEY_TIMER_BEST_TIME_EASY]     = progress.timerBestTimeSecsEasy
+            prefs[KEY_TIMER_BEST_TIME_REGULAR]  = progress.timerBestTimeSecsRegular
+            prefs[KEY_TIMER_BEST_TIME_HARD]     = progress.timerBestTimeSecsHard
             prefs[KEY_IS_VIP]                   = progress.isVip
             prefs[KEY_VIP_EXPIRY]               = progress.vipExpiryTimestamp
             prefs[KEY_LAST_VIP_REWARD_DATE]     = progress.lastVipRewardDate

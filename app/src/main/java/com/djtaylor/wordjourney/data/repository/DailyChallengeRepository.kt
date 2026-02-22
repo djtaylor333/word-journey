@@ -116,4 +116,26 @@ class DailyChallengeRepository @Inject constructor(
 
     suspend fun totalWins(): Int = dailyChallengeDao.totalWins()
     suspend fun totalPlayed(): Int = dailyChallengeDao.totalPlayed()
+
+    /**
+     * Returns all valid words for a given word length, shuffled randomly.
+     * Used by Timer Mode to get a fresh un-repeating word set each session.
+     * Unlike daily words, this pool INCLUDES level words (no exclusion needed).
+     */
+    fun getTimerWords(wordLength: Int): List<String> {
+        return try {
+            val json = context.assets.open("valid_words.json").bufferedReader().use { it.readText() }
+            val root = org.json.JSONObject(json)
+            val arr = root.getJSONArray(wordLength.toString())
+            val words = mutableListOf<String>()
+            for (i in 0 until arr.length()) {
+                words.add(arr.getString(i).uppercase())
+            }
+            words.shuffle()
+            words
+        } catch (e: Exception) {
+            android.util.Log.e("DailyChallengeRepo", "Failed to load timer words for length $wordLength", e)
+            emptyList()
+        }
+    }
 }

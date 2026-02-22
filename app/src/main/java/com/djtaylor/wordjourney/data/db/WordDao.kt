@@ -34,4 +34,8 @@ interface WordDao {
 
     @Query("SELECT * FROM words WHERE length = :length ORDER BY id ASC")
     suspend fun getAllByLength(length: Int): List<WordEntity>
+
+    /** Look up a word entry by its text value (case-insensitive). */
+    @Query("SELECT * FROM words WHERE word = :word LIMIT 1")
+    suspend fun getByWord(word: String): WordEntity?
 }

@@ -17,6 +17,7 @@ import com.djtaylor.wordjourney.ui.onboarding.OnboardingScreen
 import com.djtaylor.wordjourney.ui.settings.SettingsScreen
 import com.djtaylor.wordjourney.ui.statistics.StatisticsScreen
 import com.djtaylor.wordjourney.ui.store.StoreScreen
+import com.djtaylor.wordjourney.ui.timermode.TimerModeScreen
 
 private const val ANIM_MS = 350
 
@@ -54,7 +55,8 @@ fun AppNavigation(
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToDailyChallenge = { navController.navigate(Screen.DailyChallenge.route) },
                 onNavigateToStatistics = { navController.navigate(Screen.Statistics.route) },
-                onNavigateToInbox = { navController.navigate(Screen.Inbox.route) }
+                onNavigateToInbox = { navController.navigate(Screen.Inbox.route) },
+                onNavigateToTimerMode = { navController.navigate(Screen.TimerMode.route) }
             )
         }
 
@@ -133,6 +135,12 @@ fun AppNavigation(
 
         composable(Screen.Inbox.route) {
             InboxScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.TimerMode.route) {
+            TimerModeScreen(
                 onBack = { navController.popBackStack() }
             )
         }
