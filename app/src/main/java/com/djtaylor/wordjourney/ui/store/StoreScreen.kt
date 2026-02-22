@@ -32,6 +32,7 @@ fun StoreScreen(
     val isLight = !isSystemInDarkTheme()
     val coinColor = adaptiveCoinColor(isLight)
     val diamondColor = adaptiveDiamondColor(isLight)
+    val theme = LocalGameTheme.current
 
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
@@ -94,6 +95,7 @@ fun StoreScreen(
             }
         } else {
             Box(Modifier.fillMaxSize().padding(padding)) {
+                ThemeBackgroundOverlay(theme = theme)
                 when (selectedTab) {
                     0 -> ItemsTab(uiState, viewModel)
                     1 -> BundlesTab(uiState, viewModel)

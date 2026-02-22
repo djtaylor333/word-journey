@@ -1,5 +1,6 @@
 package com.djtaylor.wordjourney.ui.game.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -66,8 +67,10 @@ fun AnimatedTile(
     )
 
     val theme = LocalGameTheme.current
-    val bgColor = tileBackground(state, flipAngle, highContrast, isLightTheme, theme)
-    val borderColor = tileBorder(state, isLightTheme, theme)
+    val rawBgColor = tileBackground(state, flipAngle, highContrast, isLightTheme, theme)
+    val rawBorderColor = tileBorder(state, isLightTheme, theme)
+    val bgColor by animateColorAsState(rawBgColor, animationSpec = tween(300), label = "tileBg")
+    val borderColor by animateColorAsState(rawBorderColor, animationSpec = tween(300), label = "tileBorder")
     // High-contrast letters: white on dark/colored tiles, dark on light tiles
     val textColor = when {
         isEvaluated -> Color.White

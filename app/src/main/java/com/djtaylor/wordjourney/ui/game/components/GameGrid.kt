@@ -25,14 +25,20 @@ fun GameGrid(
     val difficulty = uiState.difficulty
     val wordLen = uiState.wordLength
     val tileSize: Dp = when (wordLen) {
+        3    -> 72.dp
         4    -> 68.dp
         5    -> 58.dp
-        else -> 50.dp
+        6    -> 50.dp
+        7    -> 44.dp
+        else -> 44.dp
     }
     val fontSize: Int = when (wordLen) {
+        3    -> 28
         4    -> 26
         5    -> 22
-        else -> 18
+        6    -> 18
+        7    -> 16
+        else -> 16
     }
 
     val textScale = LocalTextScale.current

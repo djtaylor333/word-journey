@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -26,6 +27,7 @@ fun StatisticsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val p = uiState.progress
+    val theme = LocalGameTheme.current
 
     Scaffold(
         topBar = {
@@ -40,11 +42,16 @@ fun StatisticsScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
+        ) {
+            ThemeBackgroundOverlay(theme = theme)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
@@ -110,8 +117,59 @@ fun StatisticsScreen(
                 StatRow("VIP", if (p.isVip) "Active" else "Not Active")
             }
 
+            Spacer(Modifier.height(16.dp))
+
+            // ── Achievements (Coming Soon) ──
+            Box(modifier = Modifier.fillMaxWidth()) {
+                StatSection("🏆 Achievements") {
+                    StatRow("First Win", "???")
+                    StatRow("Level Master", "???")
+                    StatRow("Daily Streak", "???")
+                    StatRow("Coin Collector", "???")
+                    StatRow("VIP Explorer", "???")
+                }
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.Black.copy(alpha = 0.72f),
+                    modifier = Modifier.matchParentSize()
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("🏆", fontSize = 36.sp)
+                            Text(
+                                "Achievements",
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 18.sp
+                            )
+                            Text(
+                                "Coming Soon!",
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "Track your progress and earn badges as you play",
+                                color = Color.White.copy(alpha = 0.65f),
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(Modifier.height(24.dp))
         }
+        } // end Box
     }
 }
 

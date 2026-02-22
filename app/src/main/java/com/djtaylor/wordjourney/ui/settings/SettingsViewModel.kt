@@ -27,7 +27,7 @@ data class SettingsUiState(
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.5.0",
+    val appVersion: String = "2.6.0",
     val selectedTheme: String = "classic",
     val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
     val diamonds: Int = 0,
@@ -141,6 +141,23 @@ class SettingsViewModel @Inject constructor(
             )
         }
         return true
+    }
+
+    /**
+     * Cancel VIP subscription. Sets isVip = false and switches selected theme to Classic
+     * if the currently selected theme requires VIP.
+     */
+    fun cancelVip() {
+        saveField { progress ->
+            val currentThemeId = progress.selectedTheme
+            val theme = ThemeRegistry.getThemeById(currentThemeId)
+            val newTheme = if (theme?.category == com.djtaylor.wordjourney.domain.model.ThemeCategory.VIP) {
+                "classic"
+            } else {
+                currentThemeId
+            }
+            progress.copy(isVip = false, selectedTheme = newTheme)
+        }
     }
 
     private fun saveField(block: (PlayerProgress) -> PlayerProgress) {

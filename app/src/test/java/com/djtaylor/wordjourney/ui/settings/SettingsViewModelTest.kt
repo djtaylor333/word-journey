@@ -232,7 +232,7 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.first()
-        assertEquals("2.5.0", state.appVersion)
+        assertEquals("2.6.0", state.appVersion)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -413,5 +413,79 @@ class SettingsViewModelTest {
         val state = vm.uiState.first()
         assertEquals("neon_nights", state.selectedTheme)
         assertEquals(initialDiamonds, state.diamonds) // selectTheme doesn't cost
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 7. CANCEL VIP
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `cancelVip sets isVip to false`() = runTest {
+        val progress = PlayerProgress(isVip = true, selectedTheme = "classic")
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.cancelVip()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertFalse(state.isVip)
+    }
+
+    @Test
+    fun `cancelVip with non-VIP theme keeps current theme`() = runTest {
+        val progress = PlayerProgress(isVip = true, selectedTheme = "ocean_breeze",
+            ownedThemes = "classic,ocean_breeze")
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.cancelVip()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertFalse(state.isVip)
+        // ocean_breeze is a non-VIP premium theme — cancelled VIP should keep it
+        assertEquals("ocean_breeze", state.selectedTheme)
+    }
+
+    @Test
+    fun `cancelVip with VIP-category theme falls back to classic`() = runTest {
+        // royal_gold is a VIP category theme
+        val progress = PlayerProgress(isVip = true, selectedTheme = "royal_gold",
+            ownedThemes = "classic,royal_gold")
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.cancelVip()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertFalse(state.isVip)
+        assertEquals("classic", state.selectedTheme)
+    }
+
+    @Test
+    fun `cancelVip saves progress with isVip false`() = runTest {
+        val progress = PlayerProgress(isVip = true, selectedTheme = "classic")
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.cancelVip()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { !it.isVip }) }
+    }
+
+    @Test
+    fun `cancelVip on already non-VIP user keeps isVip false`() = runTest {
+        val progress = PlayerProgress(isVip = false, selectedTheme = "classic")
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.cancelVip()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertFalse(state.isVip)
     }
 }

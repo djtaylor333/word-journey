@@ -78,6 +78,7 @@ fun LevelSelectScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val difficulty = state.difficulty
+    val theme = LocalGameTheme.current
     val accent = when (difficulty) {
         Difficulty.EASY    -> AccentEasy
         Difficulty.REGULAR -> AccentRegular
@@ -181,8 +182,10 @@ fun LevelSelectScreen(
             }
         }
     ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            ThemeBackgroundOverlay(theme = theme, alpha = 0.15f)
         if (state.isLoading) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = accent)
             }
         } else {
@@ -222,6 +225,7 @@ fun LevelSelectScreen(
                 Spacer(Modifier.height(32.dp))
             }
         }
+        } // end Box
     }
 
     // No-lives dialog
@@ -272,7 +276,7 @@ private fun ZoneSection(
             ZoneBanner(zone, levels.first(), levels.last())
 
             // Pathway
-            Pathway(levels, currentLevel, zone, accent, floatPhase, starRatings, onLevelClick)
+            Pathway(levels, currentLevel, zone, accent, floatPhase, starRatings, difficultyKey, onLevelClick)
         }
     }
 }
@@ -316,6 +320,7 @@ private fun Pathway(
     accent: Color,
     floatPhase: Float,
     starRatings: Map<Int, Int>,
+    difficultyKey: String = "",
     onLevelClick: (Int) -> Unit
 ) {
     val alignments = listOf(Arrangement.Start, Arrangement.Center, Arrangement.End, Arrangement.Center)
@@ -348,7 +353,11 @@ private fun Pathway(
                 }
                 if (posIdx == 0) Spacer(Modifier.width(24.dp))
 
-                LevelNode(level, completed, current, locked, zone, accent, starRatings[level] ?: 0, onLevelClick = { onLevelClick(level) })
+                val vipLabel: String? = if (difficultyKey == "vip") {
+                    val wl = Difficulty.vipWordLengthForLevel(level)
+                    "${wl}L"
+                } else null
+                LevelNode(level, completed, current, locked, zone, accent, starRatings[level] ?: 0, wordLengthLabel = vipLabel, onLevelClick = { onLevelClick(level) })
 
                 if (posIdx == 2) Spacer(Modifier.width(24.dp))
                 // Right decor
@@ -375,6 +384,7 @@ private fun LevelNode(
     zone: ZoneTheme,
     accent: Color,
     stars: Int,
+    wordLengthLabel: String? = null,
     onLevelClick: () -> Unit
 ) {
     val pulse = if (current) {
@@ -451,6 +461,26 @@ private fun LevelNode(
         if (current) {
             Box(modifier = Modifier.align(Alignment.BottomCenter).offset(y = if (stars > 0 && completed) 22.dp else 8.dp)) {
                 Text("▲", fontSize = 12.sp, color = accent)
+            }
+        }
+        // VIP word length label
+        if (wordLengthLabel != null && !locked) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-14).dp)
+                    .background(
+                        color = if (current) accent else zone.glow.copy(alpha = 0.8f),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .padding(horizontal = 4.dp, vertical = 1.dp)
+            ) {
+                Text(
+                    text = wordLengthLabel,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
             }
         }
     }
