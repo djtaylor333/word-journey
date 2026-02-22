@@ -381,13 +381,45 @@ fun HomeScreen(
                         onNavigateToStatistics()
                     }
                 )
-                QuickNavCard(
-                    emoji = "🏆",
-                    title = "Achievements",
-                    modifier = Modifier.weight(1f),
-                    enabled = false,
-                    onClick = { /* Coming soon */ }
-                )
+                Box(modifier = Modifier.weight(1f)) {
+                    QuickNavCard(
+                        emoji = "🏆",
+                        title = "Achievements",
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = false,
+                        onClick = { /* Coming soon */ }
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.Black.copy(alpha = 0.70f),
+                        modifier = Modifier.matchParentSize()
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text("🏆", fontSize = 26.sp)
+                                Text(
+                                    "Coming Soon!",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    fontSize = 13.sp
+                                )
+                                Text(
+                                    "Track wins & badges",
+                                    color = Color.White.copy(alpha = 0.65f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer(Modifier.height(24.dp))

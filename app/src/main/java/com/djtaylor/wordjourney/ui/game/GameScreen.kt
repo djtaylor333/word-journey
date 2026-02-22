@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -70,6 +71,22 @@ fun GameScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             // Theme background decoration
             ThemeBackgroundOverlay(theme = LocalGameTheme.current)
+            // VIP golden shimmer overlay
+            if (uiState.difficulty == com.djtaylor.wordjourney.domain.model.Difficulty.VIP) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFFF59E0B).copy(alpha = 0.09f),
+                                    Color(0xFFD97706).copy(alpha = 0.13f),
+                                    Color(0xFFF59E0B).copy(alpha = 0.09f)
+                                )
+                            )
+                        )
+                )
+            }
 
             Column(
                 modifier = Modifier
@@ -132,7 +149,10 @@ fun GameScreen(
                     definitionCount = uiState.definitionItems,
                     showLetterCount = uiState.showLetterItems,
                     definitionUsed = uiState.definitionUsedThisLevel,
-                    isDailyChallenge = uiState.isDailyChallenge,                    textScale = textScale,                    onAddGuess = { viewModel.useAddGuessItem() },
+                    isDailyChallenge = uiState.isDailyChallenge,
+                    wordHasDefinition = uiState.wordHasDefinition,
+                    textScale = textScale,
+                    onAddGuess = { viewModel.useAddGuessItem() },
                     onRemoveLetter = { viewModel.useRemoveLetterItem() },
                     onDefinition = { viewModel.useDefinitionItem() },
                     onShowLetter = { viewModel.useShowLetterItem() }
@@ -397,6 +417,7 @@ private fun ItemsBar(
     showLetterCount: Int,
     definitionUsed: Boolean,
     isDailyChallenge: Boolean,
+    wordHasDefinition: Boolean = true,
     textScale: Float = 1f,
     onAddGuess: () -> Unit,
     onRemoveLetter: () -> Unit,
@@ -431,8 +452,8 @@ private fun ItemsBar(
                 label = "Define",
                 ownedCount = definitionCount,
                 coinCost = 300,
-                enabled = definitionUsed || definitionCount > 0 || coins >= 300,
-                subtitle = if (definitionUsed) "View 📖" else null,
+                enabled = wordHasDefinition && (definitionUsed || definitionCount > 0 || coins >= 300),
+                subtitle = if (definitionUsed) "View 📖" else if (!wordHasDefinition) "N/A" else null,
                 textScale = textScale,
                 onClick = onDefinition
             )

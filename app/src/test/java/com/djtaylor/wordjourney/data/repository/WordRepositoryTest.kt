@@ -335,17 +335,29 @@ class WordRepositoryTest {
 
     @Test
     fun `VIP word cycling produces correct lengths across 10 levels`() = runTest {
-        val repo = createRepoWith3And7()
+        // Use a repo with enough words to fill all VIP partitions (4L split=76, 5L split=97)
+        val words4 = makeWords4(200)
+        val words5 = makeWords5(200)
+        val words6 = makeWords6(400)
+        val dao = mockk<WordDao> {
+            coEvery { getAllByLength(3) } returns sampleWords3
+            coEvery { getAllByLength(4) } returns words4
+            coEvery { getAllByLength(5) } returns words5
+            coEvery { getAllByLength(6) } returns words6
+            coEvery { getAllByLength(7) } returns sampleWords7
+        }
+        val context = mockk<android.content.Context>(relaxed = true) {
+            every { assets } returns mockk {
+                every { open(any()) } throws java.io.FileNotFoundException("test mode")
+            }
+        }
+        val repo = WordRepository(dao, context).also { it.setSeedForTesting(WordRepository.GLOBAL_WORD_SEED) }
+
         for (level in 1..10) {
             val expectedLen = Difficulty.vipWordLengthForLevel(level)
             val word = repo.getWordForLevel(Difficulty.VIP, level, wordLengthOverride = expectedLen)
-            if (expectedLen == 6) {
-                // Our mock returns empty for 6-letter words
-                assertNull("Level $level (6-letter): should be null", word)
-            } else {
-                assertNotNull("Level $level ($expectedLen-letter): should return a word", word)
-                assertEquals("Level $level: expected $expectedLen-letter word", expectedLen, word!!.length)
-            }
+            assertNotNull("Level $level ($expectedLen-letter VIP): should return a word", word)
+            assertEquals("Level $level: expected $expectedLen-letter word", expectedLen, word!!.length)
         }
     }
 
@@ -428,5 +440,123 @@ class WordRepositoryTest {
         assertTrue(repo.isValidWord("fob", 3))
         assertTrue(repo.isValidWord("FOB", 3))
         assertTrue(repo.isValidWord("Fob", 3))
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // v2.7.0 — VIP WORD POOL PARTITIONING
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** Generates N 4-letter word entities in the form W001, W002, …, WXXX */
+    private fun makeWords4(count: Int): List<WordEntity> =
+        (1..count).map { i -> WordEntity(1000 + i, "W${i.toString().padStart(3, '0')}", 4, "Def $i") }
+
+    /** Generates N 5-letter word entities in the form V0001 … VXXXX */
+    private fun makeWords5(count: Int): List<WordEntity> =
+        (1..count).map { i -> WordEntity(2000 + i, "V${i.toString().padStart(4, '0')}", 5, "Def5 $i") }
+
+    /** Generates N 6-letter word entities in the form U00001... */
+    private fun makeWords6(count: Int): List<WordEntity> =
+        (1..count).map { i -> WordEntity(3000 + i, "U${i.toString().padStart(5, '0')}", 6, "Def6 $i") }
+
+    private fun createRepoForPartition(): WordRepository {
+        val words4 = makeWords4(200)   // split = 76; standard=0..75, vip=76..199
+        val words5 = makeWords5(200)   // split = 97; standard=0..96, vip=97..199
+        val words6 = makeWords6(400)   // split = 193; standard=0..192, vip=193..399
+        val dao = mockk<WordDao> {
+            coEvery { getAllByLength(3) } returns sampleWords3
+            coEvery { getAllByLength(4) } returns words4
+            coEvery { getAllByLength(5) } returns words5
+            coEvery { getAllByLength(6) } returns words6
+            coEvery { getAllByLength(7) } returns sampleWords7
+        }
+        val context = mockk<android.content.Context>(relaxed = true) {
+            every { assets } returns mockk {
+                every { open(any()) } throws java.io.FileNotFoundException("test mode")
+            }
+        }
+        return WordRepository(dao, context).also { it.setSeedForTesting(WordRepository.GLOBAL_WORD_SEED) }
+    }
+
+    @Test
+    fun `VIP 4-letter words are disjoint from EASY 4-letter words`() = runTest {
+        val repo = createRepoForPartition()
+        // Standard pool = first 76 shuffled words; VIP pool = last 124 shuffled words
+        val easyWords = (1..76).map { repo.getWordForLevel(Difficulty.EASY, it) }.filterNotNull().toSet()
+        val vipWords = (1..124).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 4) }
+            .filterNotNull().toSet()
+        assertTrue("Standard and VIP 4-letter pools must be disjoint — overlap: ${easyWords.intersect(vipWords)}",
+            easyWords.intersect(vipWords).isEmpty())
+    }
+
+    @Test
+    fun `VIP 5-letter words are disjoint from REGULAR 5-letter words`() = runTest {
+        val repo = createRepoForPartition()
+        val regularWords = (1..97).map { repo.getWordForLevel(Difficulty.REGULAR, it) }.filterNotNull().toSet()
+        val vipWords = (1..103).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 5) }
+            .filterNotNull().toSet()
+        assertTrue("Standard and VIP 5-letter pools must be disjoint — overlap: ${regularWords.intersect(vipWords)}",
+            regularWords.intersect(vipWords).isEmpty())
+    }
+
+    @Test
+    fun `VIP 6-letter words are disjoint from HARD 6-letter words`() = runTest {
+        val repo = createRepoForPartition()
+        val hardWords = (1..193).map { repo.getWordForLevel(Difficulty.HARD, it) }.filterNotNull().toSet()
+        val vipWords = (1..207).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 6) }
+            .filterNotNull().toSet()
+        assertTrue("Standard and VIP 6-letter pools must be disjoint — overlap: ${hardWords.intersect(vipWords)}",
+            hardWords.intersect(vipWords).isEmpty())
+    }
+
+    @Test
+    fun `EASY pool size is capped at VIP split point for 4-letter words`() = runTest {
+        val repo = createRepoForPartition()
+        // 200 total 4-letter words, split = 76 → standard pool has 76 unique words
+        val easyWords = (1..200).map { repo.getWordForLevel(Difficulty.EASY, it) }.filterNotNull().toSet()
+        assertEquals("Standard pool should cycle within 76 words", 76, easyWords.size)
+    }
+
+    @Test
+    fun `VIP pool for 3-letter words uses full list (no split)`() = runTest {
+        val repo = createRepoWith3And7()
+        // Lengths 3 and 7 have no partition — VIP gets the full list
+        val vipWords = (1..5).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 3) }.filterNotNull()
+        val allWords = sampleWords3.map { it.word }
+        assertTrue("VIP 3-letter pool should draw from full sampleWords3", allWords.containsAll(vipWords))
+        assertEquals("All 5 unique 3-letter words should be seen", 5, vipWords.toSet().size)
+    }
+
+    @Test
+    fun `VIP pool for 7-letter words uses full list (no split)`() = runTest {
+        val repo = createRepoWith3And7()
+        val vipWords = (1..5).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 7) }.filterNotNull()
+        val allWords = sampleWords7.map { it.word }
+        assertTrue("VIP 7-letter pool should draw from full sampleWords7", allWords.containsAll(vipWords))
+        assertEquals("All 5 unique 7-letter words should be seen", 5, vipWords.toSet().size)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // v2.7.0 — hasDefinition
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `hasDefinition returns true when word has a non-blank definition`() = runTest {
+        val repo = createRepo()
+        // All sampleWords4 have non-blank definitions
+        assertTrue("Level 1 EASY word should have a definition", repo.hasDefinition(Difficulty.EASY, 1))
+    }
+
+    @Test
+    fun `hasDefinition returns false when word list is empty`() = runTest {
+        val repo = createRepo()
+        // HARD words (6-letter) have empty list → getDefinition returns "" → hasDefinition false
+        assertFalse("Empty word list should report no definition", repo.hasDefinition(Difficulty.HARD, 1))
+    }
+
+    @Test
+    fun `hasDefinition with wordLengthOverride uses correct partition`() = runTest {
+        val repo = createRepo()
+        // 4-letter VIP requests with wordLengthOverride=4, sampleWords4 has definitions
+        assertTrue(repo.hasDefinition(Difficulty.EASY, 1, wordLengthOverride = 4))
     }
 }

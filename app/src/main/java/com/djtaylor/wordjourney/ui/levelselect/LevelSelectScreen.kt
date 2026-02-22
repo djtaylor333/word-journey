@@ -184,6 +184,22 @@ fun LevelSelectScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             ThemeBackgroundOverlay(theme = theme, alpha = 0.15f)
+            // VIP golden shimmer overlay
+            if (difficultyKey == "vip") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFFF59E0B).copy(alpha = 0.09f),
+                                    Color(0xFFD97706).copy(alpha = 0.13f),
+                                    Color(0xFFF59E0B).copy(alpha = 0.09f)
+                                )
+                            )
+                        )
+                )
+            }
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = accent)

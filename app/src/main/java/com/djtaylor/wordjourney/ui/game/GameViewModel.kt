@@ -196,13 +196,15 @@ class GameViewModel @Inject constructor(
         )
         _targetWordCache = word
 
-        // For replay mode, auto-load definition so player can always view it
+        // Check if the word has a definition and (for replay) pre-load it
+        val defWordLength = if (difficulty == Difficulty.VIP) effectiveWordLength else null
         var defHint: String? = null
         var defUsed = false
-        if (isReplay && !isDailyChallenge) {
-            val defWordLength = if (difficulty == Difficulty.VIP) effectiveWordLength else null
+        var wordHasDefinition = false
+        if (!isDailyChallenge) {
             val definition = wordRepository.getDefinition(difficulty, level, defWordLength)
-            if (definition.isNotBlank()) {
+            wordHasDefinition = definition.isNotBlank()
+            if (isReplay && wordHasDefinition) {
                 defHint = definition
                 defUsed = true
             }
@@ -235,6 +237,7 @@ class GameViewModel @Inject constructor(
                 definitionHint = defHint,
                 showDefinitionDialog = false,
                 definitionUsedThisLevel = defUsed,
+                wordHasDefinition = wordHasDefinition,
                 starsEarned = 0
             )
         }

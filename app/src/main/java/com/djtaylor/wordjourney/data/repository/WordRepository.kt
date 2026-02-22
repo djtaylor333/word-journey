@@ -36,6 +36,15 @@ class WordRepository @Inject constructor(
      */
     companion object {
         const val GLOBAL_WORD_SEED = 2025_06_28L
+
+        /**
+         * For word lengths shared between standard and VIP difficulties (4, 5, 6),
+         * the shuffled list is partitioned so VIP and standard levels never share words.
+         * Words at indices 0..VIP_POOL_START[len]-1 → standard difficulties only.
+         * Words at indices VIP_POOL_START[len]..end  → VIP only.
+         * Lengths 3 and 7 are VIP-exclusive so no partition is needed.
+         */
+        val VIP_POOL_START = mapOf(4 to 76, 5 to 97, 6 to 193)
     }
 
     // ── Cached shuffled word lists per length ──
@@ -71,9 +80,25 @@ class WordRepository @Inject constructor(
     }
 
     /**
+     * Returns the partitioned word list for the given difficulty and length.
+     * For lengths 4, 5, 6 that are shared between VIP and standard difficulties,
+     * this ensures VIP and non-VIP levels use completely separate word pools.
+     */
+    private suspend fun getWordsForDifficulty(difficulty: Difficulty, length: Int): List<WordEntity> {
+        val all = getShuffledWords(length)
+        val splitPoint = VIP_POOL_START[length]
+        return when {
+            splitPoint == null -> all                                 // lengths 3/7 — VIP only
+            difficulty == Difficulty.VIP -> all.drop(splitPoint)     // VIP partition
+            else -> all.take(splitPoint)                             // standard partition
+        }
+    }
+
+    /**
      * Returns the per-player random seed, generating one on first use.
      * Stored in SharedPreferences (separate from DataStore) for simplicity.
      */
+
     private fun getEffectiveSeed(): Long = _testSeed ?: GLOBAL_WORD_SEED
 
     /** Visible for testing — allows injecting a known seed. */
@@ -105,7 +130,7 @@ class WordRepository @Inject constructor(
      */
     suspend fun getWordForLevel(difficulty: Difficulty, level: Int, wordLengthOverride: Int? = null): String? {
         val length = wordLengthOverride ?: difficulty.wordLength
-        val words = getShuffledWords(length)
+        val words = getWordsForDifficulty(difficulty, length)
         if (words.isEmpty()) return null
         val index = (level - 1) % words.size
         return words[index].word
@@ -119,11 +144,18 @@ class WordRepository @Inject constructor(
      */
     suspend fun getDefinition(difficulty: Difficulty, level: Int, wordLengthOverride: Int? = null): String {
         val length = wordLengthOverride ?: difficulty.wordLength
-        val words = getShuffledWords(length)
+        val words = getWordsForDifficulty(difficulty, length)
         if (words.isEmpty()) return ""
         val index = (level - 1) % words.size
         return words[index].definition
     }
+
+    /**
+     * Returns true if the word at the given level has a non-blank definition.
+     * Used to decide whether to enable the Definition item button.
+     */
+    suspend fun hasDefinition(difficulty: Difficulty, level: Int, wordLengthOverride: Int? = null): Boolean =
+        getDefinition(difficulty, level, wordLengthOverride).isNotBlank()
 
     /**
      * Validates that the player's guess is a real English word.

@@ -1916,4 +1916,109 @@ class GameViewModelTest {
         val state = vm.uiState.first()
         assertEquals(GameStatus.WON, state.status)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // v2.7.0 — wordHasDefinition
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `wordHasDefinition is true when getDefinition returns non-blank`() = runTest {
+        // Default mock already returns "A test definition"
+        val vm = createViewModel(difficulty = "easy", level = 1, word = "ABLE")
+        awaitInit(vm)
+        assertTrue("wordHasDefinition should be true when definition exists",
+            vm.uiState.first().wordHasDefinition)
+    }
+
+    @Test
+    fun `wordHasDefinition is false when getDefinition returns blank string`() = runTest {
+        val vm = createViewModel(difficulty = "easy", level = 1, word = "ABLE")
+        // Override the default mock to return blank
+        coEvery { wordRepository.getDefinition(any(), any(), any()) } returns ""
+        coEvery { wordRepository.getDefinition(any(), any(), isNull()) } returns ""
+        // We need to re-init by creating a fresh VM with blank definition
+        val vm2 = createViewModelWithDefinition(definition = "")
+        awaitInit(vm2)
+        assertFalse("wordHasDefinition should be false when definition is blank",
+            vm2.uiState.first().wordHasDefinition)
+    }
+
+    @Test
+    fun `wordHasDefinition is false for daily challenge`() = runTest {
+        val vm = createViewModel(difficulty = "daily", level = 1, word = "CRANE")
+        awaitInit(vm)
+        // Daily challenge always returns false for wordHasDefinition
+        assertFalse("Daily challenge should not show definition item",
+            vm.uiState.first().wordHasDefinition)
+    }
+
+    @Test
+    fun `wordHasDefinition is true for VIP game with definitions`() = runTest {
+        val progress = PlayerProgress(lives = 5, isVip = true, vipLevel = 3)
+        val vm = createViewModelWithDefinition(
+            difficulty = "vip", level = 3, word = "CRANE", definition = "A large bird", progress = progress
+        )
+        awaitInit(vm)
+        assertTrue("VIP game should have wordHasDefinition = true when definition exists",
+            vm.uiState.first().wordHasDefinition)
+    }
+
+    /** Helper that creates a ViewModel with a specific definition return value. */
+    private fun createViewModelWithDefinition(
+        difficulty: String = "easy",
+        level: Int = 1,
+        word: String? = "ABLE",
+        definition: String = "A test definition",
+        progress: PlayerProgress = PlayerProgress()
+    ): GameViewModel {
+        progressFlow = MutableStateFlow(progress)
+        wordRepository = mockk {
+            coEvery { getWordForLevel(any(), any(), any()) } returns word
+            coEvery { getWordForLevel(any(), any(), isNull()) } returns word
+            coEvery { isValidWord(any(), any()) } returns true
+            coEvery { getDefinition(any(), any(), any()) } returns definition
+            coEvery { getDefinition(any(), any(), isNull()) } returns definition
+            coEvery { findAbsentLetter(any(), any(), any()) } returns 'X'
+        }
+        playerRepository = mockk {
+            every { playerProgressFlow } returns progressFlow
+            every { isFirstLaunch } returns MutableStateFlow(false)
+            coEvery { saveProgress(any()) } just Runs
+            coEvery { loadInProgressGame(any<Difficulty>()) } returns null
+            coEvery { loadInProgressGame(any<String>()) } returns null
+            coEvery { saveInProgressGame(any()) } just Runs
+            coEvery { clearInProgressGame(any<Difficulty>()) } just Runs
+            coEvery { clearInProgressGame(any<String>()) } just Runs
+        }
+        audioManager = mockk(relaxed = true)
+        starRatingDao = mockk {
+            coEvery { upsert(any()) } just Runs
+            coEvery { get(any(), any()) } returns null
+            coEvery { getAllForDifficulty(any()) } returns emptyList()
+            coEvery { totalStarsForDifficulty(any()) } returns 0
+            coEvery { totalStars() } returns 0
+            coEvery { countPerfectLevels() } returns 0
+        }
+        dailyChallengeRepository = mockk {
+            coEvery { getDailyWord(any(), any()) } returns (word ?: "QUIZ")
+            coEvery { getDailyWord(any()) } returns (word ?: "QUIZ")
+            coEvery { hasPlayedToday(any()) } returns false
+            coEvery { saveResult(any(), any(), any(), any(), any(), any()) } just Runs
+            coEvery { saveResult(any(), any(), any(), any(), any()) } just Runs
+            coEvery { getResultsForToday() } returns emptyList()
+            coEvery { totalWins() } returns 0
+            coEvery { totalPlayed() } returns 0
+            coEvery { todayDateString() } returns "2026-02-21"
+        }
+        return GameViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("difficulty" to difficulty, "level" to level)),
+            wordRepository = wordRepository,
+            playerRepository = playerRepository,
+            evaluateGuess = EvaluateGuessUseCase(),
+            lifeRegenUseCase = LifeRegenUseCase(),
+            audioManager = audioManager,
+            starRatingDao = starRatingDao,
+            dailyChallengeRepository = dailyChallengeRepository
+        )
+    }
 }

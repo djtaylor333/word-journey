@@ -68,7 +68,10 @@ data class GameUiState(
     // Definition item
     val definitionHint: String? = null,
     val showDefinitionDialog: Boolean = false,
-    val definitionUsedThisLevel: Boolean = false
+    val definitionUsedThisLevel: Boolean = false,
+
+    // Whether the current word has a definition (disables button when false)
+    val wordHasDefinition: Boolean = true
 ) {
     val currentRow: Int get() = guesses.size
     val remainingGuesses: Int get() = maxGuesses - guesses.size
