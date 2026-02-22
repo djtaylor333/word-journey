@@ -182,7 +182,8 @@ class GameViewModel @Inject constructor(
         var defHint: String? = null
         var defUsed = false
         if (isReplay && !isDailyChallenge) {
-            val definition = wordRepository.getDefinition(difficulty, level)
+            val defWordLength = if (difficulty == Difficulty.VIP) effectiveWordLength else null
+            val definition = wordRepository.getDefinition(difficulty, level, defWordLength)
             if (definition.isNotBlank()) {
                 defHint = definition
                 defUsed = true
@@ -210,6 +211,7 @@ class GameViewModel @Inject constructor(
                 definitionItems = playerProgress.definitionItems,
                 showLetterItems = playerProgress.showLetterItems,
                 isLoading = false,
+                wordLength = effectiveWordLength,
                 isReplay = isReplay,
                 isDailyChallenge = isDailyChallenge,
                 definitionHint = defHint,
@@ -250,6 +252,7 @@ class GameViewModel @Inject constructor(
                 definitionItems = playerProgress.definitionItems,
                 showLetterItems = playerProgress.showLetterItems,
                 isLoading = false,
+                wordLength = saved.targetWord.length,
                 isDailyChallenge = isDailyChallenge
             )
         }
@@ -313,7 +316,8 @@ class GameViewModel @Inject constructor(
     private suspend fun handleWin() {
         val e = engine ?: return
         val level = _uiState.value.level
-        val definition = if (isDailyChallenge) "" else wordRepository.getDefinition(difficulty, level)
+        val vipWordLen = if (difficulty == Difficulty.VIP) e.effectiveWordLength else null
+        val definition = if (isDailyChallenge) "" else wordRepository.getDefinition(difficulty, level, vipWordLen)
         val targetWord = e.guesses.last()
             .joinToString("") { it.first.toString() } // reconstruct from last guess (all CORRECT)
         val guessCount = e.guesses.size
@@ -747,7 +751,10 @@ class GameViewModel @Inject constructor(
         }
         val progress = playerProgress
         viewModelScope.launch {
-            val definition = wordRepository.getDefinition(difficulty, _uiState.value.level)
+            val vipWordLen = if (difficulty == Difficulty.VIP) {
+                Difficulty.vipWordLengthForLevel(_uiState.value.level)
+            } else null
+            val definition = wordRepository.getDefinition(difficulty, _uiState.value.level, vipWordLen)
             val hint = definition.ifBlank { "No definition available" }
 
             if (progress.definitionItems > 0) {
@@ -805,7 +812,8 @@ class GameViewModel @Inject constructor(
                 maxGuesses = e.maxGuesses,
                 letterStates = e.letterStates,
                 removedLetters = e.removedLetters,
-                status = e.status
+                status = e.status,
+                wordLength = e.effectiveWordLength
             )
         }
     }

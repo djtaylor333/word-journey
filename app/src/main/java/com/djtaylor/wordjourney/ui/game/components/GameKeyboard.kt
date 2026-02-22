@@ -89,9 +89,10 @@ private fun LetterKey(
 ) {
     var pressed by remember { mutableStateOf(false) }
 
-    val targetBg = keyBackground(state, highContrast)
+    val theme = LocalGameTheme.current
+    val targetBg = keyBackground(state, highContrast, theme)
     val bg by animateColorAsState(targetBg, tween(200), label = "keyBg$letter")
-    val textColor = keyTextColor(state)
+    val textColor = keyTextColor(state, theme)
     val alpha = if (enabled) 1f else 0.4f
 
     Box(
@@ -137,14 +138,14 @@ private fun ActionKey(label: String, onClick: () -> Unit, textScale: Float = 1f)
     }
 }
 
-private fun keyBackground(state: TileState, highContrast: Boolean): Color = when (state) {
-    TileState.CORRECT -> if (highContrast) TileCorrectHC else TileCorrect
-    TileState.PRESENT -> if (highContrast) TilePresentHC else TilePresent
-    TileState.ABSENT  -> TileAbsent
-    else              -> KeyDefaultDark
+private fun keyBackground(state: TileState, highContrast: Boolean, theme: com.djtaylor.wordjourney.domain.model.GameTheme): Color = when (state) {
+    TileState.CORRECT -> if (highContrast) TileCorrectHC else theme.tileCorrect
+    TileState.PRESENT -> if (highContrast) TilePresentHC else theme.tilePresent
+    TileState.ABSENT  -> theme.tileAbsent
+    else              -> theme.keyDefault
 }
 
-private fun keyTextColor(state: TileState): Color = when (state) {
+private fun keyTextColor(state: TileState, theme: com.djtaylor.wordjourney.domain.model.GameTheme): Color = when (state) {
     TileState.CORRECT, TileState.PRESENT, TileState.ABSENT -> Color.White
-    else -> KeyTextDark
+    else -> theme.keyText
 }

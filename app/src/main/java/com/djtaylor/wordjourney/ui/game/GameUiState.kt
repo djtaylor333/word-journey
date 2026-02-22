@@ -56,6 +56,9 @@ data class GameUiState(
     // Loading
     val isLoading: Boolean = true,
 
+    // Effective word length (may differ from difficulty.wordLength for VIP levels)
+    val wordLength: Int = difficulty.wordLength,
+
     // Replay mode — replaying a completed level (no life cost, no rewards)
     val isReplay: Boolean = false,
 
@@ -69,7 +72,7 @@ data class GameUiState(
 ) {
     val currentRow: Int get() = guesses.size
     val remainingGuesses: Int get() = maxGuesses - guesses.size
-    val isInputFull: Boolean get() = currentInput.size == difficulty.wordLength
+    val isInputFull: Boolean get() = currentInput.size == wordLength
     val canSubmit: Boolean get() = isInputFull && status == GameStatus.IN_PROGRESS
     val regularLives: Int get() = minOf(lives, 10)
     val bonusLives: Int get() = maxOf(lives - 10, 0)

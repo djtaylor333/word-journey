@@ -23,12 +23,13 @@ fun GameGrid(
     modifier: Modifier = Modifier
 ) {
     val difficulty = uiState.difficulty
-    val tileSize: Dp = when (difficulty.wordLength) {
+    val wordLen = uiState.wordLength
+    val tileSize: Dp = when (wordLen) {
         4    -> 68.dp
         5    -> 58.dp
         else -> 50.dp
     }
-    val fontSize: Int = when (difficulty.wordLength) {
+    val fontSize: Int = when (wordLen) {
         4    -> 26
         5    -> 22
         else -> 18
@@ -103,7 +104,7 @@ fun GameGrid(
                     translationX = shakeOffset
                 }
             ) {
-                repeat(difficulty.wordLength) { col ->
+                repeat(wordLen) { col ->
                     val letter = uiState.currentInput.getOrNull(col)
                     AnimatedTile(
                         letter = letter,
@@ -126,7 +127,7 @@ fun GameGrid(
 
         repeat(emptyRows) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                repeat(difficulty.wordLength) { col ->
+                repeat(wordLen) { col ->
                     AnimatedTile(
                         letter = null,
                         state = TileState.EMPTY,

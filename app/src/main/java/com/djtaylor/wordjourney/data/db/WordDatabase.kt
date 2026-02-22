@@ -33,12 +33,33 @@ abstract class WordDatabase : RoomDatabase() {
      */
     suspend fun ensurePopulated(context: Context) {
         val dao = wordDao()
-        val total = dao.countByLength(3) + dao.countByLength(4) + dao.countByLength(5) + dao.countByLength(6) + dao.countByLength(7)
-        if (total > 0) {
-            Log.d(TAG, "Database already populated with $total words")
+        val count3 = dao.countByLength(3)
+        val count4 = dao.countByLength(4)
+        val count5 = dao.countByLength(5)
+        val count6 = dao.countByLength(6)
+        val count7 = dao.countByLength(7)
+        val total = count3 + count4 + count5 + count6 + count7
+
+        // Determine which word lengths still need to be populated
+        val existingLengths = mutableSetOf<Int>()
+        if (count3 > 0) existingLengths.add(3)
+        if (count4 > 0) existingLengths.add(4)
+        if (count5 > 0) existingLengths.add(5)
+        if (count6 > 0) existingLengths.add(6)
+        if (count7 > 0) existingLengths.add(7)
+
+        val allLengths = setOf(3, 4, 5, 6, 7)
+        if (existingLengths == allLengths) {
+            Log.d(TAG, "Database already populated with $total words across all lengths")
             return
         }
-        Log.d(TAG, "Database is empty — populating from words.json")
+
+        val needsLengths = allLengths - existingLengths
+        if (existingLengths.isEmpty()) {
+            Log.d(TAG, "Database is empty — populating from words.json")
+        } else {
+            Log.d(TAG, "Database missing word lengths $needsLengths — adding from words.json")
+        }
         try {
             val jsonStr = context.assets.open("words.json").bufferedReader().use { it.readText() }
             val root = JSONObject(jsonStr)
@@ -46,6 +67,7 @@ abstract class WordDatabase : RoomDatabase() {
 
             for (lengthKey in root.keys()) {
                 val length = lengthKey.toIntOrNull() ?: continue
+                if (length !in needsLengths) continue // skip already populated lengths
                 val arr = root.getJSONArray(lengthKey)
                 for (i in 0 until arr.length()) {
                     val obj = arr.getJSONObject(i)
@@ -59,7 +81,7 @@ abstract class WordDatabase : RoomDatabase() {
             words.chunked(200).forEach { chunk ->
                 dao.insertAll(chunk)
             }
-            Log.d(TAG, "Successfully populated ${words.size} words")
+            Log.d(TAG, "Successfully populated ${words.size} words for lengths $needsLengths")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to populate word database", e)
         }

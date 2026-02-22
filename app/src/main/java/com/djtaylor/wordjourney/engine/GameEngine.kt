@@ -42,9 +42,21 @@ class GameEngine(
     private val evaluateGuess: EvaluateGuessUseCase = EvaluateGuessUseCase(),
     private val wordValidator: suspend (String, Int) -> Boolean = { _, _ -> true }
 ) {
+    /**
+     * Effective word length for this game instance.
+     * For VIP difficulty this varies per level (3-7); for others it equals difficulty.wordLength.
+     */
+    val effectiveWordLength: Int = targetWord.length
+
     init {
-        require(targetWord.length == difficulty.wordLength) {
-            "Target word '${targetWord}' length ${targetWord.length} must equal difficulty word length ${difficulty.wordLength}"
+        if (difficulty == Difficulty.VIP) {
+            require(targetWord.length in 3..7) {
+                "VIP target word length must be 3-7, got ${targetWord.length}"
+            }
+        } else {
+            require(targetWord.length == difficulty.wordLength) {
+                "Target word '${targetWord}' length ${targetWord.length} must equal difficulty word length ${difficulty.wordLength}"
+            }
         }
         require(targetWord == targetWord.uppercase()) {
             "Target word must be uppercase"
@@ -68,9 +80,9 @@ class GameEngine(
     // ── Derived properties ───────────────────────────────────────────────────
     val currentRow: Int get() = guesses.size
     val remainingGuesses: Int get() = maxGuesses - guesses.size
-    val isInputFull: Boolean get() = currentInput.size == difficulty.wordLength
+    val isInputFull: Boolean get() = currentInput.size == effectiveWordLength
     val canSubmit: Boolean get() = isInputFull && status == GameStatus.IN_PROGRESS
-    val wordLength: Int get() = difficulty.wordLength
+    val wordLength: Int get() = effectiveWordLength
 
     // ── Input ────────────────────────────────────────────────────────────────
 
@@ -84,7 +96,7 @@ class GameEngine(
      */
     fun onKeyPressed(char: Char): Boolean {
         if (status != GameStatus.IN_PROGRESS) return false
-        if (currentInput.size >= difficulty.wordLength) return false
+        if (currentInput.size >= effectiveWordLength) return false
         if (char.uppercaseChar() in removedLetters) return false
         currentInput = currentInput + char.uppercaseChar()
         return true
@@ -116,7 +128,7 @@ class GameEngine(
 
         val guess = currentInput.joinToString("").uppercase()
 
-        if (!wordValidator(guess, difficulty.wordLength)) {
+        if (!wordValidator(guess, effectiveWordLength)) {
             return SubmitResult.InvalidWord(guess)
         }
 

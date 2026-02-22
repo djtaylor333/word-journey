@@ -101,9 +101,13 @@ class WordRepository @Inject constructor(
 
     /**
      * Returns the definition for a given word (displayed on win screen).
+     *
+     * @param wordLengthOverride If provided, uses this word length instead of the difficulty's default.
+     *                           Used for VIP difficulty which varies word length by level.
      */
-    suspend fun getDefinition(difficulty: Difficulty, level: Int): String {
-        val words = getShuffledWords(difficulty.wordLength)
+    suspend fun getDefinition(difficulty: Difficulty, level: Int, wordLengthOverride: Int? = null): String {
+        val length = wordLengthOverride ?: difficulty.wordLength
+        val words = getShuffledWords(length)
         if (words.isEmpty()) return ""
         val index = (level - 1) % words.size
         return words[index].definition

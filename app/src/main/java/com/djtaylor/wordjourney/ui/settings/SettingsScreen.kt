@@ -196,14 +196,42 @@ fun SettingsScreen(
 
             // VIP themes
             ThemeCategoryLabel("👑 VIP Themes")
-            ThemeGrid(
-                themes = ThemeRegistry.VIP_THEMES,
-                selectedTheme = state.selectedTheme,
-                ownedThemes = state.ownedThemes,
-                isVip = state.isVip,
-                onSelect = { viewModel.selectTheme(it) },
-                onPurchase = { viewModel.purchaseTheme(it) }
-            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                ThemeGrid(
+                    themes = ThemeRegistry.VIP_THEMES,
+                    selectedTheme = state.selectedTheme,
+                    ownedThemes = state.ownedThemes,
+                    isVip = state.isVip,
+                    onSelect = { viewModel.selectTheme(it) },
+                    onPurchase = { viewModel.purchaseTheme(it) }
+                )
+                // Locked overlay for non-VIP users
+                if (!state.isVip) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.Black.copy(alpha = 0.55f),
+                        modifier = Modifier.matchParentSize()
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("🔒", fontSize = 28.sp)
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "VIP Subscription Required",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    "Subscribe to unlock exclusive themes",
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             Spacer(Modifier.height(12.dp))
 
@@ -223,61 +251,8 @@ fun SettingsScreen(
             // ── Accessibility ─────────────────────────────────────────────────
             SettingsSection(title = "Accessibility")
 
-            // Colorblind mode selector
-            var colorblindExpanded by remember { mutableStateOf(false) }
-            val colorblindOptions = listOf(
-                "none" to "None",
-                "protanopia" to "Protanopia (Red-weak)",
-                "deuteranopia" to "Deuteranopia (Green-weak)",
-                "tritanopia" to "Tritanopia (Blue-weak)"
-            )
-            val selectedLabel = colorblindOptions.firstOrNull { it.first == state.colorblindMode }?.second ?: "None"
-
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                Text(
-                    text = "Colorblind Mode",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = "Adjust tile colors for color vision deficiency",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-                Spacer(Modifier.height(6.dp))
-                ExposedDropdownMenuBox(
-                    expanded = colorblindExpanded,
-                    onExpandedChange = { colorblindExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = selectedLabel,
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = colorblindExpanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                        )
-                    )
-                    ExposedDropdownMenu(
-                        expanded = colorblindExpanded,
-                        onDismissRequest = { colorblindExpanded = false }
-                    ) {
-                        colorblindOptions.forEach { (value, label) ->
-                            DropdownMenuItem(
-                                text = { Text(label) },
-                                onClick = {
-                                    viewModel.setColorblindMode(value)
-                                    colorblindExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
+            // Colorblind mode — hidden for now (feature retained)
+            // To re-enable: remove the wrapping condition below
 
             // Text scale slider
             Column(

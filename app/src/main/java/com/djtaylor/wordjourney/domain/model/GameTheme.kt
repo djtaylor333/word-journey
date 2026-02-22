@@ -1,11 +1,19 @@
 package com.djtaylor.wordjourney.domain.model
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+
+/**
+ * Background decoration pattern drawn subtly behind game content.
+ */
+enum class BackgroundPattern {
+    NONE, DOTS, WAVES, STARS, SNOWFLAKES, HEARTS, LEAVES, DIAMONDS, GRID
+}
 
 /**
  * Defines a complete visual theme for the game.
  * Each theme changes background, tile, keyboard, and accent colors,
- * plus optional font family and audio identifiers.
+ * plus optional font family and background decorations.
  */
 data class GameTheme(
     val id: String,
@@ -41,7 +49,14 @@ data class GameTheme(
     val sfxPack: String = "default",
 
     // Cost (0 = free, -1 = VIP only, >0 = diamond cost)
-    val diamondCost: Int = 0
+    val diamondCost: Int = 0,
+
+    // Background decoration
+    val backgroundPattern: BackgroundPattern = BackgroundPattern.NONE,
+    val patternEmoji: String = "",
+
+    // Font family
+    val fontFamily: FontFamily = FontFamily.Default
 )
 
 enum class ThemeCategory {
@@ -76,7 +91,9 @@ object ThemeRegistry {
         tileFilled = Color(0xFF1C1B1F),
         keyDefault = Color(0xFF818384),
         keyText = Color(0xFFFFFFFF),
-        primaryAccent = Color(0xFFC9A84C)
+        primaryAccent = Color(0xFFC9A84C),
+        backgroundPattern = BackgroundPattern.DOTS,
+        patternEmoji = "🗺️"
     )
 
     val OCEAN_BREEZE = GameTheme(
@@ -97,7 +114,9 @@ object ThemeRegistry {
         keyDefault = Color(0xFF4A6FA5),
         keyText = Color(0xFFE0F7FA),
         primaryAccent = Color(0xFF00CEC9),
-        musicTrack = "music_ocean"
+        musicTrack = "music_ocean",
+        backgroundPattern = BackgroundPattern.WAVES,
+        patternEmoji = "🌊"
     )
 
     val FOREST_GROVE = GameTheme(
@@ -118,7 +137,10 @@ object ThemeRegistry {
         keyDefault = Color(0xFF5B8C5A),
         keyText = Color(0xFFF0FFE8),
         primaryAccent = Color(0xFF7BC67E),
-        musicTrack = "music_forest"
+        musicTrack = "music_forest",
+        backgroundPattern = BackgroundPattern.LEAVES,
+        patternEmoji = "🌿",
+        fontFamily = FontFamily.Serif
     )
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -144,7 +166,10 @@ object ThemeRegistry {
         keyText = Color(0xFFE0FFE0),
         primaryAccent = Color(0xFFFF6EC7),
         diamondCost = 50,
-        musicTrack = "music_neon"
+        musicTrack = "music_neon",
+        backgroundPattern = BackgroundPattern.GRID,
+        patternEmoji = "⚡",
+        fontFamily = FontFamily.Monospace
     )
 
     val ROYAL_GOLD = GameTheme(
@@ -166,7 +191,10 @@ object ThemeRegistry {
         keyText = Color(0xFFFFE8CC),
         primaryAccent = Color(0xFFFFD700),
         diamondCost = 50,
-        musicTrack = "music_royal"
+        musicTrack = "music_royal",
+        backgroundPattern = BackgroundPattern.DIAMONDS,
+        patternEmoji = "💎",
+        fontFamily = FontFamily.Serif
     )
 
     val SUNSET_GLOW = GameTheme(
@@ -188,7 +216,9 @@ object ThemeRegistry {
         keyText = Color(0xFFFFF0E0),
         primaryAccent = Color(0xFFFF8C42),
         diamondCost = 50,
-        musicTrack = "music_sunset"
+        musicTrack = "music_sunset",
+        backgroundPattern = BackgroundPattern.DOTS,
+        patternEmoji = "✨"
     )
 
     val ARCTIC_FROST = GameTheme(
@@ -210,7 +240,9 @@ object ThemeRegistry {
         keyText = Color(0xFFE0F7FA),
         primaryAccent = Color(0xFF80DEEA),
         diamondCost = 50,
-        musicTrack = "music_arctic"
+        musicTrack = "music_arctic",
+        backgroundPattern = BackgroundPattern.SNOWFLAKES,
+        patternEmoji = "❄️"
     )
 
     val CHERRY_BLOSSOM = GameTheme(
@@ -232,7 +264,10 @@ object ThemeRegistry {
         keyText = Color(0xFFFFF0F5),
         primaryAccent = Color(0xFFFF69B4),
         diamondCost = 50,
-        musicTrack = "music_cherry"
+        musicTrack = "music_cherry",
+        backgroundPattern = BackgroundPattern.HEARTS,
+        patternEmoji = "🌸",
+        fontFamily = FontFamily.Cursive
     )
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -257,7 +292,9 @@ object ThemeRegistry {
         keyDefault = Color(0xFFC06080),
         keyText = Color(0xFFFFE0E8),
         primaryAccent = Color(0xFFFF4081),
-        diamondCost = 30
+        diamondCost = 30,
+        backgroundPattern = BackgroundPattern.HEARTS,
+        patternEmoji = "💕"
     )
 
     val EASTER = GameTheme(
@@ -278,7 +315,9 @@ object ThemeRegistry {
         keyDefault = Color(0xFF7986CB),
         keyText = Color(0xFFF8FFF0),
         primaryAccent = Color(0xFFE6EE9C),
-        diamondCost = 30
+        diamondCost = 30,
+        backgroundPattern = BackgroundPattern.DOTS,
+        patternEmoji = "🥚"
     )
 
     val SUMMER = GameTheme(
@@ -299,7 +338,9 @@ object ThemeRegistry {
         keyDefault = Color(0xFFA1887F),
         keyText = Color(0xFFFFFFF0),
         primaryAccent = Color(0xFFFFD54F),
-        diamondCost = 30
+        diamondCost = 30,
+        backgroundPattern = BackgroundPattern.WAVES,
+        patternEmoji = "☀️"
     )
 
     val HALLOWEEN = GameTheme(
@@ -320,7 +361,9 @@ object ThemeRegistry {
         keyDefault = Color(0xFF6D4C41),
         keyText = Color(0xFFFFE0B2),
         primaryAccent = Color(0xFFFF9800),
-        diamondCost = 30
+        diamondCost = 30,
+        backgroundPattern = BackgroundPattern.STARS,
+        patternEmoji = "🦇"
     )
 
     val THANKSGIVING = GameTheme(
@@ -341,7 +384,9 @@ object ThemeRegistry {
         keyDefault = Color(0xFF8D6E63),
         keyText = Color(0xFFFFECD2),
         primaryAccent = Color(0xFFE6A817),
-        diamondCost = 30
+        diamondCost = 30,
+        backgroundPattern = BackgroundPattern.LEAVES,
+        patternEmoji = "🍂"
     )
 
     val CHRISTMAS = GameTheme(
@@ -362,7 +407,9 @@ object ThemeRegistry {
         keyDefault = Color(0xFF558B2F),
         keyText = Color(0xFFF0FFF0),
         primaryAccent = Color(0xFFD32F2F),
-        diamondCost = 30
+        diamondCost = 30,
+        backgroundPattern = BackgroundPattern.SNOWFLAKES,
+        patternEmoji = "🎄"
     )
 
     /** All available themes, ordered by category. */

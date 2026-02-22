@@ -11,6 +11,6 @@ import androidx.room.PrimaryKey
 data class WordEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val word: String,          // UPPERCASE stored for fast comparison
-    val length: Int,           // 4, 5, or 6
+    val length: Int,           // 3, 4, 5, 6, or 7
     val definition: String     // short definition shown on win
 )

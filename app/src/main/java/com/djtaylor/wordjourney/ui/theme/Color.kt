@@ -32,7 +32,9 @@ val AccentHard    = Color(0xFFEF4444)   // crimson
 
 // ── Currency ──────────────────────────────────────────────────────────────────
 val CoinGold      = Color(0xFFF59E0B)
+val CoinGoldDark  = Color(0xFFB8760A)   // darker for light-mode readability
 val DiamondCyan   = Color(0xFF67E8F9)
+val DiamondCyanDark = Color(0xFF0891B2) // darker for light-mode readability
 val HeartRed      = Color(0xFFEF4444)
 val BonusHeartBlue = Color(0xFF3B82F6)
 

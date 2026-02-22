@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.data.datastore.PlayerDataStore
+import com.djtaylor.wordjourney.domain.model.ThemeRegistry
 import com.djtaylor.wordjourney.ui.navigation.AppNavigation
 import com.djtaylor.wordjourney.ui.theme.WordJourneysTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -48,11 +49,16 @@ class MainActivity : ComponentActivity() {
                     initialValue = com.djtaylor.wordjourney.domain.model.PlayerProgress()
                 )
 
+            val activeGameTheme = remember(progress.selectedTheme) {
+                ThemeRegistry.getThemeById(progress.selectedTheme) ?: ThemeRegistry.CLASSIC
+            }
+
             WordJourneysTheme(
                 darkTheme = progress.darkMode,
                 highContrast = progress.highContrast,
                 colorblindMode = progress.colorblindMode,
-                textScale = progress.textScaleFactor
+                textScale = progress.textScaleFactor,
+                gameTheme = activeGameTheme
             ) {
                 val navController = rememberNavController()
                 AppNavigation(

@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import com.djtaylor.wordjourney.domain.model.GameTheme
+import com.djtaylor.wordjourney.domain.model.ThemeRegistry
 
 /** Provides the current high‑contrast flag to all composables. */
 val LocalHighContrast = staticCompositionLocalOf { false }
@@ -19,35 +21,8 @@ val LocalColorblindMode = staticCompositionLocalOf { "none" }
 /** Provides the text scale factor (0.8 – 1.5) to all composables. */
 val LocalTextScale = staticCompositionLocalOf { 1.0f }
 
-private val DarkColorScheme = darkColorScheme(
-    primary            = Primary,
-    onPrimary          = OnPrimary,
-    primaryContainer   = PrimaryContainer,
-    onPrimaryContainer = OnPrimaryContainer,
-    background         = BackgroundDark,
-    onBackground       = OnBackgroundDark,
-    surface            = SurfaceDark,
-    onSurface          = OnSurfaceDark,
-    surfaceVariant     = SurfaceVariantDark,
-    onSurfaceVariant   = OnSurfaceDark,
-    error              = Error,
-    onError            = OnError
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary            = Primary,
-    onPrimary          = OnPrimary,
-    primaryContainer   = PrimaryContainer,
-    onPrimaryContainer = OnPrimaryContainer,
-    background         = BackgroundLight,
-    onBackground       = OnBackgroundLight,
-    surface            = SurfaceLight,
-    onSurface          = OnSurfaceLight,
-    surfaceVariant     = SurfaceVariantLight,
-    onSurfaceVariant   = OnSurfaceLight,
-    error              = Error,
-    onError            = OnError
-)
+/** Provides the active GameTheme to all composables. */
+val LocalGameTheme = staticCompositionLocalOf { ThemeRegistry.CLASSIC }
 
 private val HighContrastDarkScheme = darkColorScheme(
     primary            = Color(0xFFFFD54F),
@@ -79,25 +54,58 @@ private val HighContrastLightScheme = lightColorScheme(
     onError            = Color(0xFFFFFFFF)
 )
 
+/** Build a MaterialTheme color scheme from a [GameTheme]. */
+private fun gameThemeToDarkScheme(t: GameTheme) = darkColorScheme(
+    primary            = t.primaryAccent,
+    onPrimary          = Color.White,
+    primaryContainer   = t.surfaceDark,
+    onPrimaryContainer = Color.White,
+    background         = t.backgroundDark,
+    onBackground       = Color(0xFFF0E8D4),
+    surface            = t.surfaceDark,
+    onSurface          = Color(0xFFE8DCC8),
+    surfaceVariant     = t.surfaceDark.copy(alpha = 0.8f),
+    onSurfaceVariant   = Color(0xFFE8DCC8),
+    error              = Error,
+    onError            = OnError
+)
+
+private fun gameThemeToLightScheme(t: GameTheme) = lightColorScheme(
+    primary            = t.primaryAccent,
+    onPrimary          = Color.White,
+    primaryContainer   = t.surfaceLight,
+    onPrimaryContainer = Color(0xFF1C150A),
+    background         = t.backgroundLight,
+    onBackground       = Color(0xFF1C150A),
+    surface            = t.surfaceLight,
+    onSurface          = Color(0xFF2A1F0E),
+    surfaceVariant     = t.surfaceLight.copy(alpha = 0.8f),
+    onSurfaceVariant   = Color(0xFF2A1F0E),
+    error              = Error,
+    onError            = OnError
+)
+
 @Composable
 fun WordJourneysTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     highContrast: Boolean = false,
     colorblindMode: String = "none",
     textScale: Float = 1.0f,
+    gameTheme: GameTheme = ThemeRegistry.CLASSIC,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
         highContrast && darkTheme  -> HighContrastDarkScheme
         highContrast && !darkTheme -> HighContrastLightScheme
-        darkTheme                  -> DarkColorScheme
-        else                       -> LightColorScheme
+        darkTheme                  -> gameThemeToDarkScheme(gameTheme)
+        else                       -> gameThemeToLightScheme(gameTheme)
     }
 
     CompositionLocalProvider(
         LocalHighContrast provides highContrast,
         LocalColorblindMode provides colorblindMode,
-        LocalTextScale provides textScale
+        LocalTextScale provides textScale,
+        LocalGameTheme provides gameTheme
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

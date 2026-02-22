@@ -67,14 +67,17 @@ fun GameScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .statusBarsPadding()
-                .padding(horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Theme background decoration
+            ThemeBackgroundOverlay(theme = LocalGameTheme.current)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(horizontal = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             // ── TOP BAR ───────────────────────────────────────────────────────
             GameTopBar(
                 uiState = uiState,
@@ -172,6 +175,7 @@ fun GameScreen(
 
                 Spacer(Modifier.height(8.dp))
             }
+        }
         }
     }
 
@@ -276,6 +280,9 @@ private fun GameTopBar(
     onStore: () -> Unit,
     onSettings: () -> Unit
 ) {
+    val isLight = !isSystemInDarkTheme()
+    val coinColor = if (isLight) CoinGoldDark else CoinGold
+    val diamondColor = if (isLight) DiamondCyanDark else DiamondCyan
     val difficultyColor = if (uiState.isDailyChallenge) Primary else when (uiState.difficulty) {
         Difficulty.EASY    -> AccentEasy
         Difficulty.REGULAR -> AccentRegular
@@ -283,69 +290,69 @@ private fun GameTopBar(
         Difficulty.VIP     -> CoinGold
     }
 
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.size(56.dp)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // ── ROW 1: Back, Level/Difficulty ─────────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.size(34.dp)
-            )
-        }
-
-        // Level + difficulty
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                if (uiState.isDailyChallenge) "Daily Challenge" else "Level ${uiState.level}",
-                fontWeight = FontWeight.Bold,
-                fontSize = (if (uiState.isDailyChallenge) 20f else 25f).let { (it * textScale).sp },
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = difficultyColor.copy(alpha = 0.2f)
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.size(48.dp)
             ) {
-                Text(
-                    if (uiState.isDailyChallenge) "${uiState.difficulty.wordLength} Letters" else uiState.difficulty.displayName,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-                    color = difficultyColor,
-                    fontSize = (16 * textScale).sp,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.size(30.dp)
                 )
             }
-        }
 
-        // Lives + currencies — larger
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Hearts: red with count + blue bonus
+            // Level + difficulty tag centered
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    if (uiState.isDailyChallenge) "Daily Challenge" else "Level ${uiState.level}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = (if (uiState.isDailyChallenge) 20f else 24f).let { (it * textScale).sp },
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = difficultyColor.copy(alpha = 0.2f)
+                ) {
+                    Text(
+                        if (uiState.isDailyChallenge) "${uiState.difficulty.wordLength} Letters" else uiState.difficulty.displayName,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
+                        color = difficultyColor,
+                        fontSize = (14 * textScale).sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // Hearts
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("❤️", fontSize = (34 * textScale).sp)
+                    Text("❤️", fontSize = (30 * textScale).sp)
                     Text(
                         "${uiState.regularLives}",
-                        fontSize = (13 * textScale).sp,
+                        fontSize = (12 * textScale).sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
                         modifier = Modifier.offset(y = 1.dp)
                     )
                 }
                 if (uiState.bonusLives > 0) {
-                    Text("+", fontSize = (14 * textScale).sp, color = BonusHeartBlue, fontWeight = FontWeight.Bold)
+                    Text("+", fontSize = (12 * textScale).sp, color = BonusHeartBlue, fontWeight = FontWeight.Bold)
                     Box(contentAlignment = Alignment.Center) {
-                        Text("💙", fontSize = (26 * textScale).sp)
+                        Text("💙", fontSize = (22 * textScale).sp)
                         Text(
                             "${uiState.bonusLives}",
-                            fontSize = (12 * textScale).sp,
+                            fontSize = (10 * textScale).sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
                             modifier = Modifier.offset(y = 1.dp)
@@ -353,42 +360,52 @@ private fun GameTopBar(
                     }
                 }
             }
+        }
+
+        // ── ROW 2: Coins, Diamonds, Store, Settings ──────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             // Coins
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🪙", fontSize = (22 * textScale).sp)
+                Text("🪙", fontSize = (20 * textScale).sp)
                 Spacer(Modifier.width(2.dp))
                 Text(
                     "${uiState.coins}",
                     fontWeight = FontWeight.Bold,
-                    color = CoinGold,
-                    fontSize = (19 * textScale).sp
+                    color = coinColor,
+                    fontSize = (17 * textScale).sp
                 )
             }
+            Spacer(Modifier.width(12.dp))
             // Diamonds
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("💎", fontSize = (20 * textScale).sp)
+                Text("💎", fontSize = (18 * textScale).sp)
                 Spacer(Modifier.width(2.dp))
                 Text(
                     "${uiState.diamonds}",
                     fontWeight = FontWeight.Bold,
-                    color = DiamondCyan,
-                    fontSize = (19 * textScale).sp
+                    color = diamondColor,
+                    fontSize = (17 * textScale).sp
                 )
             }
-            IconButton(onClick = onStore, modifier = Modifier.size(48.dp)) {
+            Spacer(Modifier.width(12.dp))
+            IconButton(onClick = onStore, modifier = Modifier.size(40.dp)) {
                 Icon(
                     Icons.Default.ShoppingCart,
                     contentDescription = "Store",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
-            IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) {
+            IconButton(onClick = onSettings, modifier = Modifier.size(40.dp)) {
                 Icon(
                     Icons.Default.Settings,
                     contentDescription = "Settings",
                     tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }

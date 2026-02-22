@@ -688,4 +688,174 @@ class GameEngineTest {
         e.onKeyPressed('E')
         assertTrue(e.isInputFull)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 16. VIP DIFFICULTY — VARIABLE WORD LENGTHS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `VIP engine accepts 3-letter word`() {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "CAT"
+        )
+        assertEquals(3, e.wordLength)
+        assertEquals(3, e.effectiveWordLength)
+        assertEquals(GameStatus.IN_PROGRESS, e.status)
+    }
+
+    @Test
+    fun `VIP engine accepts 4-letter word`() {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "BAKE"
+        )
+        assertEquals(4, e.wordLength)
+        assertEquals(4, e.effectiveWordLength)
+    }
+
+    @Test
+    fun `VIP engine accepts 5-letter word`() {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "CRANE"
+        )
+        assertEquals(5, e.wordLength)
+        assertEquals(5, e.effectiveWordLength)
+    }
+
+    @Test
+    fun `VIP engine accepts 6-letter word`() {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "BRIDGE"
+        )
+        assertEquals(6, e.wordLength)
+        assertEquals(6, e.effectiveWordLength)
+    }
+
+    @Test
+    fun `VIP engine accepts 7-letter word`() {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "KITCHEN"
+        )
+        assertEquals(7, e.wordLength)
+        assertEquals(7, e.effectiveWordLength)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `VIP engine rejects 2-letter word`() {
+        GameEngine(difficulty = Difficulty.VIP, targetWord = "HI")
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `VIP engine rejects 8-letter word`() {
+        GameEngine(difficulty = Difficulty.VIP, targetWord = "ABSOLUTE")
+    }
+
+    @Test
+    fun `VIP 3-letter gameplay — input bounded at 3 chars`() {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "CAT"
+        )
+        "CATS".forEach { e.onKeyPressed(it) } // try 4 chars
+        assertEquals(3, e.currentInput.size) // only 3 accepted
+        assertTrue(e.isInputFull)
+    }
+
+    @Test
+    fun `VIP 3-letter gameplay — submit and win`() = runTest {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "CAT"
+        )
+        "CAT".forEach { e.onKeyPressed(it) }
+        val result = e.onSubmit() as SubmitResult.Evaluated
+        assertTrue(result.isWin)
+        assertEquals(3, result.tiles.size)
+        assertEquals(GameStatus.WON, e.status)
+    }
+
+    @Test
+    fun `VIP 7-letter gameplay — submit and win`() = runTest {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "KITCHEN"
+        )
+        "KITCHEN".forEach { e.onKeyPressed(it) }
+        val result = e.onSubmit() as SubmitResult.Evaluated
+        assertTrue(result.isWin)
+        assertEquals(7, result.tiles.size)
+        assertEquals(GameStatus.WON, e.status)
+    }
+
+    @Test
+    fun `VIP 3-letter — word validator receives correct word length`() = runTest {
+        var validatedLength = -1
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "CAT",
+            wordValidator = { _, len -> validatedLength = len; true }
+        )
+        "DOG".forEach { e.onKeyPressed(it) }
+        e.onSubmit()
+        assertEquals(3, validatedLength) // should pass 3, not 5
+    }
+
+    @Test
+    fun `VIP 7-letter — word validator receives correct word length`() = runTest {
+        var validatedLength = -1
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "KITCHEN",
+            wordValidator = { _, len -> validatedLength = len; true }
+        )
+        "POULTRY".forEach { e.onKeyPressed(it) }
+        e.onSubmit()
+        assertEquals(7, validatedLength) // should pass 7, not 5
+    }
+
+    @Test
+    fun `VIP word length cycling pattern`() {
+        // Verify the cycling pattern: 3, 4, 5, 6, 7, 3, 4, 5, ...
+        assertEquals(3, Difficulty.vipWordLengthForLevel(1))
+        assertEquals(4, Difficulty.vipWordLengthForLevel(2))
+        assertEquals(5, Difficulty.vipWordLengthForLevel(3))
+        assertEquals(6, Difficulty.vipWordLengthForLevel(4))
+        assertEquals(7, Difficulty.vipWordLengthForLevel(5))
+        assertEquals(3, Difficulty.vipWordLengthForLevel(6))  // wraps
+        assertEquals(4, Difficulty.vipWordLengthForLevel(7))
+        assertEquals(7, Difficulty.vipWordLengthForLevel(100)) // (100-1) % 5 = 4 → lengths[4] = 7
+    }
+
+    @Test
+    fun `VIP engine — restore with non-default word length`() {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "CAT"
+        )
+        val savedGuess = listOf(
+            Pair('D', TileState.ABSENT),
+            Pair('O', TileState.ABSENT),
+            Pair('G', TileState.ABSENT)
+        )
+        e.restore(listOf(savedGuess), listOf('C'), 6)
+        assertEquals(1, e.guesses.size)
+        assertEquals(listOf('C'), e.currentInput)
+        assertEquals(3, e.wordLength)
+        assertEquals(GameStatus.IN_PROGRESS, e.status)
+    }
+
+    @Test
+    fun `VIP engine — removeLetter works with short word`() {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "CAT"
+        )
+        assertTrue(e.removeLetter('Z'))
+        assertFalse(e.onKeyPressed('Z')) // blocked
+        assertFalse(e.removeLetter('C')) // in target
+    }
 }
