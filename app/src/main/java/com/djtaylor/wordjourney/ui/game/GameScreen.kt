@@ -124,30 +124,6 @@ fun GameScreen(
 
                 Spacer(Modifier.height(8.dp))
 
-                // ── REVEALED LETTERS HINT ──────────────────────────────────────
-                if (uiState.revealedLetters.isNotEmpty()) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Primary.copy(alpha = 0.15f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text("💡", fontSize = (16 * textScale).sp)
-                            uiState.revealedLetters.toSortedMap().forEach { (pos, ch) ->
-                                Text(
-                                    "#${pos + 1}=$ch",
-                                    fontSize = (14 * textScale).sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Primary
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(4.dp))
-                }
-
                 // ── ITEMS BAR ─────────────────────────────────────────────────
                 ItemsBar(
                     coins = uiState.coins,

@@ -232,7 +232,7 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.first()
-        assertEquals("2.4.0", state.appVersion)
+        assertEquals("2.5.0", state.appVersion)
     }
 
     // ══════════════════════════════════════════════════════════════════════════

@@ -256,7 +256,13 @@ class GameViewModel @Inject constructor(
             wordValidator = { guess, len -> wordRepository.isValidWord(guess, len) }
         )
         _targetWordCache = saved.targetWord
-        engine!!.restore(restoredGuesses, restoredInput, saved.maxGuesses)
+        val restoredPrefilled: Map<Int, Char> = saved.revealedLetters.entries
+            .mapNotNull { (k, v) ->
+                val pos = k.toIntOrNull() ?: return@mapNotNull null
+                val ch = v.firstOrNull() ?: return@mapNotNull null
+                pos to ch
+            }.toMap()
+        engine!!.restore(restoredGuesses, restoredInput, saved.maxGuesses, restoredPrefilled)
 
         syncEngineToUiState()
         _uiState.update { s ->
@@ -699,21 +705,21 @@ class GameViewModel @Inject constructor(
         val target = _targetWordCache
         if (target.isEmpty()) return
 
-        // Find positions not yet correctly known
+        // Find positions not yet revealed (by item) and not already CORRECT from guesses
         val revealed = _uiState.value.revealedLetters
         val correctPositions = mutableSetOf<Int>()
-        // Check from existing guesses which positions are CORRECT
         for (guess in e.guesses) {
             for ((idx, pair) in guess.withIndex()) {
                 if (pair.second == TileState.CORRECT) correctPositions.add(idx)
             }
         }
-        // Also exclude positions we've already revealed via item
+        // Always pick the leftmost unrevealed, non-correct position
         val availablePositions = (target.indices).filter { it !in correctPositions && it !in revealed }
         if (availablePositions.isEmpty()) {
             _uiState.update { it.copy(snackbarMessage = "All letters already revealed!") }
             return
         }
+        val pos = availablePositions.first()
 
         val progress = playerProgress
         if (progress.showLetterItems > 0) {
@@ -725,15 +731,10 @@ class GameViewModel @Inject constructor(
             playerProgress = updated
             viewModelScope.launch { playerRepository.saveProgress(updated) }
 
-            val pos = availablePositions.random()
-            val newRevealed = revealed + (pos to target[pos])
-            _uiState.update { s ->
-                s.copy(
-                    revealedLetters = newRevealed,
-                    showLetterItems = updated.showLetterItems,
-                    snackbarMessage = "Position ${pos + 1} is '${target[pos]}'"
-                )
-            }
+            e.prefillPosition(pos, target[pos])
+            syncEngineToUiState()
+            _uiState.update { s -> s.copy(showLetterItems = updated.showLetterItems) }
+            persistCurrentState()
         } else {
             val coinCost = 250L
             if (progress.coins < coinCost) {
@@ -748,15 +749,10 @@ class GameViewModel @Inject constructor(
             playerProgress = updated
             viewModelScope.launch { playerRepository.saveProgress(updated) }
 
-            val pos = availablePositions.random()
-            val newRevealed = revealed + (pos to target[pos])
-            _uiState.update { s ->
-                s.copy(
-                    revealedLetters = newRevealed,
-                    coins = updated.coins,
-                    snackbarMessage = "Position ${pos + 1} is '${target[pos]}'"
-                )
-            }
+            e.prefillPosition(pos, target[pos])
+            syncEngineToUiState()
+            _uiState.update { s -> s.copy(coins = updated.coins) }
+            persistCurrentState()
         }
     }
 
@@ -831,7 +827,8 @@ class GameViewModel @Inject constructor(
                 letterStates = e.letterStates,
                 removedLetters = e.removedLetters,
                 status = e.status,
-                wordLength = e.effectiveWordLength
+                wordLength = e.effectiveWordLength,
+                revealedLetters = e.prefilledPositions
             )
         }
     }
@@ -900,7 +897,9 @@ class GameViewModel @Inject constructor(
                     row.map { (ch, state) -> Pair(ch.toString(), state.name) }
                 },
                 currentInput = e.currentInput.map { it.toString() },
-                maxGuesses = e.maxGuesses
+                maxGuesses = e.maxGuesses,
+                revealedLetters = e.prefilledPositions.entries
+                    .associate { (k, v) -> k.toString() to v.toString() }
             )
             playerRepository.saveInProgressGame(saved)
         }

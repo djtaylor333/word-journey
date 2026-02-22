@@ -76,27 +76,52 @@ class GameEngine(
         private set
     var status: GameStatus = GameStatus.IN_PROGRESS
         private set
+    /**
+     * Positions pre-filled by the "Show Letter" item (position → char).
+     * These persist for the lifetime of the level and count toward [isInputFull].
+     */
+    var prefilledPositions: Map<Int, Char> = emptyMap()
+        private set
 
     // ── Derived properties ───────────────────────────────────────────────────
     val currentRow: Int get() = guesses.size
     val remainingGuesses: Int get() = maxGuesses - guesses.size
-    val isInputFull: Boolean get() = currentInput.size == effectiveWordLength
+    /** Number of positions the user must type (total − pre-filled by item). */
+    val freePositionCount: Int get() = effectiveWordLength - prefilledPositions.size
+    val isInputFull: Boolean get() = currentInput.size >= freePositionCount
     val canSubmit: Boolean get() = isInputFull && status == GameStatus.IN_PROGRESS
     val wordLength: Int get() = effectiveWordLength
+
+    /**
+     * Positional view of the current row, merging [prefilledPositions] and [currentInput].
+     * Null means the cell is empty (not yet typed). Used by [GameGrid] for display.
+     */
+    val displayInput: List<Char?>
+        get() {
+            val result = arrayOfNulls<Char>(effectiveWordLength)
+            prefilledPositions.forEach { (pos, ch) -> result[pos] = ch }
+            var userIdx = 0
+            for (pos in 0 until effectiveWordLength) {
+                if (result[pos] == null && userIdx < currentInput.size) {
+                    result[pos] = currentInput[userIdx++]
+                }
+            }
+            return result.toList()
+        }
 
     // ── Input ────────────────────────────────────────────────────────────────
 
     /**
      * Type a letter. Silently ignored if:
      *  - Game is not IN_PROGRESS
-     *  - Input is already full
+     *  - Input is already full (all free positions filled)
      *  - The letter has been removed by the "Remove Letter" item
      *
      * @return true if the letter was accepted
      */
     fun onKeyPressed(char: Char): Boolean {
         if (status != GameStatus.IN_PROGRESS) return false
-        if (currentInput.size >= effectiveWordLength) return false
+        if (currentInput.size >= freePositionCount) return false
         if (char.uppercaseChar() in removedLetters) return false
         currentInput = currentInput + char.uppercaseChar()
         return true
@@ -117,8 +142,10 @@ class GameEngine(
     /**
      * Submit the current input as a guess.
      *
+     * Builds the full word by merging [prefilledPositions] (from the Show Letter item)
+     * with [currentInput] (typed by the user into the remaining free positions).
      * The word is validated against the dictionary via [wordValidator].
-     * If valid, evaluated using the Wordle algorithm. letter states are updated
+     * If valid, evaluated using the Wordle algorithm. Letter states are updated
      * with highest-priority state per letter (CORRECT > PRESENT > ABSENT).
      *
      * @return a [SubmitResult] indicating the outcome
@@ -126,7 +153,14 @@ class GameEngine(
     suspend fun onSubmit(): SubmitResult {
         if (!canSubmit) return SubmitResult.NotReady
 
-        val guess = currentInput.joinToString("").uppercase()
+        // Build the full guess by merging pre-filled and user-typed positions
+        val freePositions = (0 until effectiveWordLength).filter { it !in prefilledPositions }
+        val fullGuess = Array(effectiveWordLength) { ' ' }
+        prefilledPositions.forEach { (pos, ch) -> fullGuess[pos] = ch }
+        freePositions.forEachIndexed { idx, pos ->
+            if (idx < currentInput.size) fullGuess[pos] = currentInput[idx]
+        }
+        val guess = fullGuess.joinToString("").uppercase()
 
         if (!wordValidator(guess, effectiveWordLength)) {
             return SubmitResult.InvalidWord(guess)
@@ -152,6 +186,16 @@ class GameEngine(
     }
 
     // ── Items / bonus ────────────────────────────────────────────────────────
+
+    /**
+     * Pre-fill a position with a revealed letter (from the "Show Letter" item).
+     * This position is excluded from user typing and counts towards [isInputFull].
+     * Pre-fills persist for the lifetime of the level.
+     */
+    fun prefillPosition(pos: Int, char: Char) {
+        require(pos in 0 until effectiveWordLength) { "Position $pos out of range" }
+        prefilledPositions = prefilledPositions + (pos to char.uppercaseChar())
+    }
 
     /**
      * Grant additional guesses (e.g., from spending a life or using an item).
@@ -189,11 +233,13 @@ class GameEngine(
     fun restore(
         savedGuesses: List<List<Pair<Char, TileState>>>,
         savedInput: List<Char>,
-        savedMaxGuesses: Int
+        savedMaxGuesses: Int,
+        savedPrefilled: Map<Int, Char> = emptyMap()
     ) {
         guesses = savedGuesses
         currentInput = savedInput
         maxGuesses = savedMaxGuesses
+        prefilledPositions = savedPrefilled
         letterStates = buildLetterMap(savedGuesses)
         status = GameStatus.IN_PROGRESS
     }

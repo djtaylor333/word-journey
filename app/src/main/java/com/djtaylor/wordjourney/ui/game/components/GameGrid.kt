@@ -104,11 +104,24 @@ fun GameGrid(
                     translationX = shakeOffset
                 }
             ) {
+                val nonRevealedCols = (0 until wordLen).filter { !uiState.revealedLetters.containsKey(it) }
                 repeat(wordLen) { col ->
-                    val letter = uiState.currentInput.getOrNull(col)
+                    val isRevealed = uiState.revealedLetters.containsKey(col)
+                    val letter: Char? = when {
+                        isRevealed -> uiState.revealedLetters[col]
+                        else -> {
+                            val userIdx = nonRevealedCols.indexOf(col)
+                            if (userIdx >= 0) uiState.currentInput.getOrNull(userIdx) else null
+                        }
+                    }
+                    val tileState = when {
+                        isRevealed && letter != null -> TileState.HINT
+                        letter != null -> TileState.FILLED
+                        else -> TileState.EMPTY
+                    }
                     AnimatedTile(
                         letter = letter,
-                        state = if (letter != null) TileState.FILLED else TileState.EMPTY,
+                        state = tileState,
                         tileIndex = col,
                         tileSize = tileSize,
                         fontSize = fontSize,

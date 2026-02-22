@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Word Journey — Play Store Feature Graphic (1024 × 500 px) -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+
+  <!-- ── Background gradient (dark navy, matching app dark theme) ── -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#0F1117"/>
+      <stop offset="50%"  stop-color="#1A1D2E"/>
+      <stop offset="100%" stop-color="#0D1B2A"/>
+    </linearGradient>
+
+    <!-- Tile glow for correct tile -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Subtle ambient glow behind logo cluster -->
+    <radialGradient id="centreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#C9A84C" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#C9A84C" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="500" fill="url(#bgGrad)"/>
+
+  <!-- Faint grid dots (decorative letter-grid texture) -->
+  <g opacity="0.07" fill="#C9A84C">
+    <!-- Scattered dots to imply grid/letter board texture -->
+    <circle cx="60"  cy="60"  r="2"/><circle cx="120" cy="60"  r="2"/><circle cx="180" cy="60"  r="2"/>
+    <circle cx="60"  cy="120" r="2"/><circle cx="120" cy="120" r="2"/><circle cx="180" cy="120" r="2"/>
+    <circle cx="60"  cy="180" r="2"/><circle cx="120" cy="180" r="2"/><circle cx="180" cy="180" r="2"/>
+    <circle cx="844" cy="320" r="2"/><circle cx="904" cy="320" r="2"/><circle cx="964" cy="320" r="2"/>
+    <circle cx="844" cy="380" r="2"/><circle cx="904" cy="380" r="2"/><circle cx="964" cy="380" r="2"/>
+    <circle cx="844" cy="440" r="2"/><circle cx="904" cy="440" r="2"/><circle cx="964" cy="440" r="2"/>
+  </g>
+
+  <!-- Glow behind icon cluster -->
+  <ellipse cx="270" cy="250" rx="220" ry="220" fill="url(#centreGlow)"/>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- ICON CLUSTER — compass + Wordle tiles (left third)     -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- Compass ring -->
+  <circle cx="270" cy="250" r="150" fill="none" stroke="#C9A84C" stroke-width="5" opacity="0.6"/>
+
+  <!-- Compass points -->
+  <!-- North (red) -->
+  <polygon points="270,108 282,136 270,148 258,136" fill="#EF4444"/>
+  <!-- South (gold) -->
+  <polygon points="270,392 282,364 270,352 258,364" fill="#C9A84C"/>
+  <!-- East (gold) -->
+  <polygon points="420,250 392,238 380,250 392,262" fill="#C9A84C"/>
+  <!-- West (gold) -->
+  <polygon points="120,250 148,238 160,250 148,262" fill="#C9A84C"/>
+
+  <!-- Centre 2×2 tile grid -->
+  <!-- Tile 1 - Correct (green) -->
+  <rect x="224" y="204" width="52" height="52" rx="6" ry="6" fill="#538D4E" filter="url(#glow)"/>
+  <!-- Tile 2 - Present (gold) -->
+  <rect x="284" y="204" width="52" height="52" rx="6" ry="6" fill="#C9A84C"/>
+  <!-- Tile 3 - Present (gold) -->
+  <rect x="224" y="264" width="52" height="52" rx="6" ry="6" fill="#C9A84C"/>
+  <!-- Tile 4 - Absent (grey) -->
+  <rect x="284" y="264" width="52" height="52" rx="6" ry="6" fill="#3A3A3C"/>
+
+  <!-- Letters on tiles -->
+  <!-- W on green tile -->
+  <text x="250" y="241" font-family="Georgia, serif" font-size="28" font-weight="bold"
+        fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">W</text>
+  <!-- O on gold tile -->
+  <text x="310" y="241" font-family="Georgia, serif" font-size="28" font-weight="bold"
+        fill="#1A1D2E" text-anchor="middle" dominant-baseline="middle">O</text>
+  <!-- R on gold tile -->
+  <text x="250" y="301" font-family="Georgia, serif" font-size="28" font-weight="bold"
+        fill="#1A1D2E" text-anchor="middle" dominant-baseline="middle">R</text>
+  <!-- D on grey tile -->
+  <text x="310" y="301" font-family="Georgia, serif" font-size="28" font-weight="bold"
+        fill="#8E8E93" text-anchor="middle" dominant-baseline="middle">D</text>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- TITLE TEXT — right two thirds                          -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <!-- "WORD" -->
+  <text x="540" y="195"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="110"
+        font-weight="bold"
+        fill="#FFFFFF"
+        letter-spacing="8"
+        text-anchor="middle">WORD</text>
+
+  <!-- "JOURNEY" in gold -->
+  <text x="540" y="320"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="110"
+        font-weight="bold"
+        fill="#C9A84C"
+        letter-spacing="8"
+        text-anchor="middle">JOURNEY</text>
+
+  <!-- Tagline -->
+  <text x="540" y="390"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="26"
+        fill="#AAAAAA"
+        letter-spacing="4"
+        text-anchor="middle">GUESS · EXPLORE · CONQUER</text>
+
+  <!-- Thin gold separator line -->
+  <line x1="420" y1="340" x2="660" y2="340" stroke="#C9A84C" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Version / store badge hint (optional, very subtle) -->
+  <text x="540" y="470"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="18"
+        fill="#555759"
+        letter-spacing="2"
+        text-anchor="middle">A WORD PUZZLE ADVENTURE</text>
+
+</svg>

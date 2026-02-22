@@ -15,7 +15,19 @@ class WordRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     // ── Comprehensive dictionary for guess validation (loaded from valid_words.json) ──
-    private val validWordSets: Map<Int, Set<String>> by lazy { loadValidWords() }
+    private val validWordSets: Map<Int, Set<String>> by lazy {
+        _overrideWordSets ?: loadValidWords()
+    }
+
+    /** For testing: inject word sets directly instead of loading from assets. */
+    private var _overrideWordSets: Map<Int, Set<String>>? = null
+
+    /** Visible for testing — override the valid-word dictionary with a known set. */
+    fun setWordSetsForTesting(wordSets: Map<Int, Set<String>>) {
+        _overrideWordSets = wordSets
+        // Note: if validWordSets lazy was already initialised, this won't take effect.
+        // Call this BEFORE first call to isValidWord.
+    }
 
     /**
      * Fixed global seed used to shuffle word order.
@@ -53,7 +65,7 @@ class WordRepository @Inject constructor(
         val arr = root.getJSONArray(key)
         val set = HashSet<String>(arr.length())
         for (i in 0 until arr.length()) {
-            set.add(arr.getString(i))
+            set.add(arr.getString(i).uppercase())
         }
         return set
     }

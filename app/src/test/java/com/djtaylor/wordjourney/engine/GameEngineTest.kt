@@ -858,4 +858,135 @@ class GameEngineTest {
         assertFalse(e.onKeyPressed('Z')) // blocked
         assertFalse(e.removeLetter('C')) // in target
     }
+
+    // ── Show Letter / prefillPosition tests ────────────────────────────────────
+
+    @Test
+    fun `prefillPosition stores letter at correct position`() {
+        val e = GameEngine(difficulty = Difficulty.REGULAR, targetWord = "CRANE")
+        e.prefillPosition(2, 'A')
+        assertEquals(mapOf(2 to 'A'), e.prefilledPositions)
+    }
+
+    @Test
+    fun `prefillPosition stores uppercase char`() {
+        val e = GameEngine(difficulty = Difficulty.REGULAR, targetWord = "CRANE")
+        e.prefillPosition(0, 'c')        // lowercase input
+        assertEquals('C', e.prefilledPositions[0])
+    }
+
+    @Test
+    fun `freePositionCount decreases when position prefilled`() {
+        val e = GameEngine(difficulty = Difficulty.REGULAR, targetWord = "CRANE")
+        assertEquals(5, e.freePositionCount)
+        e.prefillPosition(0, 'C')
+        assertEquals(4, e.freePositionCount)
+        e.prefillPosition(2, 'A')
+        assertEquals(3, e.freePositionCount)
+    }
+
+    @Test
+    fun `isInputFull true when typed + prefilled equals word length`() {
+        val e = GameEngine(difficulty = Difficulty.REGULAR, targetWord = "CRANE")
+        e.prefillPosition(0, 'C')   // 1 prefilled, 4 free
+        "RANE".forEach { e.onKeyPressed(it) }
+        assertTrue(e.isInputFull)
+    }
+
+    @Test
+    fun `onKeyPressed stops at freePositionCount not wordLength`() {
+        val e = GameEngine(difficulty = Difficulty.REGULAR, targetWord = "CRANE")
+        e.prefillPosition(1, 'R')   // free positions = 4
+        "ABCDE".forEach { e.onKeyPressed(it) } // try 5 chars
+        assertEquals(4, e.currentInput.size)   // only 4 accepted
+        assertTrue(e.isInputFull)
+    }
+
+    @Test
+    fun `displayInput merges prefilled and typed at correct positions`() {
+        val e = GameEngine(difficulty = Difficulty.REGULAR, targetWord = "CRANE")
+        e.prefillPosition(2, 'A')  // position 2 prefilled
+        e.onKeyPressed('C')        // goes to free position 0
+        e.onKeyPressed('R')        // goes to free position 1
+        // displayInput: [C, R, A(hint), null, null]
+        assertEquals(listOf('C', 'R', 'A', null, null), e.displayInput)
+    }
+
+    @Test
+    fun `onSubmit builds correct full word from prefills + typed`() = runTest {
+        val e = GameEngine(
+            difficulty = Difficulty.REGULAR,
+            targetWord = "CRANE",
+            wordValidator = { _, _ -> true }
+        )
+        e.prefillPosition(2, 'A')  // position 2 = 'A'
+        "CRNE".forEach { e.onKeyPressed(it) }  // free positions 0,1,3,4
+        val result = e.onSubmit()
+        assertTrue(result is SubmitResult.Evaluated)
+        assertTrue((result as SubmitResult.Evaluated).isWin)
+    }
+
+    @Test
+    fun `onSubmit wins when all positions prefilled and no typing required`() = runTest {
+        val e = GameEngine(
+            difficulty = Difficulty.REGULAR,
+            targetWord = "CRANE",
+            wordValidator = { _, _ -> true }
+        )
+        "CRANE".forEachIndexed { idx, ch -> e.prefillPosition(idx, ch) }
+        assertTrue(e.isInputFull)
+        assertEquals(0, e.currentInput.size)
+        val result = e.onSubmit()
+        assertTrue(result is SubmitResult.Evaluated)
+        assertTrue((result as SubmitResult.Evaluated).isWin)
+        assertEquals(GameStatus.WON, e.status)
+    }
+
+    @Test
+    fun `restore preserves prefilled positions`() {
+        val e = GameEngine(difficulty = Difficulty.REGULAR, targetWord = "CRANE")
+        val savedGuess = listOf(
+            Pair('S', TileState.ABSENT), Pair('T', TileState.ABSENT),
+            Pair('A', TileState.PRESENT), Pair('R', TileState.PRESENT),
+            Pair('E', TileState.CORRECT)
+        )
+        e.restore(listOf(savedGuess), listOf(), 6, mapOf(1 to 'R', 4 to 'E'))
+        assertEquals(mapOf(1 to 'R', 4 to 'E'), e.prefilledPositions)
+        assertEquals(3, e.freePositionCount)
+    }
+
+    @Test
+    fun `prefillPosition on 3-letter word works correctly`() {
+        val e = GameEngine(difficulty = Difficulty.VIP, targetWord = "FOB")
+        e.prefillPosition(0, 'F')
+        assertEquals(2, e.freePositionCount)
+        assertEquals('F', e.prefilledPositions[0])
+    }
+
+    @Test
+    fun `3-letter word — prefill all positions, submit wins without typing`() = runTest {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "FOB",
+            wordValidator = { _, _ -> true }
+        )
+        "FOB".forEachIndexed { idx, ch -> e.prefillPosition(idx, ch) }
+        assertTrue(e.isInputFull)
+        val result = e.onSubmit() as SubmitResult.Evaluated
+        assertTrue(result.isWin)
+        assertEquals(GameStatus.WON, e.status)
+    }
+
+    @Test
+    fun `7-letter word — prefill middle position, submit valid word`() = runTest {
+        val e = GameEngine(
+            difficulty = Difficulty.VIP,
+            targetWord = "KITCHEN",
+            wordValidator = { _, _ -> true }
+        )
+        e.prefillPosition(3, 'C')  // position 3 = 'C' in KITCHEN
+        "KITHEN".forEach { e.onKeyPressed(it) }
+        val result = e.onSubmit() as SubmitResult.Evaluated
+        assertTrue(result.isWin)
+    }
 }

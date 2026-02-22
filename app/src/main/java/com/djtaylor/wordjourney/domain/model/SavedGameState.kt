@@ -13,7 +13,8 @@ data class SavedGameState(
     val targetWord: String,                // stored locally only, never in cloud UI
     val completedGuesses: List<List<Pair<String, String>>> = emptyList(), // Char/TileState as strings
     val currentInput: List<String> = emptyList(),
-    val maxGuesses: Int
+    val maxGuesses: Int,
+    val revealedLetters: Map<String, String> = emptyMap() // position index (String) → char (String)
 )
 
 @Serializable

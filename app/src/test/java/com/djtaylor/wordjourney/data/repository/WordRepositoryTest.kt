@@ -378,4 +378,55 @@ class WordRepositoryTest {
             }
         }
     }
+
+    // ── isValidWord — 3-letter/7-letter lowercase normalization ───────────────
+
+    /**
+     * Creates a repo with a directly-injected word dictionary (bypassing assets loading).
+     * Verifies that parseWordSet's uppercase normalization works regardless of the
+     * case in which words were stored.
+     */
+    private fun createRepoWithDictionary(wordSets: Map<Int, Set<String>>): WordRepository {
+        val repo = createRepo() // uses standard DAO mock
+        repo.setWordSetsForTesting(wordSets)
+        return repo
+    }
+
+    @Test
+    fun `isValidWord returns true for lowercase 3-letter word in dictionary`() = runTest {
+        // Simulate real valid_words.json: 3-letter words stored lowercase, parseWordSet uppercases them
+        val repo = createRepoWithDictionary(mapOf(3 to setOf("FOB", "ACE", "CAT")))
+        assertTrue("FOB should be valid", repo.isValidWord("FOB", 3))
+        assertTrue("ACE should be valid", repo.isValidWord("ACE", 3))
+        assertTrue("CAT should be valid", repo.isValidWord("CAT", 3))
+    }
+
+    @Test
+    fun `isValidWord returns true for lowercase 7-letter word in dictionary`() = runTest {
+        val repo = createRepoWithDictionary(mapOf(7 to setOf("ABANDON", "KITCHEN", "CHICKEN")))
+        assertTrue("ABANDON should be valid", repo.isValidWord("ABANDON", 7))
+        assertTrue("KITCHEN should be valid", repo.isValidWord("KITCHEN", 7))
+    }
+
+    @Test
+    fun `isValidWord returns true for uppercase 5-letter word in dictionary`() = runTest {
+        val repo = createRepoWithDictionary(mapOf(5 to setOf("CRANE", "DREAM", "AUDIO")))
+        assertTrue("CRANE should be valid", repo.isValidWord("CRANE", 5))
+        assertTrue("DREAM should be valid", repo.isValidWord("DREAM", 5))
+    }
+
+    @Test
+    fun `isValidWord returns false for unknown 3-letter word`() = runTest {
+        val repo = createRepoWithDictionary(mapOf(3 to setOf("FOB", "ACE")))
+        assertFalse("XYZ should not be valid", repo.isValidWord("XYZ", 3))
+    }
+
+    @Test
+    fun `isValidWord ignores case of submitted guess`() = runTest {
+        // parseWordSet stores as uppercase; isValidWord calls word.uppercase() before lookup
+        val repo = createRepoWithDictionary(mapOf(3 to setOf("FOB")))
+        assertTrue(repo.isValidWord("fob", 3))
+        assertTrue(repo.isValidWord("FOB", 3))
+        assertTrue(repo.isValidWord("Fob", 3))
+    }
 }

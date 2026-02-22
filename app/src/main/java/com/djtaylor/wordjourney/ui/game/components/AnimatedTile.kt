@@ -40,7 +40,7 @@ fun AnimatedTile(
     modifier: Modifier = Modifier
 ) {
     val isEvaluated = state in listOf(TileState.CORRECT, TileState.PRESENT, TileState.ABSENT)
-    val isFilled = state == TileState.FILLED
+    val isFilled = state == TileState.FILLED || state == TileState.HINT
 
     // ── Flip animation ────────────────────────────────────────────────────────
     var revealed by remember { mutableStateOf(!isEvaluated) }
@@ -115,13 +115,15 @@ private fun tileBackground(state: TileState, flipAngle: Float, highContrast: Boo
         TileState.CORRECT -> if (highContrast) TileCorrectHC else theme.tileCorrect
         TileState.PRESENT -> if (highContrast) TilePresentHC else theme.tilePresent
         TileState.ABSENT  -> theme.tileAbsent
-        TileState.FILLED  -> if (isLightTheme) TileFilledLight else theme.tileFilled
+        TileState.HINT   -> if (isLightTheme) Color(0xFFB3EBF2) else Color(0xFF00838F)
+        TileState.FILLED -> if (isLightTheme) TileFilledLight else theme.tileFilled
         TileState.EMPTY   -> if (isLightTheme) TileEmptyLight else theme.tileEmpty
     }
 }
 
 private fun tileBorder(state: TileState, isLightTheme: Boolean, theme: com.djtaylor.wordjourney.domain.model.GameTheme): Color = when (state) {
     TileState.EMPTY   -> if (isLightTheme) TileBorderEmptyLight else TileBorderEmpty
+    TileState.HINT    -> Color(0xFF00BCD4)
     TileState.FILLED  -> if (isLightTheme) TileBorderFilledLight else TileBorderFilled
     TileState.CORRECT -> theme.tileCorrect
     TileState.PRESENT -> theme.tilePresent

@@ -1365,7 +1365,8 @@ class GameViewModelTest {
         val state = vm.uiState.first()
         assertTrue(state.revealedLetters.isNotEmpty())
         assertEquals(1, state.showLetterItems) // decremented
-        assertNotNull(state.snackbarMessage) // position hint message
+        // Letter is now shown in the grid (HINT tile) — no snackbar needed
+        assertNull(state.snackbarMessage)
     }
 
     @Test
