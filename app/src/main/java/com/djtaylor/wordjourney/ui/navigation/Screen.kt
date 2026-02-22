@@ -9,6 +9,7 @@ sealed class Screen(val route: String) {
     data object Statistics   : Screen("statistics")
     data object Achievements : Screen("achievements")
     data object Onboarding   : Screen("onboarding")
+    data object Inbox        : Screen("inbox")
 
     data class LevelSelect(val difficultyKey: String = "{difficulty}") :
         Screen("level_select/{difficulty}") {

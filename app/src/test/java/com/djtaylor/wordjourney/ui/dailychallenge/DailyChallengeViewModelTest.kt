@@ -230,4 +230,42 @@ class DailyChallengeViewModelTest {
         assertTrue(state.played6)
         assertFalse(vm.canPlay(6))
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 6. PER-LENGTH STREAKS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `per-length streaks loaded from progress`() = testWithVm(
+        progress = PlayerProgress(
+            dailyStreak4 = 3, dailyStreak5 = 1, dailyStreak6 = 5,
+            dailyBestStreak4 = 7, dailyBestStreak5 = 2, dailyBestStreak6 = 8
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(3, state.streak4)
+        assertEquals(1, state.streak5)
+        assertEquals(5, state.streak6)
+        assertEquals(7, state.bestStreak4)
+        assertEquals(2, state.bestStreak5)
+        assertEquals(8, state.bestStreak6)
+    }
+
+    @Test
+    fun `per-length streaks default to zero`() = testWithVm { vm ->
+        val state = vm.uiState.first()
+        assertEquals(0, state.streak4)
+        assertEquals(0, state.streak5)
+        assertEquals(0, state.streak6)
+    }
+
+    @Test
+    fun `wins per length loaded from progress`() = testWithVm(
+        progress = PlayerProgress(dailyWins4 = 10, dailyWins5 = 5, dailyWins6 = 2)
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(10, state.wins4)
+        assertEquals(5, state.wins5)
+        assertEquals(2, state.wins6)
+    }
 }

@@ -1486,7 +1486,12 @@ class GameViewModelTest {
 
     @Test
     fun `daily challenge win increments streak`() = runTest {
-        val progress = PlayerProgress(dailyChallengeStreak = 2, dailyChallengeBestStreak = 5)
+        // dailyChallengeRepository mock returns today as "2026-02-21", so yesterday = "2026-02-20"
+        val progress = PlayerProgress(
+            dailyChallengeStreak = 2,
+            dailyChallengeBestStreak = 5,
+            dailyChallengeLastDate = "2026-02-20"
+        )
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
         awaitInit(vm)
 
@@ -1503,7 +1508,11 @@ class GameViewModelTest {
 
     @Test
     fun `daily challenge win at streak 3 gives 100 coin reward`() = runTest {
-        val progress = PlayerProgress(dailyChallengeStreak = 2, coins = 0L)
+        val progress = PlayerProgress(
+            dailyChallengeStreak = 2,
+            coins = 0L,
+            dailyChallengeLastDate = "2026-02-20"
+        )
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
         awaitInit(vm)
 
@@ -1700,7 +1709,12 @@ class GameViewModelTest {
 
     @Test
     fun `streak 7 awards 500 coins and 1 diamond`() = runTest {
-        val progress = PlayerProgress(dailyChallengeStreak = 6, coins = 0L, diamonds = 0)
+        val progress = PlayerProgress(
+            dailyChallengeStreak = 6,
+            coins = 0L,
+            diamonds = 0,
+            dailyChallengeLastDate = "2026-02-20"
+        )
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
         awaitInit(vm)
 
@@ -1717,7 +1731,12 @@ class GameViewModelTest {
 
     @Test
     fun `streak 14 awards 1000 coins and 3 diamonds`() = runTest {
-        val progress = PlayerProgress(dailyChallengeStreak = 13, coins = 0L, diamonds = 0)
+        val progress = PlayerProgress(
+            dailyChallengeStreak = 13,
+            coins = 0L,
+            diamonds = 0,
+            dailyChallengeLastDate = "2026-02-20"
+        )
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
         awaitInit(vm)
 
@@ -1733,7 +1752,13 @@ class GameViewModelTest {
 
     @Test
     fun `streak 30 awards bonus life`() = runTest {
-        val progress = PlayerProgress(dailyChallengeStreak = 29, coins = 0L, diamonds = 0, lives = 5)
+        val progress = PlayerProgress(
+            dailyChallengeStreak = 29,
+            coins = 0L,
+            diamonds = 0,
+            lives = 5,
+            dailyChallengeLastDate = "2026-02-20"
+        )
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
         awaitInit(vm)
 
@@ -1961,6 +1986,100 @@ class GameViewModelTest {
         awaitInit(vm)
         assertTrue("VIP game should have wordHasDefinition = true when definition exists",
             vm.uiState.first().wordHasDefinition)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 22. CONSECUTIVE-DAY STREAK LOGIC
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `daily win increments streak when last played yesterday`() = runTest {
+        // Mock returns today = "2026-02-21" so yesterday = "2026-02-20"
+        val progress = PlayerProgress(
+            dailyChallengeStreak = 4,
+            dailyChallengeBestStreak = 4,
+            dailyChallengeLastDate = "2026-02-20"
+        )
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+        coVerify { playerRepository.saveProgress(match { it.dailyChallengeStreak == 5 }) }
+    }
+
+    @Test
+    fun `daily win resets streak to 1 when gap greater than 1 day`() = runTest {
+        // Mock returns today = "2026-02-21" so 2 days ago = "2026-02-19"
+        val progress = PlayerProgress(
+            dailyChallengeStreak = 7,
+            dailyChallengeBestStreak = 7,
+            dailyChallengeLastDate = "2026-02-19"
+        )
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+        coVerify { playerRepository.saveProgress(match { it.dailyChallengeStreak == 1 }) }
+    }
+
+    @Test
+    fun `daily win preserves streak when played same day`() = runTest {
+        // Mock returns today = "2026-02-21"
+        val progress = PlayerProgress(
+            dailyChallengeStreak = 3,
+            dailyChallengeLastDate = "2026-02-21"
+        )
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+        coVerify { playerRepository.saveProgress(match { it.dailyChallengeStreak == 3 }) }
+    }
+
+    @Test
+    fun `daily win sets streak to 1 when no prior date`() = runTest {
+        val progress = PlayerProgress(dailyChallengeStreak = 0, dailyChallengeLastDate = "")
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+        coVerify { playerRepository.saveProgress(match { it.dailyChallengeStreak == 1 }) }
+    }
+
+    @Test
+    fun `daily win increments per-length streak4 when played yesterday`() = runTest {
+        // Mock returns today = "2026-02-21" so yesterday = "2026-02-20"
+        val progress = PlayerProgress(dailyStreak4 = 2, dailyLastDate4 = "2026-02-20")
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+        coVerify { playerRepository.saveProgress(match { it.dailyStreak4 == 3 }) }
+    }
+
+    @Test
+    fun `daily isVip false by default in ui state`() = runTest {
+        val vm = createViewModel(difficulty = "daily_5", word = "CRANE")
+        awaitInit(vm)
+        assertFalse(vm.uiState.first().isVip)
+    }
+
+    @Test
+    fun `daily isVip true when player is vip`() = runTest {
+        val progress = PlayerProgress(isVip = true)
+        val vm = createViewModel(difficulty = "daily_5", word = "CRANE", progress = progress)
+        awaitInit(vm)
+        assertTrue(vm.uiState.first().isVip)
     }
 
     /** Helper that creates a ViewModel with a specific definition return value. */

@@ -14,9 +14,10 @@ import org.json.JSONObject
         WordEntity::class,
         StarRatingEntity::class,
         DailyChallengeResultEntity::class,
-        AchievementEntity::class
+        AchievementEntity::class,
+        InboxItemEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class WordDatabase : RoomDatabase() {
@@ -25,6 +26,7 @@ abstract class WordDatabase : RoomDatabase() {
     abstract fun starRatingDao(): StarRatingDao
     abstract fun dailyChallengeDao(): DailyChallengeDao
     abstract fun achievementDao(): AchievementDao
+    abstract fun inboxDao(): InboxDao
 
     /**
      * Checks if the word database is empty and populates it from assets/words.json.
@@ -130,13 +132,36 @@ abstract class WordDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `inbox_items` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `message` TEXT NOT NULL,
+                        `coinsGranted` INTEGER NOT NULL DEFAULT 0,
+                        `diamondsGranted` INTEGER NOT NULL DEFAULT 0,
+                        `livesGranted` INTEGER NOT NULL DEFAULT 0,
+                        `addGuessItemsGranted` INTEGER NOT NULL DEFAULT 0,
+                        `removeLetterItemsGranted` INTEGER NOT NULL DEFAULT 0,
+                        `definitionItemsGranted` INTEGER NOT NULL DEFAULT 0,
+                        `showLetterItemsGranted` INTEGER NOT NULL DEFAULT 0,
+                        `createdAt` INTEGER NOT NULL DEFAULT 0,
+                        `claimed` INTEGER NOT NULL DEFAULT 0,
+                        `claimedAt` INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+            }
+        }
+
         fun buildDatabase(context: Context): WordDatabase {
             return Room.databaseBuilder(
                 context.applicationContext,
                 WordDatabase::class.java,
                 DATABASE_NAME
             )
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
         }
     }

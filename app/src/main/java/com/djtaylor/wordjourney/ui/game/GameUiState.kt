@@ -65,6 +65,9 @@ data class GameUiState(
     // Daily challenge mode
     val isDailyChallenge: Boolean = false,
 
+    // VIP status (controls item lock in daily challenge)
+    val isVip: Boolean = false,
+
     // Definition item
     val definitionHint: String? = null,
     val showDefinitionDialog: Boolean = false,

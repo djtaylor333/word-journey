@@ -126,6 +126,7 @@ fun DailyChallengeScreen(
                         description = "Easy • 6 guesses",
                         played = uiState.played4,
                         result = uiState.todayResults.firstOrNull { it.wordLength == 4 },
+                        streak = uiState.streak4,
                         pulseAlpha = pulseAlpha,
                         accentColor = AccentEasy,
                         onClick = {
@@ -143,6 +144,7 @@ fun DailyChallengeScreen(
                         description = "Regular • 6 guesses",
                         played = uiState.played5,
                         result = uiState.todayResults.firstOrNull { it.wordLength == 5 },
+                        streak = uiState.streak5,
                         pulseAlpha = pulseAlpha,
                         accentColor = AccentRegular,
                         onClick = {
@@ -160,6 +162,7 @@ fun DailyChallengeScreen(
                         description = "Hard • 6 guesses",
                         played = uiState.played6,
                         result = uiState.todayResults.firstOrNull { it.wordLength == 6 },
+                        streak = uiState.streak6,
                         pulseAlpha = pulseAlpha,
                         accentColor = AccentHard,
                         onClick = {
@@ -218,6 +221,7 @@ private fun ChallengeCard(
     description: String,
     played: Boolean,
     result: com.djtaylor.wordjourney.data.db.DailyChallengeResultEntity?,
+    streak: Int = 0,
     pulseAlpha: Float,
     accentColor: Color,
     onClick: () -> Unit
@@ -246,6 +250,14 @@ private fun ChallengeCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(label, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
                 Text(description, color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+                if (streak > 0) {
+                    Text(
+                        "🔥 $streak-day streak",
+                        color = Color(0xFFFF9800),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
                 if (result != null) {
                     Spacer(Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {

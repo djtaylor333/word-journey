@@ -11,6 +11,7 @@ import androidx.navigation.navArgument
 import com.djtaylor.wordjourney.ui.dailychallenge.DailyChallengeScreen
 import com.djtaylor.wordjourney.ui.game.GameScreen
 import com.djtaylor.wordjourney.ui.home.HomeScreen
+import com.djtaylor.wordjourney.ui.inbox.InboxScreen
 import com.djtaylor.wordjourney.ui.levelselect.LevelSelectScreen
 import com.djtaylor.wordjourney.ui.onboarding.OnboardingScreen
 import com.djtaylor.wordjourney.ui.settings.SettingsScreen
@@ -52,7 +53,8 @@ fun AppNavigation(
                 onNavigateToStore    = { navController.navigate(Screen.Store.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToDailyChallenge = { navController.navigate(Screen.DailyChallenge.route) },
-                onNavigateToStatistics = { navController.navigate(Screen.Statistics.route) }
+                onNavigateToStatistics = { navController.navigate(Screen.Statistics.route) },
+                onNavigateToInbox = { navController.navigate(Screen.Inbox.route) }
             )
         }
 
@@ -125,6 +127,12 @@ fun AppNavigation(
 
         composable(Screen.Settings.route) {
             SettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Inbox.route) {
+            InboxScreen(
                 onBack = { navController.popBackStack() }
             )
         }

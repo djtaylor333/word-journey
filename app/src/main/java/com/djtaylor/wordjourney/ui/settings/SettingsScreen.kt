@@ -1,7 +1,9 @@
 package com.djtaylor.wordjourney.ui.settings
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -129,8 +131,17 @@ fun SettingsScreen(
                 description = "Notify when your lives reach 10",
                 checked = state.notifyLivesFull,
                 onCheckedChange = { enabled ->
-                    if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    if (!enabled) {
+                        viewModel.setNotifyLivesFull(false)
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val alreadyGranted = ContextCompat.checkSelfPermission(
+                            context, Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (alreadyGranted) {
+                            viewModel.setNotifyLivesFull(true)
+                        } else {
+                            notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
                     } else {
                         viewModel.setNotifyLivesFull(enabled)
                     }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToDailyChallenge: () -> Unit,
     onNavigateToStatistics: () -> Unit,
+    onNavigateToInbox: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -92,6 +94,31 @@ fun HomeScreen(
                     )
                 }
                 Row {
+                    // ── Inbox icon with unclaimed badge ─────────────────────────
+                    BadgedBox(
+                        badge = {
+                            if (uiState.inboxCount > 0) {
+                                Badge {
+                                    Text(
+                                        if (uiState.inboxCount > 9) "9+" else uiState.inboxCount.toString()
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.padding(top = 4.dp)
+                    ) {
+                        IconButton(
+                            onClick = { viewModel.playButtonClick(); onNavigateToInbox() },
+                            modifier = Modifier.size(52.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Mail,
+                                contentDescription = "Inbox",
+                                tint = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = { viewModel.playButtonClick(); onNavigateToStore() },
                         modifier = Modifier.size(52.dp)

@@ -2,6 +2,7 @@ package com.djtaylor.wordjourney.ui.home
 
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -31,6 +32,7 @@ class HomeViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var progressFlow: MutableStateFlow<PlayerProgress>
     private lateinit var playerRepository: PlayerRepository
+    private lateinit var inboxRepository: InboxRepository
     private lateinit var audioManager: WordJourneysAudioManager
 
     @Before
@@ -51,12 +53,17 @@ class HomeViewModelTest {
             every { playerProgressFlow } returns progressFlow
             coEvery { saveProgress(any()) } just Runs
         }
+        inboxRepository = mockk {
+            coEvery { getUnclaimedCount() } returns 0
+            coEvery { addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any()) } returns -1L
+        }
         audioManager = mockk(relaxed = true)
 
         return HomeViewModel(
             playerRepository = playerRepository,
             lifeRegenUseCase = LifeRegenUseCase(),
             vipDailyRewardUseCase = VipDailyRewardUseCase(),
+            inboxRepository = inboxRepository,
             audioManager = audioManager
         )
     }
@@ -301,18 +308,31 @@ class HomeViewModelTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `VIP player receives daily rewards`() = testWithVm(
-        PlayerProgress(
-            isVip = true,
-            lastVipRewardDate = "",
-            lives = 5,
-            hasReceivedNewPlayerBonus = true
+    fun `VIP player receives daily rewards`() = runTest {
+        // VIP rewards now go to inbox rather than being applied directly.
+        // The lastVipRewardDate should be updated and a vipRewardsMessage shown.
+        val vm = createViewModel(
+            PlayerProgress(
+                isVip = true,
+                lastVipRewardDate = "",
+                lives = 5,
+                hasReceivedNewPlayerBonus = true
+            )
         )
-    ) { vm ->
-        val state = vm.uiState.first()
-        assertEquals(10, state.progress.lives) // 5 + 5
-        assertNotNull(state.vipRewardsMessage)
-        assertTrue(state.progress.lastVipRewardDate.isNotEmpty())
+        // Override inbox mock so addVipDailyRewardIfNeeded returns a valid id (reward added)
+        coEvery { inboxRepository.addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any()) } returns 1L
+        coEvery { inboxRepository.getUnclaimedCount() } returns 1
+        testDispatcher.scheduler.runCurrent()
+        try {
+            val state = vm.uiState.first()
+            // Lives are no longer added directly — they stay at 5
+            assertEquals(5, state.progress.lives)
+            assertNotNull(state.vipRewardsMessage)
+            assertTrue(state.progress.lastVipRewardDate.isNotEmpty())
+            assertEquals(1, state.inboxCount)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
     }
 
     @Test

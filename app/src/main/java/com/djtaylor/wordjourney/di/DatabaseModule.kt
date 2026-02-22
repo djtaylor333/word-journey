@@ -3,6 +3,7 @@ package com.djtaylor.wordjourney.di
 import android.content.Context
 import com.djtaylor.wordjourney.data.db.AchievementDao
 import com.djtaylor.wordjourney.data.db.DailyChallengeDao
+import com.djtaylor.wordjourney.data.db.InboxDao
 import com.djtaylor.wordjourney.data.db.StarRatingDao
 import com.djtaylor.wordjourney.data.db.WordDao
 import com.djtaylor.wordjourney.data.db.WordDatabase
@@ -52,5 +53,11 @@ object DatabaseModule {
     @Singleton
     fun provideAchievementDao(database: WordDatabase): AchievementDao {
         return database.achievementDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideInboxDao(database: WordDatabase): InboxDao {
+        return database.inboxDao()
     }
 }

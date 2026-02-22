@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -24,7 +25,8 @@ data class HomeUiState(
     val isLoading: Boolean = true,
     val dailyChallengeStreak: Int = 0,
     val vipRewardsMessage: String? = null,
-    val newPlayerBonusMessage: String? = null
+    val newPlayerBonusMessage: String? = null,
+    val inboxCount: Int = 0                // unclaimed inbox items badge
 )
 
 @HiltViewModel
@@ -32,6 +34,7 @@ class HomeViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
     private val lifeRegenUseCase: LifeRegenUseCase,
     private val vipDailyRewardUseCase: VipDailyRewardUseCase,
+    private val inboxRepository: InboxRepository,
     private val audioManager: WordJourneysAudioManager
 ) : ViewModel() {
 
@@ -79,24 +82,27 @@ class HomeViewModel @Inject constructor(
                     newPlayerMsg = "🎉 Welcome! You received 500 coins, 5 diamonds, and 3 of each item!"
                 }
 
-                // ── VIP Daily Rewards ────────────────────────────────────
+                // ── VIP Daily Rewards → inbox (not applied directly) ────
                 var vipMsg: String? = null
                 if (updated.isVip) {
                     val reward = vipDailyRewardUseCase.calculateRewards(updated.lastVipRewardDate)
                     if (reward != null) {
-                        updated = updated.copy(
-                            lives = updated.lives + reward.livesGranted,
-                            addGuessItems = updated.addGuessItems + reward.addGuessItemsGranted,
-                            removeLetterItems = updated.removeLetterItems + reward.removeLetterItemsGranted,
-                            definitionItems = updated.definitionItems + reward.definitionItemsGranted,
-                            showLetterItems = updated.showLetterItems + reward.showLetterItemsGranted,
-                            lastVipRewardDate = reward.updatedLastRewardDate
-                        )
+                        // Only update the last-reward date; items are not applied until claimed
+                        updated = updated.copy(lastVipRewardDate = reward.updatedLastRewardDate)
                         playerRepository.saveProgress(updated)
-                        if (reward.daysAccumulated > 1) {
-                            vipMsg = "👑 VIP: ${reward.daysAccumulated} days of rewards! +${reward.livesGranted} lives, +${reward.addGuessItemsGranted + reward.removeLetterItemsGranted + reward.definitionItemsGranted + reward.showLetterItemsGranted} items"
-                        } else {
-                            vipMsg = "👑 VIP Daily: +${reward.livesGranted} lives, +${reward.addGuessItemsGranted + reward.removeLetterItemsGranted + reward.definitionItemsGranted + reward.showLetterItemsGranted} items"
+                        val added = inboxRepository.addVipDailyRewardIfNeeded(
+                            livesGranted = reward.livesGranted,
+                            addGuessItems = reward.addGuessItemsGranted,
+                            removeLetterItems = reward.removeLetterItemsGranted,
+                            definitionItems = reward.definitionItemsGranted,
+                            showLetterItems = reward.showLetterItemsGranted,
+                            daysAccumulated = reward.daysAccumulated
+                        )
+                        if (added != -1L) {
+                            vipMsg = if (reward.daysAccumulated > 1)
+                                "👑 ${reward.daysAccumulated} days of VIP rewards in your inbox!"
+                            else
+                                "👑 VIP daily reward ready in your inbox!"
                         }
                     }
                 }
@@ -124,7 +130,8 @@ class HomeViewModel @Inject constructor(
                         isLoading = false,
                         dailyChallengeStreak = updated.dailyChallengeStreak,
                         vipRewardsMessage = vipMsg,
-                        newPlayerBonusMessage = newPlayerMsg
+                        newPlayerBonusMessage = newPlayerMsg,
+                        inboxCount = inboxRepository.getUnclaimedCount()
                     )
                 }
             }

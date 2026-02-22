@@ -43,6 +43,19 @@ data class PlayerProgress(
     val loginStreak: Int = 0,
     val loginBestStreak: Int = 0,
     val lastLoginDate: String = "",            // YYYY-MM-DD
+    // Per-length daily challenge streaks (consecutive days winning each length)
+    val dailyStreak4: Int = 0,
+    val dailyStreak5: Int = 0,
+    val dailyStreak6: Int = 0,
+    val dailyBestStreak4: Int = 0,
+    val dailyBestStreak5: Int = 0,
+    val dailyBestStreak6: Int = 0,
+    val dailyLastDate4: String = "",          // last date 4-letter challenge was WON
+    val dailyLastDate5: String = "",
+    val dailyLastDate6: String = "",
+    val dailyWins4: Int = 0,                  // total 4-letter wins
+    val dailyWins5: Int = 0,
+    val dailyWins6: Int = 0,
     // Cumulative statistics
     val totalCoinsEarned: Long = 0L,
     val totalLevelsCompleted: Int = 0,

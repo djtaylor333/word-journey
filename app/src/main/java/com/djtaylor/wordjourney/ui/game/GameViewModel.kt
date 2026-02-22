@@ -234,6 +234,7 @@ class GameViewModel @Inject constructor(
                 wordLength = effectiveWordLength,
                 isReplay = isReplay,
                 isDailyChallenge = isDailyChallenge,
+                isVip = playerProgress.isVip,
                 definitionHint = defHint,
                 showDefinitionDialog = false,
                 definitionUsedThisLevel = defUsed,
@@ -280,7 +281,8 @@ class GameViewModel @Inject constructor(
                 showLetterItems = playerProgress.showLetterItems,
                 isLoading = false,
                 wordLength = saved.targetWord.length,
-                isDailyChallenge = isDailyChallenge
+                isDailyChallenge = isDailyChallenge,
+                isVip = playerProgress.isVip
             )
         }
     }
@@ -397,9 +399,42 @@ class GameViewModel @Inject constructor(
                 stars = stars
             )
 
-            // Update streak
+            // Update streak — consecutive days logic
             var p = playerProgress
             val today = dailyChallengeRepository.todayDateString()
+            val wordLen = difficulty.wordLength  // 4, 5, or 6
+
+            // Helper: does lastDate immediately precede today?
+            fun isYesterday(lastDate: String): Boolean {
+                if (lastDate.isEmpty()) return false
+                return try {
+                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                    val last = sdf.parse(lastDate) ?: return false
+                    val t = sdf.parse(today) ?: return false
+                    val diffDays = ((t.time - last.time) / (1000L * 60 * 60 * 24)).toInt()
+                    diffDays == 1
+                } catch (_: Exception) { false }
+            }
+
+            // Overall streak: consecutive days winning any challenge
+            val newOverallStreak = when {
+                p.dailyChallengeLastDate.isEmpty() -> 1
+                p.dailyChallengeLastDate == today  -> p.dailyChallengeStreak // same day replay
+                isYesterday(p.dailyChallengeLastDate) -> p.dailyChallengeStreak + 1
+                else -> 1 // gap — streak broken
+            }
+
+            // Per-length streaks
+            fun calcLen(lastDate: String, cur: Int) = when {
+                lastDate.isEmpty()   -> 1
+                lastDate == today    -> cur
+                isYesterday(lastDate) -> cur + 1
+                else -> 1
+            }
+            val newStreak4 = if (wordLen == 4) calcLen(p.dailyLastDate4, p.dailyStreak4) else p.dailyStreak4
+            val newStreak5 = if (wordLen == 5) calcLen(p.dailyLastDate5, p.dailyStreak5) else p.dailyStreak5
+            val newStreak6 = if (wordLen == 6) calcLen(p.dailyLastDate6, p.dailyStreak6) else p.dailyStreak6
+
             p = p.copy(
                 coins = p.coins + coinsEarned,
                 totalCoinsEarned = p.totalCoinsEarned + coinsEarned,
@@ -407,8 +442,20 @@ class GameViewModel @Inject constructor(
                 totalGuesses = p.totalGuesses + guessCount,
                 totalDailyChallengesCompleted = p.totalDailyChallengesCompleted + 1,
                 dailyChallengeLastDate = today,
-                dailyChallengeStreak = p.dailyChallengeStreak + 1,
-                dailyChallengeBestStreak = maxOf(p.dailyChallengeBestStreak, p.dailyChallengeStreak + 1)
+                dailyChallengeStreak = newOverallStreak,
+                dailyChallengeBestStreak = maxOf(p.dailyChallengeBestStreak, newOverallStreak),
+                dailyStreak4 = newStreak4,
+                dailyBestStreak4 = maxOf(p.dailyBestStreak4, newStreak4),
+                dailyLastDate4 = if (wordLen == 4) today else p.dailyLastDate4,
+                dailyWins4 = if (wordLen == 4) p.dailyWins4 + 1 else p.dailyWins4,
+                dailyStreak5 = newStreak5,
+                dailyBestStreak5 = maxOf(p.dailyBestStreak5, newStreak5),
+                dailyLastDate5 = if (wordLen == 5) today else p.dailyLastDate5,
+                dailyWins5 = if (wordLen == 5) p.dailyWins5 + 1 else p.dailyWins5,
+                dailyStreak6 = newStreak6,
+                dailyBestStreak6 = maxOf(p.dailyBestStreak6, newStreak6),
+                dailyLastDate6 = if (wordLen == 6) today else p.dailyLastDate6,
+                dailyWins6 = if (wordLen == 6) p.dailyWins6 + 1 else p.dailyWins6
             )
             // Apply streak rewards
             p = applyStreakRewards(p, p.dailyChallengeStreak)
@@ -508,9 +555,13 @@ class GameViewModel @Inject constructor(
                     won = false,
                     stars = 0
                 )
-                // Reset daily challenge streak
+                // Reset daily challenge streak — also reset per-length streak
+                val wordLen = difficulty.wordLength
                 val p = playerProgress.copy(
                     dailyChallengeStreak = 0,
+                    dailyStreak4 = if (wordLen == 4) 0 else playerProgress.dailyStreak4,
+                    dailyStreak5 = if (wordLen == 5) 0 else playerProgress.dailyStreak5,
+                    dailyStreak6 = if (wordLen == 6) 0 else playerProgress.dailyStreak6,
                     totalGuesses = playerProgress.totalGuesses + e.guesses.size
                 )
                 playerProgress = p

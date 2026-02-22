@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -150,6 +151,7 @@ fun GameScreen(
                     showLetterCount = uiState.showLetterItems,
                     definitionUsed = uiState.definitionUsedThisLevel,
                     isDailyChallenge = uiState.isDailyChallenge,
+                    isVip = uiState.isVip,
                     wordHasDefinition = uiState.wordHasDefinition,
                     textScale = textScale,
                     onAddGuess = { viewModel.useAddGuessItem() },
@@ -417,6 +419,7 @@ private fun ItemsBar(
     showLetterCount: Int,
     definitionUsed: Boolean,
     isDailyChallenge: Boolean,
+    isVip: Boolean = true,
     wordHasDefinition: Boolean = true,
     textScale: Float = 1f,
     onAddGuess: () -> Unit,
@@ -424,6 +427,9 @@ private fun ItemsBar(
     onDefinition: () -> Unit,
     onShowLetter: () -> Unit
 ) {
+    Box(
+        modifier = Modifier.fillMaxWidth()
+    ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)
@@ -467,6 +473,37 @@ private fun ItemsBar(
             textScale = textScale,
             onClick = onShowLetter
         )
+    }
+    // VIP lock overlay — shown when it's a daily challenge and user is not VIP
+    if (isDailyChallenge && !isVip) {
+        Surface(
+            modifier = Modifier.matchParentSize(),
+            color = Color.Black.copy(alpha = 0.80f),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("🔒", fontSize = 28.sp)
+                    Text(
+                        "VIP Only",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        "Items unavailable in free Daily Challenge",
+                        color = Color.White.copy(alpha = 0.65f),
+                        fontSize = 11.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+            }
+        }
+    }
     }
 }
 

@@ -26,7 +26,17 @@ data class DailyChallengeUiState(
     // Which word lengths have been played today
     val played4: Boolean = false,
     val played5: Boolean = false,
-    val played6: Boolean = false
+    val played6: Boolean = false,
+    // Per-length consecutive-day streaks
+    val streak4: Int = 0,
+    val streak5: Int = 0,
+    val streak6: Int = 0,
+    val bestStreak4: Int = 0,
+    val bestStreak5: Int = 0,
+    val bestStreak6: Int = 0,
+    val wins4: Int = 0,
+    val wins5: Int = 0,
+    val wins6: Int = 0
 )
 
 @HiltViewModel
@@ -70,6 +80,15 @@ class DailyChallengeViewModel @Inject constructor(
                         played4 = 4 in playedLengths,
                         played5 = 5 in playedLengths,
                         played6 = 6 in playedLengths,
+                        streak4 = p.dailyStreak4,
+                        streak5 = p.dailyStreak5,
+                        streak6 = p.dailyStreak6,
+                        bestStreak4 = p.dailyBestStreak4,
+                        bestStreak5 = p.dailyBestStreak5,
+                        bestStreak6 = p.dailyBestStreak6,
+                        wins4 = p.dailyWins4,
+                        wins5 = p.dailyWins5,
+                        wins6 = p.dailyWins6,
                         isLoading = false
                     )
                 }

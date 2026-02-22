@@ -48,6 +48,19 @@ class PlayerDataStore @Inject constructor(
         val KEY_LOGIN_STREAK                   = intPreferencesKey("login_streak")
         val KEY_LOGIN_BEST_STREAK              = intPreferencesKey("login_best_streak")
         val KEY_LAST_LOGIN_DATE                = stringPreferencesKey("last_login_date")
+        // Per-length daily challenge streaks
+        val KEY_DAILY_STREAK_4                 = intPreferencesKey("daily_streak_4")
+        val KEY_DAILY_STREAK_5                 = intPreferencesKey("daily_streak_5")
+        val KEY_DAILY_STREAK_6                 = intPreferencesKey("daily_streak_6")
+        val KEY_DAILY_BEST_STREAK_4            = intPreferencesKey("daily_best_streak_4")
+        val KEY_DAILY_BEST_STREAK_5            = intPreferencesKey("daily_best_streak_5")
+        val KEY_DAILY_BEST_STREAK_6            = intPreferencesKey("daily_best_streak_6")
+        val KEY_DAILY_LAST_DATE_4              = stringPreferencesKey("daily_last_date_4")
+        val KEY_DAILY_LAST_DATE_5              = stringPreferencesKey("daily_last_date_5")
+        val KEY_DAILY_LAST_DATE_6              = stringPreferencesKey("daily_last_date_6")
+        val KEY_DAILY_WINS_4                   = intPreferencesKey("daily_wins_4")
+        val KEY_DAILY_WINS_5                   = intPreferencesKey("daily_wins_5")
+        val KEY_DAILY_WINS_6                   = intPreferencesKey("daily_wins_6")
         // Statistics
         val KEY_TOTAL_COINS_EARNED             = longPreferencesKey("total_coins_earned")
         val KEY_TOTAL_LEVELS_COMPLETED         = intPreferencesKey("total_levels_completed")
@@ -121,6 +134,18 @@ class PlayerDataStore @Inject constructor(
                 loginStreak       = prefs[KEY_LOGIN_STREAK] ?: 0,
                 loginBestStreak   = prefs[KEY_LOGIN_BEST_STREAK] ?: 0,
                 lastLoginDate     = prefs[KEY_LAST_LOGIN_DATE] ?: "",
+                dailyStreak4      = prefs[KEY_DAILY_STREAK_4] ?: 0,
+                dailyStreak5      = prefs[KEY_DAILY_STREAK_5] ?: 0,
+                dailyStreak6      = prefs[KEY_DAILY_STREAK_6] ?: 0,
+                dailyBestStreak4  = prefs[KEY_DAILY_BEST_STREAK_4] ?: 0,
+                dailyBestStreak5  = prefs[KEY_DAILY_BEST_STREAK_5] ?: 0,
+                dailyBestStreak6  = prefs[KEY_DAILY_BEST_STREAK_6] ?: 0,
+                dailyLastDate4    = prefs[KEY_DAILY_LAST_DATE_4] ?: "",
+                dailyLastDate5    = prefs[KEY_DAILY_LAST_DATE_5] ?: "",
+                dailyLastDate6    = prefs[KEY_DAILY_LAST_DATE_6] ?: "",
+                dailyWins4        = prefs[KEY_DAILY_WINS_4] ?: 0,
+                dailyWins5        = prefs[KEY_DAILY_WINS_5] ?: 0,
+                dailyWins6        = prefs[KEY_DAILY_WINS_6] ?: 0,
                 totalCoinsEarned  = prefs[KEY_TOTAL_COINS_EARNED] ?: 0L,
                 totalLevelsCompleted = prefs[KEY_TOTAL_LEVELS_COMPLETED] ?: 0,
                 totalGuesses      = prefs[KEY_TOTAL_GUESSES] ?: 0,
@@ -180,6 +205,18 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_LOGIN_STREAK]             = progress.loginStreak
             prefs[KEY_LOGIN_BEST_STREAK]        = progress.loginBestStreak
             prefs[KEY_LAST_LOGIN_DATE]          = progress.lastLoginDate
+            prefs[KEY_DAILY_STREAK_4]           = progress.dailyStreak4
+            prefs[KEY_DAILY_STREAK_5]           = progress.dailyStreak5
+            prefs[KEY_DAILY_STREAK_6]           = progress.dailyStreak6
+            prefs[KEY_DAILY_BEST_STREAK_4]      = progress.dailyBestStreak4
+            prefs[KEY_DAILY_BEST_STREAK_5]      = progress.dailyBestStreak5
+            prefs[KEY_DAILY_BEST_STREAK_6]      = progress.dailyBestStreak6
+            prefs[KEY_DAILY_LAST_DATE_4]        = progress.dailyLastDate4
+            prefs[KEY_DAILY_LAST_DATE_5]        = progress.dailyLastDate5
+            prefs[KEY_DAILY_LAST_DATE_6]        = progress.dailyLastDate6
+            prefs[KEY_DAILY_WINS_4]             = progress.dailyWins4
+            prefs[KEY_DAILY_WINS_5]             = progress.dailyWins5
+            prefs[KEY_DAILY_WINS_6]             = progress.dailyWins6
             prefs[KEY_TOTAL_COINS_EARNED]       = progress.totalCoinsEarned
             prefs[KEY_TOTAL_LEVELS_COMPLETED]   = progress.totalLevelsCompleted
             prefs[KEY_TOTAL_GUESSES]            = progress.totalGuesses
