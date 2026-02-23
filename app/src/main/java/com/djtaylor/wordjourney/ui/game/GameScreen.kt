@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -269,6 +270,15 @@ fun GameScreen(
                         fontWeight = FontWeight.Bold,
                         color = Primary
                     )
+                    if (uiState.winDefinition.isNotBlank()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            uiState.winDefinition,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            fontStyle = FontStyle.Italic
+                        )
+                    }
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "Your daily challenge streak has been reset. Try again tomorrow!",

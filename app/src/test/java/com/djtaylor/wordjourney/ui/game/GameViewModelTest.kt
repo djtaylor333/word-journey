@@ -112,6 +112,7 @@ class GameViewModelTest {
             coEvery { totalWins() } returns 0
             coEvery { totalPlayed() } returns 0
             coEvery { todayDateString() } returns "2026-02-21"
+            every { getDefinitionForDailyWord(any()) } returns null
         }
 
         return GameViewModel(
@@ -1902,6 +1903,7 @@ class GameViewModelTest {
             coEvery { totalWins() } returns 0
             coEvery { totalPlayed() } returns 0
             coEvery { todayDateString() } returns "2026-02-21"
+            every { getDefinitionForDailyWord(any()) } returns null
         }
 
         val vm = GameViewModel(

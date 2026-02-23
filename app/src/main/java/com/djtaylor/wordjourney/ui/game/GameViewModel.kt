@@ -363,9 +363,12 @@ class GameViewModel @Inject constructor(
         val e = engine ?: return
         val level = _uiState.value.level
         val vipWordLen = if (difficulty == Difficulty.VIP) e.effectiveWordLength else null
-        val definition = if (isDailyChallenge) "" else wordRepository.getDefinition(difficulty, level, vipWordLen)
         val targetWord = e.guesses.last()
             .joinToString("") { it.first.toString() } // reconstruct from last guess (all CORRECT)
+        val definition = if (isDailyChallenge)
+            dailyChallengeRepository.getDefinitionForDailyWord(targetWord) ?: ""
+        else
+            wordRepository.getDefinition(difficulty, level, vipWordLen)
         val guessCount = e.guesses.size
 
         // Calculate stars: 3★ = 1-2 guesses, 2★ = 3-4 guesses, 1★ = 5+ guesses
@@ -486,7 +489,7 @@ class GameViewModel @Inject constructor(
                     status = GameStatus.WON,
                     showWinDialog = true,
                     winCoinEarned = coinsEarned,
-                    winDefinition = "",
+                    winDefinition = definition,
                     winWord = targetWord,
                     bonusLifeEarned = false,
                     starsEarned = stars,
@@ -623,7 +626,8 @@ class GameViewModel @Inject constructor(
             _uiState.update { it.copy(
                 status = GameStatus.LOST,
                 showDailyLossDialog = true,
-                dailyLossWord = _targetWordCache
+                dailyLossWord = _targetWordCache,
+                winDefinition = dailyChallengeRepository.getDefinitionForDailyWord(_targetWordCache) ?: ""
             )}
         } else {
             val progress = playerProgress

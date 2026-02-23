@@ -25,6 +25,28 @@ class DailyChallengeRepository @Inject constructor(
 ) {
     private val dailyWordPool: Map<Int, List<String>> by lazy { loadDailyWordPool() }
 
+    /** Definitions bundled in assets/daily_word_definitions.json (generated offline). */
+    private val dailyDefinitions: Map<String, String> by lazy { loadDailyDefinitions() }
+
+    private fun loadDailyDefinitions(): Map<String, String> {
+        return try {
+            val json = context.assets.open("daily_word_definitions.json").bufferedReader().use { it.readText() }
+            val root = JSONObject(json)
+            buildMap { root.keys().forEach { key -> put(key, root.getString(key)) } }
+        } catch (e: Exception) {
+            android.util.Log.e("DailyChallengeRepo", "Failed to load daily definitions", e)
+            emptyMap()
+        }
+    }
+
+    /**
+     * Returns the definition for a daily challenge word, or null if not found.
+     * Returns null (not empty string) so the UI can omit the definition section entirely
+     * rather than showing a "no definition" placeholder.
+     */
+    fun getDefinitionForDailyWord(word: String): String? =
+        dailyDefinitions[word.uppercase()].takeIf { !it.isNullOrBlank() }
+
     private fun loadDailyWordPool(): Map<Int, List<String>> {
         return try {
             // Load all valid words
