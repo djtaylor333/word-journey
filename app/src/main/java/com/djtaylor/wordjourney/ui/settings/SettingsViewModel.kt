@@ -31,7 +31,7 @@ data class SettingsUiState(
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.12.0",
+    val appVersion: String = "2.13.0",
     val selectedTheme: String = "classic",
     val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
     val diamonds: Int = 0,
@@ -205,6 +205,13 @@ class SettingsViewModel @Inject constructor(
     fun devResetStatistics() {
         viewModelScope.launch {
             playerRepository.devResetStatistics(latestProgress)
+        }
+    }
+
+    /** [DEV] Resets adventure mode level progress back to level 1 and clears in-progress saves. */
+    fun devResetLevelProgress() {
+        viewModelScope.launch {
+            playerRepository.devResetLevelProgress(latestProgress)
         }
     }
 

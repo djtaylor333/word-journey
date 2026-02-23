@@ -67,6 +67,19 @@ class SettingsViewModelTest {
                     dailyChallengeBestStreak = 0
                 )
             }
+            coEvery { devResetLevelProgress(any()) } coAnswers {
+                val current = firstArg<PlayerProgress>()
+                progressFlow.value = current.copy(
+                    easyLevel = 1,
+                    regularLevel = 1,
+                    hardLevel = 1,
+                    vipLevel = 1,
+                    easyLevelsCompletedSinceBonusLife = 0,
+                    regularLevelsCompletedSinceBonusLife = 0,
+                    hardLevelsCompletedSinceBonusLife = 0,
+                    vipLevelsCompletedSinceBonusLife = 0
+                )
+            }
         }
         audioManager = mockk(relaxed = true)
         context = mockk(relaxed = true)
@@ -246,13 +259,13 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `appVersion is 2_12_0`() = runTest {
+    fun `appVersion is 2_13_0`() = runTest {
         // Test that the appVersion field reflects the current version
         val vm = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.first()
-        assertEquals("2.12.0", state.appVersion)
+        assertEquals("2.13.0", state.appVersion)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -734,6 +747,46 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { playerRepository.devResetStatistics(any()) }
+    }
+
+    @Test
+    fun `devResetLevelProgress delegates to repository`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.devResetLevelProgress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { playerRepository.devResetLevelProgress(any()) }
+    }
+
+    @Test
+    fun `devResetLevelProgress resets all level fields to 1`() = runTest {
+        val progress = PlayerProgress(
+            devModeEnabled = true,
+            easyLevel = 10,
+            regularLevel = 7,
+            hardLevel = 5,
+            vipLevel = 3,
+            easyLevelsCompletedSinceBonusLife = 4,
+            regularLevelsCompletedSinceBonusLife = 2,
+            hardLevelsCompletedSinceBonusLife = 1,
+            vipLevelsCompletedSinceBonusLife = 3
+        )
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.devResetLevelProgress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Repository was called; verify the progress emitted has all levels reset to 1
+        coVerify { playerRepository.devResetLevelProgress(any()) }
+        val saved = progressFlow.value
+        assertEquals(1, saved.easyLevel)
+        assertEquals(1, saved.regularLevel)
+        assertEquals(1, saved.hardLevel)
+        assertEquals(1, saved.vipLevel)
+        assertEquals(0, saved.easyLevelsCompletedSinceBonusLife)
     }
 }
 

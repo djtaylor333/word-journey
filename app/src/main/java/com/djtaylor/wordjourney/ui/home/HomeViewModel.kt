@@ -196,24 +196,17 @@ class HomeViewModel @Inject constructor(
     /** [DEV] Immediately fires the lives-full notification for testing. */
     fun devTriggerLivesFullNotification() {
         try {
-            LivesFullNotificationWorker.schedule(
-                context              = context,
-                currentLives         = 0,           // force schedule by pretending lives = 0
-                lastRegenTimestamp   = System.currentTimeMillis() - 1_000L,
-                notificationsEnabled = true
-            )
+            LivesFullNotificationWorker.devDirectFire(context)
         } catch (_: Exception) {}
     }
 
     /** [DEV] Immediately fires the daily challenge reminder notification. */
     fun devTriggerDailyChallengeNotification() {
         try {
-            // Schedule with a 2-second delay so it fires almost immediately
-            val request = androidx.work.OneTimeWorkRequestBuilder<DailyChallengeReminderWorker>()
-                .setInitialDelay(2L, java.util.concurrent.TimeUnit.SECONDS)
-                .addTag("dev_daily_test")
-                .build()
-            androidx.work.WorkManager.getInstance(context).enqueue(request)
+            DailyChallengeReminderWorker.devDirectFire(
+                context,
+                streak = _uiState.value.dailyChallengeStreak
+            )
         } catch (_: Exception) {}
     }
 }

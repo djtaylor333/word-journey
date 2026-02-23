@@ -608,6 +608,7 @@ fun SettingsScreen(
             if (state.devModeEnabled) {
                 DevModePanel(
                     onResetDailyChallenges = { viewModel.devResetDailyChallenges() },
+                    onResetLevelProgress   = { viewModel.devResetLevelProgress() },
                     onResetStatistics      = { viewModel.devResetStatistics() },
                     onDisableDevMode       = {
                         viewModel.setDevModeEnabled(false)
@@ -690,6 +691,7 @@ fun SettingsScreen(
 @Composable
 private fun DevModePanel(
     onResetDailyChallenges: () -> Unit,
+    onResetLevelProgress: () -> Unit,
     onResetStatistics: () -> Unit,
     onDisableDevMode: () -> Unit
 ) {
@@ -732,6 +734,19 @@ private fun DevModePanel(
                 Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Reset Daily Challenges")
+            }
+
+            // Reset level progress
+            OutlinedButton(
+                onClick = onResetLevelProgress,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.tertiary
+                )
+            ) {
+                Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Reset Level Progress")
             }
 
             // Reset statistics

@@ -56,6 +56,41 @@ class LivesFullNotificationWorker @AssistedInject constructor(
 
             workManager.enqueue(request)
         }
+
+        /**
+         * [DEV] Immediately posts the lives-full notification without scheduling
+         * through WorkManager. Bypasses all condition checks — for testing only.
+         */
+        fun devDirectFire(context: Context) {
+            val intent = android.content.Intent(context, MainActivity::class.java).apply {
+                action = android.content.Intent.ACTION_VIEW
+                data   = android.net.Uri.parse("wordjourney://home")
+                flags  = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                         android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pendingIntent = android.app.PendingIntent.getActivity(
+                context, 0, intent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or
+                android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+            val title = context.getString(R.string.notification_lives_full_title)
+            val body  = context.getString(R.string.notification_lives_full_body)
+            val notification = androidx.core.app.NotificationCompat
+                .Builder(context, NotificationChannels.CHANNEL_LIVES_READY)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(body))
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                .setCategory(androidx.core.app.NotificationCompat.CATEGORY_REMINDER)
+                .setVibrate(longArrayOf(0, 300, 100, 300))
+                .build()
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as
+                android.app.NotificationManager
+            nm.notify(NOTIFICATION_ID, notification)
+        }
     }
 
     override suspend fun doWork(): Result {

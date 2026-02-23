@@ -120,6 +120,29 @@ class PlayerRepository @Inject constructor(
         )
     }
 
+    /**
+     * [DEV] Resets adventure mode level progress back to level 1 for all difficulties
+     * and clears any in-progress adventure games.
+     */
+    suspend fun devResetLevelProgress(current: PlayerProgress) {
+        dataStore.clearInProgressGame("easy")
+        dataStore.clearInProgressGame("regular")
+        dataStore.clearInProgressGame("hard")
+        dataStore.clearInProgressGame("vip")
+        saveProgress(
+            current.copy(
+                easyLevel = 1,
+                regularLevel = 1,
+                hardLevel = 1,
+                vipLevel = 1,
+                easyLevelsCompletedSinceBonusLife = 0,
+                regularLevelsCompletedSinceBonusLife = 0,
+                hardLevelsCompletedSinceBonusLife = 0,
+                vipLevelsCompletedSinceBonusLife = 0
+            )
+        )
+    }
+
     private fun mergeProgress(local: PlayerProgress, cloud: PlayerProgress): PlayerProgress {
         // Take the furthest level for each difficulty; take maximum currency
         return local.copy(
