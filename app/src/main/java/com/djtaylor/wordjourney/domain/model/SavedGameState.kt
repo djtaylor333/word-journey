@@ -92,6 +92,7 @@ data class PlayerProgress(
     val sfxEnabled: Boolean = true,
     val sfxVolume: Float = 0.8f,
     val notifyLivesFull: Boolean = true,
+    val notifyDailyChallenge: Boolean = true,    // noon reminder to play daily challenge
     val highContrast: Boolean = false,
     val darkMode: Boolean = true,
     val colorblindMode: String = "none",
@@ -105,5 +106,7 @@ data class PlayerProgress(
     val ownedTileThemes: String = "default",          // comma-separated
     val ownedKeyboardThemes: String = "default",      // comma-separated
     // Onboarding
-    val hasCompletedOnboarding: Boolean = false
+    val hasCompletedOnboarding: Boolean = false,
+    // Dev Mode — enabled by tapping version string 10 times (disabled by 3 more taps)
+    val devModeEnabled: Boolean = false
 )

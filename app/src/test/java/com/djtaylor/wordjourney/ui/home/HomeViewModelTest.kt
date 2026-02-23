@@ -344,4 +344,34 @@ class HomeViewModelTest {
         assertEquals(5, state.progress.lives)
         assertNull(state.vipRewardsMessage)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 11. DEV MODE STATE
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `devModeEnabled is false by default`() = testWithVm(
+        PlayerProgress(hasReceivedNewPlayerBonus = true)
+    ) { vm ->
+        assertFalse(vm.uiState.first().devModeEnabled)
+    }
+
+    @Test
+    fun `devModeEnabled true when progress has dev mode enabled`() = testWithVm(
+        PlayerProgress(hasReceivedNewPlayerBonus = true, devModeEnabled = true)
+    ) { vm ->
+        assertTrue(vm.uiState.first().devModeEnabled)
+    }
+
+    @Test
+    fun `devModeEnabled updates reactively when progress changes`() = testWithVm(
+        PlayerProgress(hasReceivedNewPlayerBonus = true, devModeEnabled = false)
+    ) { vm ->
+        assertFalse(vm.uiState.first().devModeEnabled)
+
+        progressFlow.value = progressFlow.value.copy(devModeEnabled = true)
+        testDispatcher.scheduler.runCurrent()
+
+        assertTrue(vm.uiState.first().devModeEnabled)
+    }
 }

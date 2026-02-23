@@ -12,6 +12,7 @@ import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
 import com.djtaylor.wordjourney.domain.usecase.VipDailyRewardUseCase
 import com.djtaylor.wordjourney.notifications.LivesFullNotificationWorker
+import com.djtaylor.wordjourney.notifications.DailyChallengeReminderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -28,7 +29,8 @@ data class HomeUiState(
     val dailyChallengeStreak: Int = 0,
     val vipRewardsMessage: String? = null,
     val newPlayerBonusMessage: String? = null,
-    val inboxCount: Int = 0                // unclaimed inbox items badge
+    val inboxCount: Int = 0,               // unclaimed inbox items badge
+    val devModeEnabled: Boolean = false    // unlocked via 10-tap easter egg
 )
 
 @HiltViewModel
@@ -134,7 +136,8 @@ class HomeViewModel @Inject constructor(
                         dailyChallengeStreak = updated.dailyChallengeStreak,
                         vipRewardsMessage = vipMsg,
                         newPlayerBonusMessage = newPlayerMsg,
-                        inboxCount = inboxRepository.getUnclaimedCount()
+                        inboxCount = inboxRepository.getUnclaimedCount(),
+                        devModeEnabled = updated.devModeEnabled
                     )
                 }
 
@@ -145,6 +148,11 @@ class HomeViewModel @Inject constructor(
                         currentLives         = updated.lives,
                         lastRegenTimestamp   = updated.lastLifeRegenTimestamp,
                         notificationsEnabled = updated.notifyLivesFull
+                    )
+                    // Schedule daily challenge noon reminder
+                    DailyChallengeReminderWorker.schedule(
+                        context              = context,
+                        notificationsEnabled = updated.notifyDailyChallenge
                     )
                 } catch (_: Exception) { /* not fatal if WorkManager not initialized in tests */ }
             }
@@ -181,5 +189,31 @@ class HomeViewModel @Inject constructor(
 
     fun playButtonClick() {
         audioManager.playSfx(SfxSound.BUTTON_CLICK)
+    }
+
+    // ── Dev Mode actions ──────────────────────────────────────────────────────
+
+    /** [DEV] Immediately fires the lives-full notification for testing. */
+    fun devTriggerLivesFullNotification() {
+        try {
+            LivesFullNotificationWorker.schedule(
+                context              = context,
+                currentLives         = 0,           // force schedule by pretending lives = 0
+                lastRegenTimestamp   = System.currentTimeMillis() - 1_000L,
+                notificationsEnabled = true
+            )
+        } catch (_: Exception) {}
+    }
+
+    /** [DEV] Immediately fires the daily challenge reminder notification. */
+    fun devTriggerDailyChallengeNotification() {
+        try {
+            // Schedule with a 2-second delay so it fires almost immediately
+            val request = androidx.work.OneTimeWorkRequestBuilder<DailyChallengeReminderWorker>()
+                .setInitialDelay(2L, java.util.concurrent.TimeUnit.SECONDS)
+                .addTag("dev_daily_test")
+                .build()
+            androidx.work.WorkManager.getInstance(context).enqueue(request)
+        } catch (_: Exception) {}
     }
 }

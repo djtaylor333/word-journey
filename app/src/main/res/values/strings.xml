@@ -60,8 +60,13 @@
 
     <!-- Notifications -->
     <string name="notification_channel_lives">Lives Ready</string>
-    <string name="notification_lives_full_title">❤️ Your lives are full!</string>
-    <string name="notification_lives_full_body">Come back and continue your Word Journeys adventure!</string>
+    <string name="notification_lives_full_title">❤️ All Lives Restored — You\'re Ready!</string>
+    <string name="notification_lives_full_body">Your hearts have fully regenerated. Jump back in and keep your Word Journeys streak alive!</string>
+
+    <!-- Daily Challenge Reminder -->
+    <string name="notification_daily_title">📅 Daily Challenge Awaits!</string>
+    <string name="notification_daily_body_streak">You\'re on a %d-day streak — don\'t break it now! Today\'s word puzzle is ready.</string>
+    <string name="notification_daily_body_no_streak">A brand new word puzzle is ready. Come play today\'s Daily Challenge!</string>
 
     <!-- Coins earned -->
     <string name="coins_earned">+%d coins</string>

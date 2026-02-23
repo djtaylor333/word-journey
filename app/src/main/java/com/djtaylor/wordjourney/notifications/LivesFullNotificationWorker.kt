@@ -92,13 +92,19 @@ class LivesFullNotificationWorker @AssistedInject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val title = context.getString(R.string.notification_lives_full_title)
+        val body  = context.getString(R.string.notification_lives_full_body)
+
         val notification = NotificationCompat.Builder(context, NotificationChannels.CHANNEL_LIVES_READY)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(context.getString(R.string.notification_lives_full_title))
-            .setContentText(context.getString(R.string.notification_lives_full_body))
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVibrate(longArrayOf(0, 300, 100, 300))
             .build()
 
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

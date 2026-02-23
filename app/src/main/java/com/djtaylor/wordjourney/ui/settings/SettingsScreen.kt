@@ -20,6 +20,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.widget.Toast
 import com.djtaylor.wordjourney.domain.model.GameTheme
 import com.djtaylor.wordjourney.domain.model.SeasonalThemeManager
 import com.djtaylor.wordjourney.domain.model.ThemeCategory
@@ -52,6 +55,8 @@ fun SettingsScreen(
     val context = LocalContext.current
     var showAboutDialog by remember { mutableStateOf(false) }
     val theme = LocalGameTheme.current
+    // Tap counter for version easter egg: 10 taps → dev mode on, then 3 taps → dev mode off
+    var versionTapCount by remember { mutableIntStateOf(0) }
 
     // Notification permission launcher (Android 13+)
     val notifPermLauncher = rememberLauncherForActivityResult(
@@ -146,6 +151,28 @@ fun SettingsScreen(
                         }
                     } else {
                         viewModel.setNotifyLivesFull(enabled)
+                    }
+                }
+            )
+
+            SettingsToggleRow(
+                label = "Daily Challenge Reminder",
+                description = "Noon reminder to keep your streak going",
+                checked = state.notifyDailyChallenge,
+                onCheckedChange = { enabled ->
+                    if (!enabled) {
+                        viewModel.setNotifyDailyChallenge(false)
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val alreadyGranted = ContextCompat.checkSelfPermission(
+                            context, Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (alreadyGranted) {
+                            viewModel.setNotifyDailyChallenge(true)
+                        } else {
+                            notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    } else {
+                        viewModel.setNotifyDailyChallenge(enabled)
                     }
                 }
             )
@@ -576,6 +603,20 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(32.dp))
+
+            // ── Dev Mode Panel (only visible when dev mode is active) ──────────
+            if (state.devModeEnabled) {
+                DevModePanel(
+                    onResetDailyChallenges = { viewModel.devResetDailyChallenges() },
+                    onResetStatistics      = { viewModel.devResetStatistics() },
+                    onDisableDevMode       = {
+                        viewModel.setDevModeEnabled(false)
+                        versionTapCount = 0
+                        Toast.makeText(context, "Dev mode disabled", Toast.LENGTH_SHORT).show()
+                    }
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+            }
         }
         } // end Box
     }
@@ -583,7 +624,10 @@ fun SettingsScreen(
     // ── About dialog ──────────────────────────────────────────────────────────
     if (showAboutDialog) {
         AlertDialog(
-            onDismissRequest = { showAboutDialog = false },
+            onDismissRequest = {
+                showAboutDialog = false
+                versionTapCount = 0  // reset counter on dialog close
+            },
             title = {
                 Text("Word Journeys", fontWeight = FontWeight.Bold)
             },
@@ -594,10 +638,28 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
+                    // Tappable version string: 10 taps = enable dev mode, then 3 taps = disable
                     Text(
-                        "Version ${state.appVersion}",
+                        text = "Version ${state.appVersion}" + if (state.devModeEnabled) " [DEV]" else "",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        color = if (state.devModeEnabled)
+                            MaterialTheme.colorScheme.error
+                        else
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .clickable {
+                                versionTapCount++
+                                if (!state.devModeEnabled && versionTapCount >= 10) {
+                                    viewModel.setDevModeEnabled(true)
+                                    versionTapCount = 0
+                                    Toast.makeText(context, "🛠 Dev mode enabled!", Toast.LENGTH_SHORT).show()
+                                } else if (state.devModeEnabled && versionTapCount >= 3) {
+                                    viewModel.setDevModeEnabled(false)
+                                    versionTapCount = 0
+                                    Toast.makeText(context, "Dev mode disabled", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            .padding(vertical = 4.dp)
                     )
                     HorizontalDivider()
                     Text(
@@ -614,11 +676,88 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showAboutDialog = false }) {
+                TextButton(onClick = {
+                    showAboutDialog = false
+                    versionTapCount = 0
+                }) {
                     Text("Close")
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun DevModePanel(
+    onResetDailyChallenges: () -> Unit,
+    onResetStatistics: () -> Unit,
+    onDisableDevMode: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("🛠", fontSize = 20.sp)
+                Text(
+                    "Developer Options",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            Text(
+                "Internal testing tools. Tap version number 3 times to disable.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+
+            // Reset daily challenges
+            OutlinedButton(
+                onClick = onResetDailyChallenges,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Reset Daily Challenges")
+            }
+
+            // Reset statistics
+            OutlinedButton(
+                onClick = onResetStatistics,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+                )
+            ) {
+                Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Reset Statistics")
+            }
+
+            // Disable dev mode
+            TextButton(
+                onClick = onDisableDevMode,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Disable Dev Mode", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            }
+        }
     }
 }
 

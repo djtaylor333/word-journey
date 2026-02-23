@@ -1,9 +1,9 @@
 {
-  "versionName": "2.11.0",
-  "versionCode": 22,
+  "versionName": "2.12.0",
+  "versionCode": 23,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-02-22",
-  "releaseNotes": "v2.9.0 — Timer Mode (Easy/Regular/Hard), VIP inbox immediate on purchase, 2x/3x streak rewards, win rate stat fix, Theme Level Packs rename."
+  "buildDate": "2025-06-06",
+  "releaseNotes": "v2.12.0 — Fix notifications (HiltWorkerFactory), daily noon challenge reminder, 250+ words per mode (ready to enable), dev mode easter egg, APK renamed word-journey."
 }

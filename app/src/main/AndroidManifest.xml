@@ -42,7 +42,7 @@
             </intent-filter>
         </activity>
 
-        <!-- WorkManager for life regen / notifications -->
+        <!-- WorkManager — auto-init disabled so HiltWorkerFactory is used for @HiltWorker injection -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
@@ -50,7 +50,8 @@
             tools:node="merge">
             <meta-data
                 android:name="androidx.work.WorkManagerInitializer"
-                android:value="androidx.startup" />
+                android:value="androidx.startup"
+                tools:node="remove" />
         </provider>
 
     </application>

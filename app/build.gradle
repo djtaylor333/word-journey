@@ -17,13 +17,15 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace 'com.djtaylor.wordjourney'
     compileSdk 35
+    // Artifact naming — APK/AAB files will be named word-journey-vX.X.X-release.*
+    archivesBaseName = 'word-journey'
 
     defaultConfig {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 35
-        versionCode 22
-        versionName "2.11.0"
+        versionCode 23
+        versionName "2.12.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

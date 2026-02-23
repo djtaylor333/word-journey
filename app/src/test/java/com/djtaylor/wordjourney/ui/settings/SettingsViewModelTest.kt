@@ -48,6 +48,25 @@ class SettingsViewModelTest {
             coEvery { saveProgress(any()) } coAnswers {
                 progressFlow.value = firstArg()
             }
+            coEvery { devResetDailyChallenges(any()) } coAnswers {
+                val current = firstArg<PlayerProgress>()
+                progressFlow.value = current.copy(
+                    dailyChallengeLastDate = "",
+                    dailyLastDate4 = "",
+                    dailyLastDate5 = "",
+                    dailyLastDate6 = ""
+                )
+            }
+            coEvery { devResetStatistics(any()) } coAnswers {
+                val current = firstArg<PlayerProgress>()
+                progressFlow.value = current.copy(
+                    totalLevelsCompleted = 0,
+                    totalGuesses = 0,
+                    totalWins = 0,
+                    dailyChallengeStreak = 0,
+                    dailyChallengeBestStreak = 0
+                )
+            }
         }
         audioManager = mockk(relaxed = true)
         context = mockk(relaxed = true)
@@ -227,13 +246,13 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `appVersion is 2_11_0`() = runTest {
+    fun `appVersion is 2_12_0`() = runTest {
         // Test that the appVersion field reflects the current version
         val vm = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.first()
-        assertEquals("2.11.0", state.appVersion)
+        assertEquals("2.12.0", state.appVersion)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -564,6 +583,157 @@ class SettingsViewModelTest {
         // NEON_NIGHTS costs 50 diamonds — non-seasonal VIP theme
         val result = vm.purchaseTheme("neon_nights", anyDate)
         assertTrue("Non-seasonal theme should not be affected by seasonal locks", result)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 8. DAILY CHALLENGE NOTIFICATION
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `notifyDailyChallenge defaults to true`() = runTest {
+        val vm = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.uiState.first().notifyDailyChallenge)
+    }
+
+    @Test
+    fun `notifyDailyChallenge reflects saved progress`() = runTest {
+        val vm = createViewModel(PlayerProgress(notifyDailyChallenge = false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(vm.uiState.first().notifyDailyChallenge)
+    }
+
+    @Test
+    fun `setNotifyDailyChallenge true saves and updates state`() = runTest {
+        val vm = createViewModel(PlayerProgress(notifyDailyChallenge = false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.setNotifyDailyChallenge(true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.uiState.first().notifyDailyChallenge)
+        coVerify { playerRepository.saveProgress(match { it.notifyDailyChallenge }) }
+    }
+
+    @Test
+    fun `setNotifyDailyChallenge false saves and updates state`() = runTest {
+        val vm = createViewModel(PlayerProgress(notifyDailyChallenge = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.setNotifyDailyChallenge(false)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(vm.uiState.first().notifyDailyChallenge)
+        coVerify { playerRepository.saveProgress(match { !it.notifyDailyChallenge }) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 9. DEV MODE
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `devModeEnabled defaults to false`() = runTest {
+        val vm = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(vm.uiState.first().devModeEnabled)
+    }
+
+    @Test
+    fun `devModeEnabled true reflects saved progress`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.uiState.first().devModeEnabled)
+    }
+
+    @Test
+    fun `setDevModeEnabled true unlocks dev mode and saves`() = runTest {
+        val vm = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.setDevModeEnabled(true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.uiState.first().devModeEnabled)
+        coVerify { playerRepository.saveProgress(match { it.devModeEnabled }) }
+    }
+
+    @Test
+    fun `setDevModeEnabled false disables dev mode and saves`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.setDevModeEnabled(false)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(vm.uiState.first().devModeEnabled)
+        coVerify { playerRepository.saveProgress(match { !it.devModeEnabled }) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 10. DEV RESET FUNCTIONS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `devResetDailyChallenges clears daily challenge dates`() = runTest {
+        val progress = PlayerProgress(
+            devModeEnabled = true,
+            dailyChallengeLastDate = "2025-06-01",
+            dailyLastDate4 = "2025-06-01",
+            dailyLastDate5 = "2025-06-01",
+            dailyLastDate6 = "2025-06-01"
+        )
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.devResetDailyChallenges()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.devResetDailyChallenges(any()) }
+    }
+
+    @Test
+    fun `devResetStatistics zeroes statistical fields`() = runTest {
+        val progress = PlayerProgress(
+            devModeEnabled = true,
+            totalLevelsCompleted = 50,
+            totalGuesses = 200,
+            totalWins = 40,
+            dailyChallengeStreak = 7,
+            dailyChallengeBestStreak = 12
+        )
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.devResetStatistics()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.devResetStatistics(any()) }
+    }
+
+    @Test
+    fun `devResetDailyChallenges delegates to repository`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.devResetDailyChallenges()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { playerRepository.devResetDailyChallenges(any()) }
+    }
+
+    @Test
+    fun `devResetStatistics delegates to repository`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.devResetStatistics()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { playerRepository.devResetStatistics(any()) }
     }
 }
 

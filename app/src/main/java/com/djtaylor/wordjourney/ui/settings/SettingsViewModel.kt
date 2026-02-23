@@ -24,17 +24,19 @@ data class SettingsUiState(
     val sfxEnabled: Boolean = true,
     val sfxVolume: Float = 0.8f,
     val notifyLivesFull: Boolean = true,
+    val notifyDailyChallenge: Boolean = true,
     val highContrast: Boolean = false,
     val darkMode: Boolean = true,
     val colorblindMode: String = "none",
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.11.0",
+    val appVersion: String = "2.12.0",
     val selectedTheme: String = "classic",
     val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
     val diamonds: Int = 0,
-    val isVip: Boolean = false
+    val isVip: Boolean = false,
+    val devModeEnabled: Boolean = false   // unlocked via secret tap easter egg
 )
 
 @HiltViewModel
@@ -55,20 +57,22 @@ class SettingsViewModel @Inject constructor(
                 latestProgress = progress
                 _uiState.update { s ->
                     s.copy(
-                        musicEnabled      = progress.musicEnabled,
-                        musicVolume       = progress.musicVolume,
-                        sfxEnabled        = progress.sfxEnabled,
-                        sfxVolume         = progress.sfxVolume,
-                        notifyLivesFull   = progress.notifyLivesFull,
-                        highContrast      = progress.highContrast,
-                        darkMode          = progress.darkMode,
-                        colorblindMode    = progress.colorblindMode,
-                        textScaleFactor   = progress.textScaleFactor,
-                        playGamesSignedIn = progress.playGamesSignedIn,
-                        selectedTheme     = progress.selectedTheme,
-                        ownedThemes       = progress.ownedThemes.split(",").filter { it.isNotBlank() }.toSet(),
-                        diamonds          = progress.diamonds,
-                        isVip             = progress.isVip
+                        musicEnabled           = progress.musicEnabled,
+                        musicVolume            = progress.musicVolume,
+                        sfxEnabled             = progress.sfxEnabled,
+                        sfxVolume              = progress.sfxVolume,
+                        notifyLivesFull        = progress.notifyLivesFull,
+                        notifyDailyChallenge   = progress.notifyDailyChallenge,
+                        highContrast           = progress.highContrast,
+                        darkMode               = progress.darkMode,
+                        colorblindMode         = progress.colorblindMode,
+                        textScaleFactor        = progress.textScaleFactor,
+                        playGamesSignedIn      = progress.playGamesSignedIn,
+                        selectedTheme          = progress.selectedTheme,
+                        ownedThemes            = progress.ownedThemes.split(",").filter { it.isNotBlank() }.toSet(),
+                        diamonds               = progress.diamonds,
+                        isVip                  = progress.isVip,
+                        devModeEnabled         = progress.devModeEnabled
                     )
                 }
                 // Sync audio manager with saved settings
@@ -116,6 +120,17 @@ class SettingsViewModel @Inject constructor(
         } else {
             androidx.work.WorkManager.getInstance(context)
                 .cancelAllWorkByTag(LivesFullNotificationWorker.WORK_TAG)
+        }
+    }
+
+    fun setNotifyDailyChallenge(enabled: Boolean) {
+        saveField { it.copy(notifyDailyChallenge = enabled) }
+        try {
+            com.djtaylor.wordjourney.notifications.DailyChallengeReminderWorker.schedule(
+                context, notificationsEnabled = enabled
+            )
+        } catch (_: IllegalStateException) {
+            // WorkManager not yet initialized (e.g. during unit tests) — safe to ignore
         }
     }
 
@@ -173,6 +188,26 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // ── Dev Mode ─────────────────────────────────────────────────────────────
+
+    fun setDevModeEnabled(enabled: Boolean) {
+        saveField { it.copy(devModeEnabled = enabled) }
+    }
+
+    /** [DEV] Clears all daily challenge progress so they appear undone today. */
+    fun devResetDailyChallenges() {
+        viewModelScope.launch {
+            playerRepository.devResetDailyChallenges(latestProgress)
+        }
+    }
+
+    /** [DEV] Zeroes out all cumulative statistics. */
+    fun devResetStatistics() {
+        viewModelScope.launch {
+            playerRepository.devResetStatistics(latestProgress)
+        }
+    }
+
     private fun saveField(block: (PlayerProgress) -> PlayerProgress) {
         viewModelScope.launch {
             val updated = block(latestProgress)
@@ -180,19 +215,21 @@ class SettingsViewModel @Inject constructor(
             playerRepository.saveProgress(updated)
             _uiState.update { s ->
                 s.copy(
-                    musicEnabled    = updated.musicEnabled,
-                    musicVolume     = updated.musicVolume,
-                    sfxEnabled      = updated.sfxEnabled,
-                    sfxVolume       = updated.sfxVolume,
-                    notifyLivesFull = updated.notifyLivesFull,
-                    highContrast    = updated.highContrast,
-                    darkMode        = updated.darkMode,
-                    colorblindMode  = updated.colorblindMode,
-                    textScaleFactor = updated.textScaleFactor,
-                    selectedTheme   = updated.selectedTheme,
-                    ownedThemes     = updated.ownedThemes.split(",").filter { it.isNotBlank() }.toSet(),
-                    diamonds        = updated.diamonds,
-                    isVip           = updated.isVip
+                    musicEnabled           = updated.musicEnabled,
+                    musicVolume            = updated.musicVolume,
+                    sfxEnabled             = updated.sfxEnabled,
+                    sfxVolume              = updated.sfxVolume,
+                    notifyLivesFull        = updated.notifyLivesFull,
+                    notifyDailyChallenge   = updated.notifyDailyChallenge,
+                    highContrast           = updated.highContrast,
+                    darkMode               = updated.darkMode,
+                    colorblindMode         = updated.colorblindMode,
+                    textScaleFactor        = updated.textScaleFactor,
+                    selectedTheme          = updated.selectedTheme,
+                    ownedThemes            = updated.ownedThemes.split(",").filter { it.isNotBlank() }.toSet(),
+                    diamonds               = updated.diamonds,
+                    isVip                  = updated.isVip,
+                    devModeEnabled         = updated.devModeEnabled
                 )
             }
         }

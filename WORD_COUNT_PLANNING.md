@@ -1,34 +1,49 @@
 # Word Count & Level Planning
 
-_Last updated: v2.11.0 (Feb 23, 2026)_
+_Last updated: v2.12.0 (June 2025)_
 
 ---
 
 ## Adventure Levels — Current Word Pool (`words.json`)
 
-These words power the main adventure pathway (currently 100 levels). Every word at a given
+These words power the main adventure pathway (currently capped at 100 levels per difficulty, but
+the pool is ready to support 250+ levels once the cap is raised). Every word at a given
 letter-length is a potential level for that difficulty track.
 
-| Word Length | Current Word Count | Possible Levels at that Length |
-|-------------|-------------------|-------------------------------|
-| 3-letter    | 120               | 120                           |
-| 4-letter    | 151               | 151                           |
-| 5-letter    | 194               | 194                           |
-| 6-letter    | 386               | 386                           |
-| 7-letter    | 120               | 120                           |
-| **Total**   | **971**           | **971 possible unique levels** |
+| Word Length | Word Count | Possible Levels | Status |
+|-------------|-----------|-----------------|--------|
+| 3-letter    | 250       | 250             | ✅ 250+ ready |
+| 4-letter    | 251       | 251             | ✅ 250+ ready |
+| 5-letter    | 328       | 328             | ✅ 250+ ready |
+| 6-letter    | 386       | 386             | ✅ 250+ ready |
+| 7-letter    | 233       | 233             | ✅ 250+ ready |
+| **Total**   | **1,448** | **1,448 possible unique levels** | |
 
 ### Per-difficulty level capacity
 
-| Difficulty | Word Length Used | Max Possible Levels |
-|------------|-----------------|---------------------|
-| Easy       | 4-letter        | 151                 |
-| Regular    | 5-letter        | 194                 |
-| Hard       | 6-letter        | 386                 |
-| VIP        | 3–7 cycling     | 971 (all combined)  |
+| Difficulty | Word Length Used | Max Possible Levels | Current Cap |
+|------------|-----------------|---------------------|-------------|
+| Easy       | 4-letter        | 251                 | 100         |
+| Regular    | 5-letter        | 328                 | 100         |
+| Hard       | 6-letter        | 386                 | 100         |
+| VIP        | 3–7 cycling     | 1,448 (all combined) | 100        |
 
-**Current cap**: 100 levels for all difficulties.  
-**Headroom**: Easy has 51 spare words, Regular 94, Hard 286, VIP 871 before exhausting the pool.
+**Current cap**: 100 levels for all difficulties (unchanged in v2.12.0).  
+**Headroom**: Easy 151 spare, Regular 228, Hard 286, VIP 1,348 — all pools ready for 250+ levels.
+
+### How to enable 250+ levels
+
+Raise `totalLevels` in `LevelSelectViewModel.kt` (currently `100`) to the desired ceiling:
+
+```kotlin
+// LevelSelectViewModel.kt — currently:
+private val totalLevels = 100
+
+// Change to enable 250 levels:
+private val totalLevels = 250
+```
+
+The word pools are large enough to support this today.
 
 ---
 
@@ -83,20 +98,24 @@ For each seasonal set of 50 levels, source thematically appropriate words:
 
 ## Growth Roadmap
 
-| Milestone   | Level Cap | New Words Needed |
-|-------------|-----------|-----------------|
-| v2.11.0     | 100       | 0 (current)     |
-| v3.0.0      | 200       | ~100 adventure words |
-| v3.5.0      | 300       | ~100 adventure words |
-| v4.0.0      | 500       | ~200 adventure words |
-| Seasonal v1 | +300      | ~300 themed seasonal words |
+| Milestone   | Level Cap | New Words Needed | Status |
+|-------------|-----------|-----------------|--------|
+| v2.11.0     | 100       | 0 (original 971 words) | ✅ shipped |
+| **v2.12.0** | **100**   | **+477 words (pools ready for 250+)** | ✅ shipped |
+| v3.0.0      | 250       | 0 (pool already ready!) | Ready to enable |
+| v3.5.0      | 300       | ~50 more per length | Planned |
+| v4.0.0      | 500       | ~200+ more per length | Planned |
+| Seasonal v1 | +300      | ~300 themed seasonal words | Planned |
 
 ---
 
 ## Action Items
 
+- [x] ~~Expand 3-letter pool to 250+~~ (done in v2.12.0 — now 250)
+- [x] ~~Expand 4-letter pool to 250+~~ (done in v2.12.0 — now 251)
+- [x] ~~Expand 5-letter pool to 250+~~ (done in v2.12.0 — now 328)
+- [x] ~~Expand 7-letter pool toward 250+~~ (done in v2.12.0 — now 233, approaching 250)
+- [ ] **Raise `totalLevels` to 250** in `LevelSelectViewModel.kt` when ready to unlock (no new words needed!)
+- [ ] Add 17 more 7-letter words to reach 250 (low priority)
 - [ ] Add 300 seasonal words to a new `seasonal_words.json` asset (50 per event)
 - [ ] Wire `SeasonalLevelRepository` to draw from per-event word lists
-- [ ] Expand `words.json` toward 200-level milestone (need ~100 new words per difficulty)
-- [ ] Consider expanding 3-letter pool (currently smallest at 120) to at least 200 for VIP diversity
-- [ ] Review 7-letter words (120 in adventure, 725 in daily) — add 80+ to adventure list

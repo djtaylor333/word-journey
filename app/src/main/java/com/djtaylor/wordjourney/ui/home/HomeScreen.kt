@@ -195,6 +195,34 @@ fun HomeScreen(
                 timerMs = uiState.timerDisplayMs
             )
 
+            // ── Dev Mode notification triggers ──────────────────────────────
+            if (uiState.devModeEnabled) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedButton(
+                        onClick = { viewModel.devTriggerLivesFullNotification() },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("❤️ Test Lives Notif", fontSize = 11.sp)
+                    }
+                    OutlinedButton(
+                        onClick = { viewModel.devTriggerDailyChallengeNotification() },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("📅 Test Daily Notif", fontSize = 11.sp)
+                    }
+                }
+            }
+
             Spacer(Modifier.height(20.dp))
 
             // ── ADVENTURE MODE ───────────────────────────────────────────────
