@@ -109,6 +109,32 @@ fun StatisticsScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // ── Time Played ──
+            StatSection("⏱️ Time Played") {
+                StatRow("Total Time Played", p.totalTimePlayedMs.toReadableDuration())
+                StatRow("Easy Levels", p.easyTimePlayedMs.toReadableDuration())
+                StatRow("Regular Levels", p.regularTimePlayedMs.toReadableDuration())
+                StatRow("Hard Levels", p.hardTimePlayedMs.toReadableDuration())
+                StatRow("VIP Levels", p.vipTimePlayedMs.toReadableDuration())
+                StatRow("Daily Challenge", p.dailyTimePlayedMs.toReadableDuration())
+                StatRow("Timer Mode", p.timerTimePlayedMs.toReadableDuration())
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── Timer Mode ──
+            StatSection("⏱️ Timer Mode") {
+                fun Int.toTimerStr() = if (this > 0) "${this / 60}m ${this % 60}s" else "—"
+                StatRow("Best Score (Easy)", if (p.timerBestLevelsEasy > 0)
+                    "${p.timerBestLevelsEasy} words · ${p.timerBestTimeSecsEasy.toTimerStr()}" else "Not played")
+                StatRow("Best Score (Regular)", if (p.timerBestLevelsRegular > 0)
+                    "${p.timerBestLevelsRegular} words · ${p.timerBestTimeSecsRegular.toTimerStr()}" else "Not played")
+                StatRow("Best Score (Hard)", if (p.timerBestLevelsHard > 0)
+                    "${p.timerBestLevelsHard} words · ${p.timerBestTimeSecsHard.toTimerStr()}" else "Not played")
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             // ── Economy ──
             StatSection("💰 Economy") {
                 StatRow("Current Coins", "${p.coins}")
@@ -216,4 +242,22 @@ private fun StatRow(label: String, value: String) {
             fontSize = 15.sp
         )
     }
+}
+
+/**
+ * Converts a millisecond duration to a human-readable string.
+ * Examples: "2d 3h 15m", "45m 10s", "0m"
+ */
+private fun Long.toReadableDuration(): String {
+    if (this <= 0L) return "0m"
+    val totalSeconds = this / 1000
+    val days    = totalSeconds / 86400
+    val hours   = (totalSeconds % 86400) / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val parts = buildList {
+        if (days > 0) add("${days}d")
+        if (hours > 0) add("${hours}h")
+        if (minutes > 0 || (days == 0L && hours == 0L)) add("${minutes}m")
+    }
+    return parts.joinToString(" ")
 }

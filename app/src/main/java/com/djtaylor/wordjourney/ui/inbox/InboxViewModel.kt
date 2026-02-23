@@ -1,11 +1,14 @@
 package com.djtaylor.wordjourney.ui.inbox
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.data.db.InboxItemEntity
 import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
+import com.djtaylor.wordjourney.notifications.LivesFullNotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,6 +22,7 @@ data class InboxUiState(
 
 @HiltViewModel
 class InboxViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val inboxRepository: InboxRepository,
     private val playerRepository: PlayerRepository
 ) : ViewModel() {
@@ -47,6 +51,15 @@ class InboxViewModel @Inject constructor(
             playerRepository.playerProgressFlow.first().let { progress ->
                 val updated = inboxRepository.applyRewardsToProgress(listOf(claimed), progress)
                 playerRepository.saveProgress(updated)
+                // Reschedule notification now that lives may have changed
+                try {
+                    LivesFullNotificationWorker.schedule(
+                        context              = context,
+                        currentLives         = updated.lives,
+                        lastRegenTimestamp   = updated.lastLifeRegenTimestamp,
+                        notificationsEnabled = updated.notifyLivesFull
+                    )
+                } catch (_: Exception) { /* not critical if WorkManager unavailable in tests */ }
             }
             loadItems()
         }
@@ -59,6 +72,15 @@ class InboxViewModel @Inject constructor(
                 playerRepository.playerProgressFlow.first().let { progress ->
                     val updated = inboxRepository.applyRewardsToProgress(claimed, progress)
                     playerRepository.saveProgress(updated)
+                    // Reschedule notification now that lives may have changed
+                    try {
+                        LivesFullNotificationWorker.schedule(
+                            context              = context,
+                            currentLives         = updated.lives,
+                            lastRegenTimestamp   = updated.lastLifeRegenTimestamp,
+                            notificationsEnabled = updated.notifyLivesFull
+                        )
+                    } catch (_: Exception) { /* not critical if WorkManager unavailable in tests */ }
                 }
             }
             _uiState.update { it.copy(claimAllDone = true) }

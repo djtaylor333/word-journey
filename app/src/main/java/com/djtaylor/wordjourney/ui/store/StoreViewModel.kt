@@ -106,9 +106,14 @@ class StoreViewModel @Inject constructor(
                         }
                         playerRepository.saveProgress(updated)
                         audioManager.playSfx(SfxSound.COIN_EARN)
+                        val purchaseMsg = if (productId == ProductIds.VIP_MONTHLY || productId == ProductIds.VIP_YEARLY) {
+                            "👑 VIP activated! Your daily rewards are in your inbox — claim them now!"
+                        } else {
+                            buildGrantMessage(result.coinsGranted, result.diamondsGranted, result.livesGranted)
+                        }
                         _uiState.update { it.copy(
                             isPurchasing = false,
-                            message = buildGrantMessage(result.coinsGranted, result.diamondsGranted, result.livesGranted)
+                            message = purchaseMsg
                         )}
                     }
                 } else {

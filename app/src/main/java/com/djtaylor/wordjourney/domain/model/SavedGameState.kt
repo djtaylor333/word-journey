@@ -71,6 +71,14 @@ data class PlayerProgress(
     val timerBestTimeSecsEasy: Int = 0,        // total session seconds (base + bonus)
     val timerBestTimeSecsRegular: Int = 0,
     val timerBestTimeSecsHard: Int = 0,
+    // Time played tracking (milliseconds — only counted when on a level screen, screen on)
+    val totalTimePlayedMs: Long = 0L,
+    val easyTimePlayedMs: Long = 0L,
+    val regularTimePlayedMs: Long = 0L,
+    val hardTimePlayedMs: Long = 0L,
+    val vipTimePlayedMs: Long = 0L,
+    val dailyTimePlayedMs: Long = 0L,
+    val timerTimePlayedMs: Long = 0L,
     // VIP
     val isVip: Boolean = false,
     val vipExpiryTimestamp: Long = 0L,

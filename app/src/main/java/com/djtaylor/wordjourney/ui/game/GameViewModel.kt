@@ -973,6 +973,58 @@ class GameViewModel @Inject constructor(
         return Pair(p, bonusLife)
     }
 
+    // ──────────────────────────── Play session time tracking ─────────────────
+
+    private var playSessionStartMs: Long = 0L
+
+    /**
+     * Called when the game screen becomes visible/resumed (screen on, level active).
+     * Starts accumulating play time for this session.
+     */
+    fun onPlaySessionResumed() {
+        playSessionStartMs = System.currentTimeMillis()
+    }
+
+    /**
+     * Called when the game screen pauses or the user navigates away.
+     * Saves elapsed time to the relevant per-difficulty and total fields.
+     */
+    fun onPlaySessionPaused() {
+        val start = playSessionStartMs
+        if (start <= 0L) return
+        playSessionStartMs = 0L
+        val elapsed = System.currentTimeMillis() - start
+        if (elapsed <= 0L) return
+        viewModelScope.launch {
+            val p = playerProgress
+            val updated = when {
+                isDailyChallenge -> p.copy(
+                    dailyTimePlayedMs = p.dailyTimePlayedMs + elapsed,
+                    totalTimePlayedMs = p.totalTimePlayedMs + elapsed
+                )
+                difficulty == Difficulty.EASY -> p.copy(
+                    easyTimePlayedMs  = p.easyTimePlayedMs + elapsed,
+                    totalTimePlayedMs = p.totalTimePlayedMs + elapsed
+                )
+                difficulty == Difficulty.REGULAR -> p.copy(
+                    regularTimePlayedMs = p.regularTimePlayedMs + elapsed,
+                    totalTimePlayedMs   = p.totalTimePlayedMs + elapsed
+                )
+                difficulty == Difficulty.HARD -> p.copy(
+                    hardTimePlayedMs  = p.hardTimePlayedMs + elapsed,
+                    totalTimePlayedMs = p.totalTimePlayedMs + elapsed
+                )
+                difficulty == Difficulty.VIP -> p.copy(
+                    vipTimePlayedMs   = p.vipTimePlayedMs + elapsed,
+                    totalTimePlayedMs = p.totalTimePlayedMs + elapsed
+                )
+                else -> p.copy(totalTimePlayedMs = p.totalTimePlayedMs + elapsed)
+            }
+            playerRepository.saveProgress(updated)
+            playerProgress = updated
+        }
+    }
+
     private fun persistCurrentState() {
         val e = engine ?: return
         val s = _uiState.value

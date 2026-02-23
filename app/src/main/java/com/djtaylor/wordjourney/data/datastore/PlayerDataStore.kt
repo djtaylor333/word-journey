@@ -69,6 +69,14 @@ class PlayerDataStore @Inject constructor(
         val KEY_TOTAL_ITEMS_USED               = intPreferencesKey("total_items_used")
         val KEY_TOTAL_DAILY_COMPLETED          = intPreferencesKey("total_daily_completed")
         val KEY_TOTAL_DAILY_PLAYED             = intPreferencesKey("total_daily_played")
+        // Time played tracking (per category, milliseconds)
+        val KEY_TOTAL_TIME_PLAYED_MS           = longPreferencesKey("total_time_played_ms")
+        val KEY_EASY_TIME_PLAYED_MS            = longPreferencesKey("easy_time_played_ms")
+        val KEY_REGULAR_TIME_PLAYED_MS         = longPreferencesKey("regular_time_played_ms")
+        val KEY_HARD_TIME_PLAYED_MS            = longPreferencesKey("hard_time_played_ms")
+        val KEY_VIP_TIME_PLAYED_MS             = longPreferencesKey("vip_time_played_ms")
+        val KEY_DAILY_TIME_PLAYED_MS           = longPreferencesKey("daily_time_played_ms")
+        val KEY_TIMER_TIME_PLAYED_MS           = longPreferencesKey("timer_time_played_ms")
         // Timer Mode best records
         val KEY_TIMER_BEST_LEVELS_EASY         = intPreferencesKey("timer_best_levels_easy")
         val KEY_TIMER_BEST_LEVELS_REGULAR      = intPreferencesKey("timer_best_levels_regular")
@@ -161,6 +169,13 @@ class PlayerDataStore @Inject constructor(
                 totalItemsUsed    = prefs[KEY_TOTAL_ITEMS_USED] ?: 0,
                 totalDailyChallengesCompleted = prefs[KEY_TOTAL_DAILY_COMPLETED] ?: 0,
                 totalDailyChallengesPlayed    = prefs[KEY_TOTAL_DAILY_PLAYED] ?: 0,
+                totalTimePlayedMs      = prefs[KEY_TOTAL_TIME_PLAYED_MS] ?: 0L,
+                easyTimePlayedMs       = prefs[KEY_EASY_TIME_PLAYED_MS] ?: 0L,
+                regularTimePlayedMs    = prefs[KEY_REGULAR_TIME_PLAYED_MS] ?: 0L,
+                hardTimePlayedMs       = prefs[KEY_HARD_TIME_PLAYED_MS] ?: 0L,
+                vipTimePlayedMs        = prefs[KEY_VIP_TIME_PLAYED_MS] ?: 0L,
+                dailyTimePlayedMs      = prefs[KEY_DAILY_TIME_PLAYED_MS] ?: 0L,
+                timerTimePlayedMs      = prefs[KEY_TIMER_TIME_PLAYED_MS] ?: 0L,
                 timerBestLevelsEasy    = prefs[KEY_TIMER_BEST_LEVELS_EASY] ?: 0,
                 timerBestLevelsRegular = prefs[KEY_TIMER_BEST_LEVELS_REGULAR] ?: 0,
                 timerBestLevelsHard    = prefs[KEY_TIMER_BEST_LEVELS_HARD] ?: 0,
@@ -239,6 +254,13 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_TOTAL_ITEMS_USED]         = progress.totalItemsUsed
             prefs[KEY_TOTAL_DAILY_COMPLETED]    = progress.totalDailyChallengesCompleted
             prefs[KEY_TOTAL_DAILY_PLAYED]       = progress.totalDailyChallengesPlayed
+            prefs[KEY_TOTAL_TIME_PLAYED_MS]     = progress.totalTimePlayedMs
+            prefs[KEY_EASY_TIME_PLAYED_MS]       = progress.easyTimePlayedMs
+            prefs[KEY_REGULAR_TIME_PLAYED_MS]    = progress.regularTimePlayedMs
+            prefs[KEY_HARD_TIME_PLAYED_MS]       = progress.hardTimePlayedMs
+            prefs[KEY_VIP_TIME_PLAYED_MS]        = progress.vipTimePlayedMs
+            prefs[KEY_DAILY_TIME_PLAYED_MS]      = progress.dailyTimePlayedMs
+            prefs[KEY_TIMER_TIME_PLAYED_MS]      = progress.timerTimePlayedMs
             prefs[KEY_TIMER_BEST_LEVELS_EASY]   = progress.timerBestLevelsEasy
             prefs[KEY_TIMER_BEST_LEVELS_REGULAR]= progress.timerBestLevelsRegular
             prefs[KEY_TIMER_BEST_LEVELS_HARD]   = progress.timerBestLevelsHard

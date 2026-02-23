@@ -8,7 +8,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +47,20 @@ fun GameScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val isLightTheme = !isSystemInDarkTheme()
     val textScale = LocalTextScale.current
+
+    // Track play session time (only when screen is on and level is active)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> viewModel.onPlaySessionResumed()
+                Lifecycle.Event.ON_PAUSE  -> viewModel.onPlaySessionPaused()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // Show snackbar for transient messages
     LaunchedEffect(uiState.snackbarMessage) {
@@ -390,14 +406,6 @@ private fun GameTopBar(
                 )
             }
             Spacer(Modifier.width(12.dp))
-            IconButton(onClick = onStore, modifier = Modifier.size(40.dp)) {
-                Icon(
-                    Icons.Default.ShoppingCart,
-                    contentDescription = "Store",
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
             IconButton(onClick = onSettings, modifier = Modifier.size(40.dp)) {
                 Icon(
                     Icons.Default.Settings,

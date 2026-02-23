@@ -21,7 +21,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.djtaylor.wordjourney.domain.model.GameStatus
 import com.djtaylor.wordjourney.domain.model.TileState
 import com.djtaylor.wordjourney.ui.game.components.AnimatedTile
@@ -41,6 +44,20 @@ fun TimerModeScreen(
     val theme = LocalGameTheme.current
     val highContrast = false // could wire to player prefs if needed
     val isLight = !isSystemInDarkTheme()
+
+    // Track play session time (only when TimerMode screen is visible and screen is on)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> viewModel.onSessionResumed()
+                Lifecycle.Event.ON_PAUSE  -> viewModel.onSessionPaused()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Box(
         modifier = Modifier
@@ -143,7 +160,7 @@ private fun SetupContent(
                         "🟡 Regular — 5-letter words · 4 min",
                         "🔴 Hard — 6-letter words · 5 min",
                         "⏱️ +30 seconds per correct word",
-                        "❤️ +1 life per 5 correct (VIP: +2 extra per 10)",
+                        "❤️ Regular: +1 life per 5 words · VIP: +2 lives per 5 words",
                         "✅ Only 'Define Word' item is free",
                         "🚫 No hearts needed to play"
                     ).forEach { line ->
@@ -237,8 +254,8 @@ private fun RulesDialog(diff: TimerDifficulty, onDismiss: () -> Unit, onBegin: (
                     "• Fail a word? Move on, no time bonus",
                     "",
                     "❤️ Life rewards:",
-                    "  Normal: +1 life every 5 correct words",
-                    "  VIP: +1 life per 5, +2 extra per 10 correct",
+                    "  Regular: +1 life every 5 correct words",
+                    "  VIP: +2 lives every 5 correct words",
                     "",
                     "🎒 Items:",
                     "  • Define Word — FREE to use",

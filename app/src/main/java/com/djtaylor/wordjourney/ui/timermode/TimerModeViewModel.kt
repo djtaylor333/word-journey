@@ -162,7 +162,7 @@ class TimerModeViewModel @Inject constructor(
 
     // ──────────────────────────── PLAYING phase ──────────────────────────────
 
-    private fun startPlaying(diff: TimerDifficulty) {
+    private suspend fun startPlaying(diff: TimerDifficulty) {
         wordPool = dailyChallengeRepository.getTimerWords(diff.wordLength).toMutableList()
         usedWords = mutableSetOf()
         _uiState.update {
@@ -180,7 +180,7 @@ class TimerModeViewModel @Inject constructor(
         startTimer()
     }
 
-    private fun loadNextWord(diff: TimerDifficulty) {
+    private suspend fun loadNextWord(diff: TimerDifficulty) {
         if (wordPool.isEmpty()) {
             // Reload pool (shouldn't happen, but just in case)
             wordPool = dailyChallengeRepository.getTimerWords(diff.wordLength)
@@ -329,11 +329,10 @@ class TimerModeViewModel @Inject constructor(
         val newRemaining = _uiState.value.remainingMs + bonusSecs * 1_000L
         var newLivesEarned = _uiState.value.livesEarned
 
-        // Life rewards: +1 per 5, VIP also +2 at every 10
+        // Life rewards: Regular = +1 per 5 correct, VIP = +2 per 5 correct
         var livesToInbox = 0
         val vip = _uiState.value.isVip
-        if (newWordsCorrect % 5 == 0) livesToInbox += 1
-        if (vip && newWordsCorrect % 10 == 0) livesToInbox += 2
+        if (newWordsCorrect % 5 == 0) livesToInbox += if (vip) 2 else 1
 
         if (livesToInbox > 0) {
             newLivesEarned += livesToInbox
@@ -494,6 +493,39 @@ class TimerModeViewModel @Inject constructor(
             playerProgress = updated
         }
         syncEngine()
+    }
+
+    // ──────────────────────────── Session time tracking ──────────────────────
+
+    private var playSessionStartMs: Long = 0L
+
+    /**
+     * Called when the Timer Mode screen becomes visible/resumed.
+     * Starts counting play time.
+     */
+    fun onSessionResumed() {
+        playSessionStartMs = System.currentTimeMillis()
+    }
+
+    /**
+     * Called when the Timer Mode screen pauses or the user navigates away.
+     * Saves elapsed time to [timerTimePlayedMs] and [totalTimePlayedMs].
+     */
+    fun onSessionPaused() {
+        val start = playSessionStartMs
+        if (start <= 0L) return
+        playSessionStartMs = 0L
+        val elapsed = System.currentTimeMillis() - start
+        if (elapsed < 0L) return  // allow 0ms saves (test environments)
+        viewModelScope.launch {
+            val p = playerProgress
+            val updated = p.copy(
+                timerTimePlayedMs = p.timerTimePlayedMs + elapsed,
+                totalTimePlayedMs = p.totalTimePlayedMs + elapsed
+            )
+            playerRepository.saveProgress(updated)
+            playerProgress = updated
+        }
     }
 
     // ──────────────────────────── Recap / retry ───────────────────────────────

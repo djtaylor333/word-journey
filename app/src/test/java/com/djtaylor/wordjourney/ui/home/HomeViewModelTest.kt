@@ -60,6 +60,7 @@ class HomeViewModelTest {
         audioManager = mockk(relaxed = true)
 
         return HomeViewModel(
+            context = mockk(relaxed = true),
             playerRepository = playerRepository,
             lifeRegenUseCase = LifeRegenUseCase(),
             vipDailyRewardUseCase = VipDailyRewardUseCase(),

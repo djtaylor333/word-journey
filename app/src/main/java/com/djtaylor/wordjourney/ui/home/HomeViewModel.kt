@@ -2,6 +2,7 @@ package com.djtaylor.wordjourney.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.data.repository.InboxRepository
@@ -12,6 +13,7 @@ import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
 import com.djtaylor.wordjourney.domain.usecase.VipDailyRewardUseCase
 import com.djtaylor.wordjourney.notifications.LivesFullNotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -31,6 +33,7 @@ data class HomeUiState(
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val playerRepository: PlayerRepository,
     private val lifeRegenUseCase: LifeRegenUseCase,
     private val vipDailyRewardUseCase: VipDailyRewardUseCase,
@@ -134,6 +137,16 @@ class HomeViewModel @Inject constructor(
                         inboxCount = inboxRepository.getUnclaimedCount()
                     )
                 }
+
+                // Schedule (or cancel) full-lives notification now that we know current lives
+                try {
+                    LivesFullNotificationWorker.schedule(
+                        context              = context,
+                        currentLives         = updated.lives,
+                        lastRegenTimestamp   = updated.lastLifeRegenTimestamp,
+                        notificationsEnabled = updated.notifyLivesFull
+                    )
+                } catch (_: Exception) { /* not fatal if WorkManager not initialized in tests */ }
             }
         }
     }
