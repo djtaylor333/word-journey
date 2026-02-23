@@ -83,6 +83,18 @@ object SeasonalThemeManager {
             return !date.isBefore(start) && !date.isAfter(end)
         }
 
+        /** Returns true if this season has already ended in the current year (before today). */
+        fun isExpiredThisYear(date: LocalDate): Boolean {
+            val end = LocalDate.of(date.year, endMonth, endDay)
+            return date.isAfter(end)
+        }
+
+        /** Returns true if this season hasn't started yet in the current year. */
+        fun isUpcomingThisYear(date: LocalDate): Boolean {
+            val start = LocalDate.of(date.year, startMonth, startDay)
+            return date.isBefore(start)
+        }
+
         /** Days remaining until this season starts (0 if active/past for this year). */
         fun daysUntilStart(date: LocalDate): Long {
             val start = LocalDate.of(date.year, startMonth, startDay)
@@ -128,5 +140,53 @@ object SeasonalThemeManager {
             .filter { !it.isActive }
             .minByOrNull { it.daysUntil }
             ?: SeasonStatus(Season.CHRISTMAS, false, 365)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Seasonal Theme Lock Logic
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Lock status for a seasonal theme in the shop.
+     *
+     * - ACTIVE:  Season is currently happening → anyone can purchase
+     * - PAST:    Season has ended this year → VIP players can purchase; others see a lock
+     * - FUTURE:  Season hasn't started yet this year → locked for everyone
+     */
+    enum class SeasonalLockStatus { ACTIVE, PAST, FUTURE }
+
+    /** Info about how a seasonal theme should be presented in the shop. */
+    data class ThemeLockInfo(
+        val status: SeasonalLockStatus,
+        val season: Season?,
+        val daysUntilStart: Long = 0L
+    )
+
+    /**
+     * Maps a theme ID (e.g. "seasonal_halloween") to its [Season], or null
+     * if the theme ID doesn't correspond to a known seasonal theme.
+     */
+    fun getSeasonForThemeId(themeId: String): Season? = when (themeId) {
+        "seasonal_valentines"  -> Season.VALENTINES
+        "seasonal_easter"      -> Season.EASTER
+        "seasonal_summer"      -> Season.SUMMER
+        "seasonal_halloween"   -> Season.HALLOWEEN
+        "seasonal_thanksgiving" -> Season.THANKSGIVING
+        "seasonal_christmas"   -> Season.CHRISTMAS
+        else -> null
+    }
+
+    /**
+     * Returns the [ThemeLockInfo] for a given seasonal theme on a specific date.
+     * Non-seasonal themes (no matching season) are treated as ACTIVE.
+     */
+    fun getThemeLockInfo(themeId: String, date: LocalDate = LocalDate.now()): ThemeLockInfo {
+        val season = getSeasonForThemeId(themeId)
+            ?: return ThemeLockInfo(SeasonalLockStatus.ACTIVE, null)
+        return when {
+            season.isActive(date)          -> ThemeLockInfo(SeasonalLockStatus.ACTIVE, season)
+            season.isExpiredThisYear(date) -> ThemeLockInfo(SeasonalLockStatus.PAST, season)
+            else /* upcoming */            -> ThemeLockInfo(SeasonalLockStatus.FUTURE, season, season.daysUntilStart(date))
+        }
     }
 }

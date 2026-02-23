@@ -227,14 +227,13 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `appVersion is 2_10_0`() = runTest {
+    fun `appVersion is 2_11_0`() = runTest {
         // Test that the appVersion field reflects the current version
-        // Currently v2.9.0
         val vm = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.first()
-        assertEquals("2.10.0", state.appVersion)
+        assertEquals("2.11.0", state.appVersion)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -387,7 +386,8 @@ class SettingsViewModelTest {
         val vm = createViewModel(progress)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val result = vm.purchaseTheme("seasonal_halloween")
+        // Use an active Halloween date so lock rules don't block the purchase
+        val result = vm.purchaseTheme("seasonal_halloween", java.time.LocalDate.of(2025, 10, 15))
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(result)
@@ -490,4 +490,80 @@ class SettingsViewModelTest {
         val state = vm.uiState.first()
         assertFalse(state.isVip)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SEASONAL THEME LOCK RULES (TDD)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `purchaseTheme for future seasonal theme is always blocked`() = runTest {
+        // Halloween is FUTURE on Jan 15 2026
+        val futureDate = java.time.LocalDate.of(2026, 1, 15)
+        val progress = PlayerProgress(diamonds = 100, isVip = true)
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = vm.purchaseTheme("seasonal_halloween", futureDate)
+        assertFalse("Future seasonal theme should be blocked even for VIP", result)
+    }
+
+    @Test
+    fun `purchaseTheme for future seasonal theme blocked for non-VIP too`() = runTest {
+        val futureDate = java.time.LocalDate.of(2026, 6, 1) // Halloween future
+        val progress = PlayerProgress(diamonds = 100, isVip = false)
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = vm.purchaseTheme("seasonal_halloween", futureDate)
+        assertFalse("Future seasonal theme should be blocked for non-VIP", result)
+    }
+
+    @Test
+    fun `purchaseTheme for past seasonal theme blocked for non-VIP`() = runTest {
+        // Halloween is PAST on Nov 5 2025
+        val pastDate = java.time.LocalDate.of(2025, 11, 5)
+        val progress = PlayerProgress(diamonds = 100, isVip = false)
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = vm.purchaseTheme("seasonal_halloween", pastDate)
+        assertFalse("Past seasonal theme should be blocked for non-VIP", result)
+    }
+
+    @Test
+    fun `purchaseTheme for past seasonal theme allowed for VIP with enough diamonds`() = runTest {
+        // Halloween is PAST on Nov 5 2025; cost is 30 diamonds
+        val pastDate = java.time.LocalDate.of(2025, 11, 5)
+        val progress = PlayerProgress(diamonds = 50, isVip = true)
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = vm.purchaseTheme("seasonal_halloween", pastDate)
+        assertTrue("VIP should be able to purchase past seasonal theme", result)
+    }
+
+    @Test
+    fun `purchaseTheme for active seasonal theme allowed for everyone`() = runTest {
+        // Halloween is ACTIVE on Oct 15 2025
+        val activeDate = java.time.LocalDate.of(2025, 10, 15)
+        val progress = PlayerProgress(diamonds = 50, isVip = false)
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val result = vm.purchaseTheme("seasonal_halloween", activeDate)
+        assertTrue("Active seasonal theme should be purchasable by anyone with enough diamonds", result)
+    }
+
+    @Test
+    fun `purchaseTheme for non-seasonal theme is unaffected by lock rules`() = runTest {
+        val anyDate = java.time.LocalDate.of(2026, 1, 15)
+        val progress = PlayerProgress(diamonds = 100)
+        val vm = createViewModel(progress)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // NEON_NIGHTS costs 50 diamonds — non-seasonal VIP theme
+        val result = vm.purchaseTheme("neon_nights", anyDate)
+        assertTrue("Non-seasonal theme should not be affected by seasonal locks", result)
+    }
 }
+

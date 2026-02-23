@@ -36,8 +36,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djtaylor.wordjourney.domain.model.GameTheme
+import com.djtaylor.wordjourney.domain.model.SeasonalThemeManager
 import com.djtaylor.wordjourney.domain.model.ThemeCategory
 import com.djtaylor.wordjourney.domain.model.ThemeRegistry
+import java.time.LocalDate
 import com.djtaylor.wordjourney.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -250,16 +252,90 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Seasonal themes
+            // Seasonal themes — lock overlays based on season status
             ThemeCategoryLabel("🌟 Seasonal Themes")
-            ThemeGrid(
-                themes = ThemeRegistry.SEASONAL_THEMES,
-                selectedTheme = state.selectedTheme,
-                ownedThemes = state.ownedThemes,
-                isVip = state.isVip,
-                onSelect = { viewModel.selectTheme(it) },
-                onPurchase = { viewModel.purchaseTheme(it) }
+            Text(
+                "Past events: VIP members can purchase. Future events: coming soon.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
             )
+            ThemeRegistry.SEASONAL_THEMES.chunked(3).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    row.forEach { seTheme ->
+                        val lockInfo = SeasonalThemeManager.getThemeLockInfo(seTheme.id, LocalDate.now())
+                        Box(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            ThemeCard(
+                                theme = seTheme,
+                                isSelected = state.selectedTheme == seTheme.id,
+                                isOwned = seTheme.id in state.ownedThemes,
+                                isVip = state.isVip,
+                                onSelect = { viewModel.selectTheme(seTheme.id) },
+                                onPurchase = { viewModel.purchaseTheme(seTheme.id) }
+                            )
+                            // Lock overlay for non-active seasonal themes
+                            when (lockInfo.status) {
+                                SeasonalThemeManager.SeasonalLockStatus.FUTURE -> {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color.Black.copy(alpha = 0.68f),
+                                        modifier = Modifier.matchParentSize()
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text("🔒", fontSize = 22.sp)
+                                                Text(
+                                                    "Coming ${lockInfo.season?.startMonth?.name?.take(3)?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "Soon"}",
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 10.sp,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                SeasonalThemeManager.SeasonalLockStatus.PAST -> {
+                                    if (!state.isVip && seTheme.id !in state.ownedThemes) {
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = Color.Black.copy(alpha = 0.55f),
+                                            modifier = Modifier.matchParentSize()
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Text("🔒", fontSize = 20.sp)
+                                                    Text(
+                                                        "VIP Only",
+                                                        color = Color.White,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 10.sp
+                                                    )
+                                                    Text(
+                                                        "Past Event",
+                                                        color = Color.White.copy(alpha = 0.7f),
+                                                        fontSize = 9.sp
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                SeasonalThemeManager.SeasonalLockStatus.ACTIVE -> { /* no overlay – purchasable */ }
+                            }
+                        }
+                    }
+                    // Fill empty cells in last row
+                    repeat(3 - row.size) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 

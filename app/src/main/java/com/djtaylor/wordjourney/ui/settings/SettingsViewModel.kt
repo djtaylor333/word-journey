@@ -7,10 +7,13 @@ import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.GameTheme
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
+import com.djtaylor.wordjourney.domain.model.SeasonalThemeManager
+import com.djtaylor.wordjourney.domain.model.ThemeCategory
 import com.djtaylor.wordjourney.domain.model.ThemeRegistry
 import com.djtaylor.wordjourney.notifications.LivesFullNotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.LocalDate
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,7 +30,7 @@ data class SettingsUiState(
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.10.0",
+    val appVersion: String = "2.11.0",
     val selectedTheme: String = "classic",
     val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
     val diamonds: Int = 0,
@@ -128,8 +131,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun purchaseTheme(themeId: String): Boolean {
+    fun purchaseTheme(themeId: String, date: LocalDate = LocalDate.now()): Boolean {
         val theme = ThemeRegistry.getThemeById(themeId) ?: return false
+        // Enforce seasonal theme lock rules
+        if (theme.category == ThemeCategory.SEASONAL) {
+            val lockInfo = SeasonalThemeManager.getThemeLockInfo(themeId, date)
+            when (lockInfo.status) {
+                SeasonalThemeManager.SeasonalLockStatus.FUTURE -> return false // not yet available
+                SeasonalThemeManager.SeasonalLockStatus.PAST   ->
+                    if (!latestProgress.isVip) return false // VIP-only for past events
+                SeasonalThemeManager.SeasonalLockStatus.ACTIVE -> { /* anyone can buy */ }
+            }
+        }
         val cost = theme.diamondCost
         if (latestProgress.diamonds < cost) return false
         val newOwned = _uiState.value.ownedThemes + themeId
@@ -151,7 +164,7 @@ class SettingsViewModel @Inject constructor(
         saveField { progress ->
             val currentThemeId = progress.selectedTheme
             val theme = ThemeRegistry.getThemeById(currentThemeId)
-            val newTheme = if (theme?.category == com.djtaylor.wordjourney.domain.model.ThemeCategory.VIP) {
+            val newTheme = if (theme?.category == ThemeCategory.VIP) {
                 "classic"
             } else {
                 currentThemeId

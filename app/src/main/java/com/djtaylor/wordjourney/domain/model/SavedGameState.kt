@@ -14,7 +14,8 @@ data class SavedGameState(
     val completedGuesses: List<List<Pair<String, String>>> = emptyList(), // Char/TileState as strings
     val currentInput: List<String> = emptyList(),
     val maxGuesses: Int,
-    val revealedLetters: Map<String, String> = emptyMap() // position index (String) → char (String)
+    val revealedLetters: Map<String, String> = emptyMap(), // position index (String) → char (String)
+    val savedDate: String = ""            // ISO date (yyyy-MM-dd) when this save was created; used to detect stale daily-challenge saves
 )
 
 @Serializable

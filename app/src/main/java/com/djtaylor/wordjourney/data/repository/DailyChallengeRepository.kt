@@ -74,16 +74,41 @@ class DailyChallengeRepository @Inject constructor(
 
     /**
      * Returns today's daily challenge word for a given word length.
-     * Uses the date as a seed so every player gets the same word.
+     * Uses the date as a seed (DDMMYYYY numeric) so every player gets the same
+     * word on the same day, but words change each day.
      */
     fun getDailyWord(wordLength: Int, dateStr: String = todayDateString()): String? {
         val pool = dailyWordPool[wordLength] ?: return null
         if (pool.isEmpty()) return null
-        // date-based seed: hash the date string + word length
-        val seed = dateStr.hashCode().toLong() + wordLength * 31L
-        val rng = Random(seed)
-        val index = (rng.nextInt(pool.size) + pool.size) % pool.size
-        return pool[index]
+        val seed = computeDateSeed(dateStr, wordLength)
+        return pickWordByDateSeed(pool, seed)
+    }
+
+    companion object {
+        /**
+         * Computes a deterministic numeric seed from a date string (yyyy-MM-dd)
+         * and word length using the DDMMYYYY format, e.g. 23022026 for Feb 23 2026.
+         * This ensures every player gets the same word on the same day.
+         */
+        internal fun computeDateSeed(dateStr: String, wordLength: Int): Long {
+            val parts = dateStr.split("-")
+            val year  = parts.getOrNull(0)?.toLongOrNull() ?: 2024L
+            val month = parts.getOrNull(1)?.toLongOrNull() ?: 1L
+            val day   = parts.getOrNull(2)?.toLongOrNull() ?: 1L
+            // Encode as DDMMYYYYe.g. 23022026 = 23 * 1_000_000 + 02 * 10_000 + 2026
+            val datePart = day * 1_000_000L + month * 10_000L + year
+            return datePart + wordLength.toLong() * 31L
+        }
+
+        /**
+         * Picks a word from the pool using the given seed deterministically.
+         * Same seed always returns the same word.
+         */
+        internal fun pickWordByDateSeed(pool: List<String>, seed: Long): String {
+            val rng = Random(seed)
+            val index = ((rng.nextInt(pool.size)) + pool.size) % pool.size
+            return pool[index]
+        }
     }
 
     suspend fun hasPlayedToday(wordLength: Int): Boolean {

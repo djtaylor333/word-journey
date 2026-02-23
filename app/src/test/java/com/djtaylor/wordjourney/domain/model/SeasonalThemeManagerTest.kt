@@ -179,4 +179,153 @@ class SeasonalThemeManagerTest {
         assertTrue(daysUntil > 0)
         assertEquals(273, daysUntil) // Jan 1 to Oct 1
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 6. SEASONAL THEME EXPIRY / UPCOMING (TDD for lock status)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `isExpiredThisYear returns true when season has ended`() {
+        val afterHalloween = LocalDate.of(2025, 11, 1)
+        assertTrue(SeasonalThemeManager.Season.HALLOWEEN.isExpiredThisYear(afterHalloween))
+    }
+
+    @Test
+    fun `isExpiredThisYear returns false during active season`() {
+        val duringHalloween = LocalDate.of(2025, 10, 15)
+        assertFalse(SeasonalThemeManager.Season.HALLOWEEN.isExpiredThisYear(duringHalloween))
+    }
+
+    @Test
+    fun `isExpiredThisYear returns false before season starts`() {
+        val beforeHalloween = LocalDate.of(2025, 9, 1)
+        assertFalse(SeasonalThemeManager.Season.HALLOWEEN.isExpiredThisYear(beforeHalloween))
+    }
+
+    @Test
+    fun `isUpcomingThisYear returns true before season starts`() {
+        val beforeValentines = LocalDate.of(2026, 1, 15)
+        assertTrue(SeasonalThemeManager.Season.VALENTINES.isUpcomingThisYear(beforeValentines))
+    }
+
+    @Test
+    fun `isUpcomingThisYear returns false during active season`() {
+        val duringValentines = LocalDate.of(2026, 2, 10)
+        assertFalse(SeasonalThemeManager.Season.VALENTINES.isUpcomingThisYear(duringValentines))
+    }
+
+    @Test
+    fun `isUpcomingThisYear returns false after season ends`() {
+        val afterValentines = LocalDate.of(2026, 2, 20)
+        assertFalse(SeasonalThemeManager.Season.VALENTINES.isUpcomingThisYear(afterValentines))
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 7. THEME ID → SEASON MAPPING (TDD for getSeasonForThemeId)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `getSeasonForThemeId returns HALLOWEEN for seasonal_halloween`() {
+        assertEquals(SeasonalThemeManager.Season.HALLOWEEN, SeasonalThemeManager.getSeasonForThemeId("seasonal_halloween"))
+    }
+
+    @Test
+    fun `getSeasonForThemeId returns CHRISTMAS for seasonal_christmas`() {
+        assertEquals(SeasonalThemeManager.Season.CHRISTMAS, SeasonalThemeManager.getSeasonForThemeId("seasonal_christmas"))
+    }
+
+    @Test
+    fun `getSeasonForThemeId returns VALENTINES for seasonal_valentines`() {
+        assertEquals(SeasonalThemeManager.Season.VALENTINES, SeasonalThemeManager.getSeasonForThemeId("seasonal_valentines"))
+    }
+
+    @Test
+    fun `getSeasonForThemeId returns EASTER for seasonal_easter`() {
+        assertEquals(SeasonalThemeManager.Season.EASTER, SeasonalThemeManager.getSeasonForThemeId("seasonal_easter"))
+    }
+
+    @Test
+    fun `getSeasonForThemeId returns SUMMER for seasonal_summer`() {
+        assertEquals(SeasonalThemeManager.Season.SUMMER, SeasonalThemeManager.getSeasonForThemeId("seasonal_summer"))
+    }
+
+    @Test
+    fun `getSeasonForThemeId returns THANKSGIVING for seasonal_thanksgiving`() {
+        assertEquals(SeasonalThemeManager.Season.THANKSGIVING, SeasonalThemeManager.getSeasonForThemeId("seasonal_thanksgiving"))
+    }
+
+    @Test
+    fun `getSeasonForThemeId returns null for non-seasonal theme`() {
+        assertNull(SeasonalThemeManager.getSeasonForThemeId("classic"))
+        assertNull(SeasonalThemeManager.getSeasonForThemeId("neon_nights"))
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 8. getThemeLockInfo (TDD for seasonal lock status)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `getThemeLockInfo returns ACTIVE during halloween season`() {
+        val duringHalloween = LocalDate.of(2025, 10, 15)
+        val info = SeasonalThemeManager.getThemeLockInfo("seasonal_halloween", duringHalloween)
+        assertEquals(SeasonalThemeManager.SeasonalLockStatus.ACTIVE, info.status)
+    }
+
+    @Test
+    fun `getThemeLockInfo returns PAST after halloween season`() {
+        val afterHalloween = LocalDate.of(2025, 11, 5)
+        val info = SeasonalThemeManager.getThemeLockInfo("seasonal_halloween", afterHalloween)
+        assertEquals(SeasonalThemeManager.SeasonalLockStatus.PAST, info.status)
+        assertEquals(SeasonalThemeManager.Season.HALLOWEEN, info.season)
+    }
+
+    @Test
+    fun `getThemeLockInfo returns FUTURE before halloween season`() {
+        val beforeHalloween = LocalDate.of(2025, 9, 1)
+        val info = SeasonalThemeManager.getThemeLockInfo("seasonal_halloween", beforeHalloween)
+        assertEquals(SeasonalThemeManager.SeasonalLockStatus.FUTURE, info.status)
+        assertEquals(SeasonalThemeManager.Season.HALLOWEEN, info.season)
+        assertTrue("daysUntil should be > 0", info.daysUntilStart > 0)
+    }
+
+    @Test
+    fun `getThemeLockInfo returns ACTIVE for non-seasonal theme`() {
+        // Non-seasonal themes (free/VIP) are always ACTIVE via lock info
+        val anyDate = LocalDate.of(2025, 1, 15)
+        val info = SeasonalThemeManager.getThemeLockInfo("classic", anyDate)
+        assertEquals(SeasonalThemeManager.SeasonalLockStatus.ACTIVE, info.status)
+    }
+
+    @Test
+    fun `getThemeLockInfo returns FUTURE for valentines in January 2026`() {
+        val jan2026 = LocalDate.of(2026, 1, 15)
+        val info = SeasonalThemeManager.getThemeLockInfo("seasonal_valentines", jan2026)
+        assertEquals(SeasonalThemeManager.SeasonalLockStatus.FUTURE, info.status)
+    }
+
+    @Test
+    fun `getThemeLockInfo returns PAST for valentines in February 23 2026`() {
+        // Today (Feb 23 2026) is after Valentine's Day (Feb 1-14)
+        val today = LocalDate.of(2026, 2, 23)
+        val info = SeasonalThemeManager.getThemeLockInfo("seasonal_valentines", today)
+        assertEquals(SeasonalThemeManager.SeasonalLockStatus.PAST, info.status)
+    }
+
+    @Test
+    fun `getThemeLockInfo PAST status locks non-VIP but allows VIP`() {
+        // The lock info itself just returns the status; VM enforces the rule
+        val afterHalloween = LocalDate.of(2025, 11, 5)
+        val info = SeasonalThemeManager.getThemeLockInfo("seasonal_halloween", afterHalloween)
+        assertEquals(SeasonalThemeManager.SeasonalLockStatus.PAST, info.status)
+        // PAST → VIP can purchase, others cannot (enforced in SettingsViewModel)
+    }
+
+    @Test
+    fun `future seasonal theme has positive daysUntilStart`() {
+        val beforeChristmas = LocalDate.of(2025, 6, 1)
+        val info = SeasonalThemeManager.getThemeLockInfo("seasonal_christmas", beforeChristmas)
+        assertEquals(SeasonalThemeManager.SeasonalLockStatus.FUTURE, info.status)
+        assertTrue(info.daysUntilStart > 0)
+    }
 }
+

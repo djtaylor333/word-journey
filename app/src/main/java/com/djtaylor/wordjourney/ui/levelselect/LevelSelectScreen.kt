@@ -238,6 +238,9 @@ fun LevelSelectScreen(
                         }
                     )
                 }
+                Spacer(Modifier.height(16.dp))
+                // "More levels coming soon" banner after the last zone
+                MoreLevelsBanner(accent = accent)
                 Spacer(Modifier.height(32.dp))
             }
         }
@@ -558,8 +561,45 @@ private fun DrawScope.drawSparkles(zone: ZoneTheme, phase: Float, zoneIdx: Int) 
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════// More Levels Coming Soon banner
+// ══════════════════════════════════════════════════════════════════════════════
 
+@Composable
+private fun MoreLevelsBanner(accent: Color) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = accent.copy(alpha = 0.12f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("🔒", fontSize = 36.sp)
+            Text(
+                text = "More Adventures Coming Soon!",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = accent,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Text(
+                text = "You've reached the end of the current journey.\nNew levels are on the way — stay tuned!",
+                fontSize = 13.sp,
+                color = Color.White.copy(alpha = 0.65f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                lineHeight = 18.sp
+            )
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Canvas draw helpers
+// ══════════════════════════════════════════════════════════════════════════════
 private fun fmtTimer(ms: Long): String {
     val s = ms / 1000
     return "%02d:%02d".format(s / 60, s % 60)

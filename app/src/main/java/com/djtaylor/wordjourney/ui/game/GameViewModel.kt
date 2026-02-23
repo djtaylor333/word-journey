@@ -57,6 +57,15 @@ class GameViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "GameViewModel"
+
+        /**
+         * Returns true if a saved daily-challenge game is from a different day
+         * and should be discarded. An empty savedDate is treated as fresh (compatible
+         * with saves from before this field was added).
+         */
+        internal fun isDailySaveStale(savedDate: String, todayDate: String): Boolean {
+            return savedDate.isNotEmpty() && savedDate != todayDate
+        }
     }
 
     private val _uiState = MutableStateFlow(
@@ -108,12 +117,20 @@ class GameViewModel @Inject constructor(
                 isReplay = false
                 val saved = playerRepository.loadInProgressGame(difficultyKey)
                 if (saved != null) {
-                    try {
-                        restoreFromSave(saved)
-                    } catch (restoreEx: Exception) {
-                        android.util.Log.e(TAG, "Failed to restore saved game, starting fresh", restoreEx)
+                    // If the saved game is from a different day, discard it and start fresh
+                    val today = dailyChallengeRepository.todayDateString()
+                    if (isDailySaveStale(saved.savedDate, today)) {
+                        android.util.Log.d(TAG, "Stale daily challenge save (${saved.savedDate} vs $today), starting fresh")
                         playerRepository.clearInProgressGame(difficultyKey)
                         startFreshLevel(levelArg)
+                    } else {
+                        try {
+                            restoreFromSave(saved)
+                        } catch (restoreEx: Exception) {
+                            android.util.Log.e(TAG, "Failed to restore saved game, starting fresh", restoreEx)
+                            playerRepository.clearInProgressGame(difficultyKey)
+                            startFreshLevel(levelArg)
+                        }
                     }
                 } else {
                     startFreshLevel(levelArg)
@@ -1040,7 +1057,9 @@ class GameViewModel @Inject constructor(
                 currentInput = e.currentInput.map { it.toString() },
                 maxGuesses = e.maxGuesses,
                 revealedLetters = e.prefilledPositions.entries
-                    .associate { (k, v) -> k.toString() to v.toString() }
+                    .associate { (k, v) -> k.toString() to v.toString() },
+                // For daily challenges, stamp today's date so stale saves can be detected
+                savedDate = if (isDailyChallenge) dailyChallengeRepository.todayDateString() else ""
             )
             playerRepository.saveInProgressGame(saved)
         }

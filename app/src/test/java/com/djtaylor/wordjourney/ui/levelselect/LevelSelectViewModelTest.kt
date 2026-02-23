@@ -279,4 +279,33 @@ class LevelSelectViewModelTest {
     fun `star ratings only loads for current difficulty`() = testWithVm("regular") { vm ->
         coVerify { starRatingDao.getAllForDifficulty("regular") }
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // TOTAL LEVELS & MORE LEVELS BANNER (TDD for "more levels coming soon")
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `totalLevels is 100 for easy difficulty`() = testWithVm("easy") { vm ->
+        val state = vm.uiState.first()
+        assertEquals(100, state.totalLevels)
+    }
+
+    @Test
+    fun `totalLevels is 100 for regular difficulty`() = testWithVm("regular") { vm ->
+        val state = vm.uiState.first()
+        assertEquals(100, state.totalLevels)
+    }
+
+    @Test
+    fun `totalLevels is 100 for hard difficulty`() = testWithVm("hard") { vm ->
+        val state = vm.uiState.first()
+        assertEquals(100, state.totalLevels)
+    }
+
+    @Test
+    fun `totalLevels is 100 for vip difficulty`() = testWithVm("vip") { vm ->
+        val state = vm.uiState.first()
+        assertEquals(100, state.totalLevels)
+    }
 }
+
