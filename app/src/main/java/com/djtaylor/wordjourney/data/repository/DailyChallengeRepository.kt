@@ -115,6 +115,11 @@ class DailyChallengeRepository @Inject constructor(
         return dailyChallengeDao.getResult(todayDateString(), wordLength) != null
     }
 
+    /** [DEV] Deletes all Room DB entries for today so daily challenges appear unplayed. */
+    suspend fun devClearTodayResults() {
+        dailyChallengeDao.deleteAllForDate(todayDateString())
+    }
+
     suspend fun saveResult(
         wordLength: Int,
         word: String,

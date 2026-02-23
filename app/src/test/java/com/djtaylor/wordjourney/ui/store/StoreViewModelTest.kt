@@ -484,4 +484,91 @@ class StoreViewModelTest {
         // Inbox reward added immediately on purchase
         coVerify { inboxRepository.addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any()) }
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 12. DEV MODE PURCHASES
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `purchase in dev mode does not call billingManager`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true, coins = 0L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // billingManager.purchase() must NOT be invoked when dev mode is on
+        coVerify(exactly = 0) { billingManager.purchase(any(), any()) }
+    }
+
+    @Test
+    fun `purchase coins 500 in dev mode grants 500 coins`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true, coins = 0L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.coins == 500L }) }
+    }
+
+    @Test
+    fun `purchase coins 5000 in dev mode grants 5000 coins`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true, coins = 100L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_5000)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.coins == 5100L }) }
+    }
+
+    @Test
+    fun `purchase VIP monthly in dev mode sets isVip without billingManager`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true, isVip = false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.VIP_MONTHLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { billingManager.purchase(any(), any()) }
+        coVerify { playerRepository.saveProgress(match { it.isVip }) }
+    }
+
+    @Test
+    fun `purchase diamonds 50 in dev mode grants 50 diamonds`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true, diamonds = 5))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.DIAMONDS_50)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 55 }) }
+    }
+
+    @Test
+    fun `purchase normal mode still calls billingManager`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false, coins = 0L))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { billingManager.purchase(ProductIds.COINS_500, any()) }
+    }
+
+    @Test
+    fun `devBuildFreeResult returns expected result for each productId`() {
+        val vm = createViewModel()
+        assertEquals(500L,  vm.devBuildFreeResult(ProductIds.COINS_500).coinsGranted)
+        assertEquals(1500L, vm.devBuildFreeResult(ProductIds.COINS_1500).coinsGranted)
+        assertEquals(5000L, vm.devBuildFreeResult(ProductIds.COINS_5000).coinsGranted)
+        assertEquals(10,    vm.devBuildFreeResult(ProductIds.DIAMONDS_10).diamondsGranted)
+        assertEquals(50,    vm.devBuildFreeResult(ProductIds.DIAMONDS_50).diamondsGranted)
+        assertEquals(200,   vm.devBuildFreeResult(ProductIds.DIAMONDS_200).diamondsGranted)
+        assertEquals(5,     vm.devBuildFreeResult(ProductIds.LIVES_PACK_5).livesGranted)
+        assertTrue(vm.devBuildFreeResult(ProductIds.VIP_MONTHLY).success)
+        assertTrue(vm.devBuildFreeResult(ProductIds.VIP_YEARLY).success)
+        assertFalse(vm.devBuildFreeResult("unknown_product").success)
+    }
 }

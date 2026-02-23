@@ -3,6 +3,7 @@ package com.djtaylor.wordjourney.ui.settings
 import android.content.Context
 import com.djtaylor.wordjourney.audio.AudioSettings
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import io.mockk.*
@@ -26,6 +27,7 @@ class SettingsViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var progressFlow: MutableStateFlow<PlayerProgress>
     private lateinit var playerRepository: PlayerRepository
+    private lateinit var dailyChallengeRepository: DailyChallengeRepository
     private lateinit var audioManager: WordJourneysAudioManager
     private lateinit var context: Context
 
@@ -83,10 +85,14 @@ class SettingsViewModelTest {
         }
         audioManager = mockk(relaxed = true)
         context = mockk(relaxed = true)
+        dailyChallengeRepository = mockk {
+            coEvery { devClearTodayResults() } just Runs
+        }
 
         return SettingsViewModel(
             context = context,
             playerRepository = playerRepository,
+            dailyChallengeRepository = dailyChallengeRepository,
             audioManager = audioManager
         )
     }
@@ -259,13 +265,13 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `appVersion is 2_13_0`() = runTest {
+    fun `appVersion is 2_14_0`() = runTest {
         // Test that the appVersion field reflects the current version
         val vm = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.first()
-        assertEquals("2.13.0", state.appVersion)
+        assertEquals("2.14.0", state.appVersion)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -736,6 +742,19 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { playerRepository.devResetDailyChallenges(any()) }
+    }
+
+    @Test
+    fun `devResetDailyChallenges also clears today Room DB results`() = runTest {
+        // The fix for the daily reset bug: Room DB entries for today were not cleared,
+        // causing hasPlayedToday() to still return true after resetting DataStore fields.
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.devResetDailyChallenges()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { dailyChallengeRepository.devClearTodayResults() }
     }
 
     @Test

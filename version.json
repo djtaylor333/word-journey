@@ -1,9 +1,9 @@
 {
-  "versionName": "2.13.0",
-  "versionCode": 24,
+  "versionName": "2.14.0",
+  "versionCode": 25,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2025-06-07",
-  "releaseNotes": "v2.13.0 — Fix dev notifications (devDirectFire bypasses WorkManager), add Reset Level Progress dev tool."
+  "buildDate": "2025-02-24",
+  "releaseNotes": "v2.14.0 — Fix daily challenge reset (clear Room DB), dev mode free purchases bypass Play Store."
 }

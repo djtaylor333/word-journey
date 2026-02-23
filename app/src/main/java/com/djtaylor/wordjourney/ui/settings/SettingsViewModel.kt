@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.GameTheme
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -31,7 +32,7 @@ data class SettingsUiState(
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.13.0",
+    val appVersion: String = "2.14.0",
     val selectedTheme: String = "classic",
     val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
     val diamonds: Int = 0,
@@ -43,6 +44,7 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val playerRepository: PlayerRepository,
+    private val dailyChallengeRepository: DailyChallengeRepository,
     private val audioManager: WordJourneysAudioManager
 ) : ViewModel() {
 
@@ -198,6 +200,7 @@ class SettingsViewModel @Inject constructor(
     fun devResetDailyChallenges() {
         viewModelScope.launch {
             playerRepository.devResetDailyChallenges(latestProgress)
+            dailyChallengeRepository.devClearTodayResults() // also wipe Room DB entries
         }
     }
 

@@ -7,6 +7,7 @@ import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.IBillingManager
 import com.djtaylor.wordjourney.billing.ProductIds
+import com.djtaylor.wordjourney.billing.PurchaseResult
 import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -50,77 +51,102 @@ class StoreViewModel @Inject constructor(
     fun purchase(productId: String) {
         _uiState.update { it.copy(isPurchasing = true) }
         viewModelScope.launch {
-            billingManager.purchase(productId) { result ->
-                if (result.success) {
-                    viewModelScope.launch {
-                        val current = _uiState.value.progress
-                        var updated = current.copy(
-                            coins    = current.coins + result.coinsGranted,
-                            diamonds = current.diamonds + result.diamondsGranted,
-                            lives    = current.lives + result.livesGranted
-                        )
-                        // Handle bundle item grants
-                        updated = when (productId) {
-                            ProductIds.STARTER_BUNDLE -> updated.copy(
-                                addGuessItems = updated.addGuessItems + 5,
-                                removeLetterItems = updated.removeLetterItems + 5,
-                                definitionItems = updated.definitionItems + 5,
-                                showLetterItems = updated.showLetterItems + 5
-                            )
-                            ProductIds.ADVENTURER_BUNDLE -> updated.copy(
-                                addGuessItems = updated.addGuessItems + 10,
-                                removeLetterItems = updated.removeLetterItems + 10,
-                                definitionItems = updated.definitionItems + 10,
-                                showLetterItems = updated.showLetterItems + 10
-                            )
-                            ProductIds.CHAMPION_BUNDLE -> updated.copy(
-                                addGuessItems = updated.addGuessItems + 25,
-                                removeLetterItems = updated.removeLetterItems + 25,
-                                definitionItems = updated.definitionItems + 25,
-                                showLetterItems = updated.showLetterItems + 25
-                            )
-                            ProductIds.VIP_MONTHLY, ProductIds.VIP_YEARLY -> updated.copy(
-                                isVip = true,
-                                vipExpiryTimestamp = System.currentTimeMillis() +
-                                    if (productId == ProductIds.VIP_YEARLY) 365L * 24 * 60 * 60 * 1000
-                                    else 30L * 24 * 60 * 60 * 1000
-                            )
-                            else -> updated
-                        }
-                        // For VIP purchases: grant today's daily reward immediately into inbox
-                        if (productId == ProductIds.VIP_MONTHLY || productId == ProductIds.VIP_YEARLY) {
-                            val reward = vipDailyRewardUseCase.calculateRewards(
-                                lastVipRewardDate = updated.lastVipRewardDate
-                            )
-                            if (reward != null) {
-                                updated = updated.copy(lastVipRewardDate = reward.updatedLastRewardDate)
-                                inboxRepository.addVipDailyRewardIfNeeded(
-                                    livesGranted = reward.livesGranted,
-                                    addGuessItems = reward.addGuessItemsGranted,
-                                    removeLetterItems = reward.removeLetterItemsGranted,
-                                    definitionItems = reward.definitionItemsGranted,
-                                    showLetterItems = reward.showLetterItemsGranted,
-                                    daysAccumulated = 1
-                                )
-                            }
-                        }
-                        playerRepository.saveProgress(updated)
-                        audioManager.playSfx(SfxSound.COIN_EARN)
-                        val purchaseMsg = if (productId == ProductIds.VIP_MONTHLY || productId == ProductIds.VIP_YEARLY) {
-                            "👑 VIP activated! Your daily rewards are in your inbox — claim them now!"
-                        } else {
-                            buildGrantMessage(result.coinsGranted, result.diamondsGranted, result.livesGranted)
-                        }
-                        _uiState.update { it.copy(
-                            isPurchasing = false,
-                            message = purchaseMsg
-                        )}
+            if (_uiState.value.progress.devModeEnabled) {
+                // Dev mode: skip Play Store transaction and grant items for free
+                val devResult = devBuildFreeResult(productId)
+                applySuccessfulPurchase(productId, devResult)
+            } else {
+                billingManager.purchase(productId) { result ->
+                    if (result.success) {
+                        viewModelScope.launch { applySuccessfulPurchase(productId, result) }
+                    } else {
+                        _uiState.update { it.copy(isPurchasing = false, message = "Purchase failed. Please try again.") }
                     }
-                } else {
-                    _uiState.update { it.copy(isPurchasing = false, message = "Purchase failed. Please try again.") }
                 }
             }
         }
+    }
+
+    private suspend fun applySuccessfulPurchase(productId: String, result: PurchaseResult) {
+        val current = _uiState.value.progress
+        var updated = current.copy(
+            coins    = current.coins + result.coinsGranted,
+            diamonds = current.diamonds + result.diamondsGranted,
+            lives    = current.lives + result.livesGranted
+        )
+        // Handle bundle item grants
+        updated = when (productId) {
+            ProductIds.STARTER_BUNDLE -> updated.copy(
+                addGuessItems = updated.addGuessItems + 5,
+                removeLetterItems = updated.removeLetterItems + 5,
+                definitionItems = updated.definitionItems + 5,
+                showLetterItems = updated.showLetterItems + 5
+            )
+            ProductIds.ADVENTURER_BUNDLE -> updated.copy(
+                addGuessItems = updated.addGuessItems + 10,
+                removeLetterItems = updated.removeLetterItems + 10,
+                definitionItems = updated.definitionItems + 10,
+                showLetterItems = updated.showLetterItems + 10
+            )
+            ProductIds.CHAMPION_BUNDLE -> updated.copy(
+                addGuessItems = updated.addGuessItems + 25,
+                removeLetterItems = updated.removeLetterItems + 25,
+                definitionItems = updated.definitionItems + 25,
+                showLetterItems = updated.showLetterItems + 25
+            )
+            ProductIds.VIP_MONTHLY, ProductIds.VIP_YEARLY -> updated.copy(
+                isVip = true,
+                vipExpiryTimestamp = System.currentTimeMillis() +
+                    if (productId == ProductIds.VIP_YEARLY) 365L * 24 * 60 * 60 * 1000
+                    else 30L * 24 * 60 * 60 * 1000
+            )
+            else -> updated
+        }
+        // For VIP purchases: grant today's daily reward immediately into inbox
+        if (productId == ProductIds.VIP_MONTHLY || productId == ProductIds.VIP_YEARLY) {
+            val reward = vipDailyRewardUseCase.calculateRewards(
+                lastVipRewardDate = updated.lastVipRewardDate
+            )
+            if (reward != null) {
+                updated = updated.copy(lastVipRewardDate = reward.updatedLastRewardDate)
+                inboxRepository.addVipDailyRewardIfNeeded(
+                    livesGranted = reward.livesGranted,
+                    addGuessItems = reward.addGuessItemsGranted,
+                    removeLetterItems = reward.removeLetterItemsGranted,
+                    definitionItems = reward.definitionItemsGranted,
+                    showLetterItems = reward.showLetterItemsGranted,
+                    daysAccumulated = 1
+                )
+            }
+        }
+        playerRepository.saveProgress(updated)
+        audioManager.playSfx(SfxSound.COIN_EARN)
+        val purchaseMsg = if (productId == ProductIds.VIP_MONTHLY || productId == ProductIds.VIP_YEARLY) {
+            "👑 VIP activated! Your daily rewards are in your inbox — claim them now!"
+        } else {
+            buildGrantMessage(result.coinsGranted, result.diamondsGranted, result.livesGranted)
+        }
+        _uiState.update { it.copy(isPurchasing = false, message = purchaseMsg) }
+    }
+
+    /**
+     * Builds a synthetic [PurchaseResult] that mirrors what [StubBillingManager] would return,
+     * used when dev mode is active so purchases succeed without a Play Store transaction.
+     */
+    internal fun devBuildFreeResult(productId: String): PurchaseResult = when (productId) {
+        ProductIds.COINS_500         -> PurchaseResult(productId, true, coinsGranted = 500)
+        ProductIds.COINS_1500        -> PurchaseResult(productId, true, coinsGranted = 1500)
+        ProductIds.COINS_5000        -> PurchaseResult(productId, true, coinsGranted = 5000)
+        ProductIds.DIAMONDS_10       -> PurchaseResult(productId, true, diamondsGranted = 10)
+        ProductIds.DIAMONDS_50       -> PurchaseResult(productId, true, diamondsGranted = 50)
+        ProductIds.DIAMONDS_200      -> PurchaseResult(productId, true, diamondsGranted = 200)
+        ProductIds.LIVES_PACK_5      -> PurchaseResult(productId, true, livesGranted = 5)
+        ProductIds.STARTER_BUNDLE    -> PurchaseResult(productId, true, coinsGranted = 1000, diamondsGranted = 5)
+        ProductIds.ADVENTURER_BUNDLE -> PurchaseResult(productId, true, coinsGranted = 3000, diamondsGranted = 20, livesGranted = 10)
+        ProductIds.CHAMPION_BUNDLE   -> PurchaseResult(productId, true, coinsGranted = 10000, diamondsGranted = 100, livesGranted = 25)
+        ProductIds.VIP_MONTHLY       -> PurchaseResult(productId, true)
+        ProductIds.VIP_YEARLY        -> PurchaseResult(productId, true)
+        else                         -> PurchaseResult(productId, false)
     }
 
     // ── Ad Rewards ────────────────────────────────────────────────────────────

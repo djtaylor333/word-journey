@@ -35,4 +35,7 @@ interface DailyChallengeDao {
 
     @Query("SELECT * FROM daily_challenge_results ORDER BY date DESC LIMIT :limit")
     suspend fun recentResults(limit: Int = 30): List<DailyChallengeResultEntity>
+
+    @Query("DELETE FROM daily_challenge_results WHERE date = :date")
+    suspend fun deleteAllForDate(date: String)
 }
