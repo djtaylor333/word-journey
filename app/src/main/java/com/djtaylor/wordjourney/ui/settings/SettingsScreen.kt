@@ -1,6 +1,7 @@
 package com.djtaylor.wordjourney.ui.settings
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
@@ -53,10 +54,16 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val activity = context as Activity
     var showAboutDialog by remember { mutableStateOf(false) }
     val theme = LocalGameTheme.current
     // Tap counter for version easter egg: 10 taps → dev mode on, then 3 taps → dev mode off
     var versionTapCount by remember { mutableIntStateOf(0) }
+
+    // Refresh Play Games auth state whenever the Settings screen is shown
+    LaunchedEffect(Unit) {
+        viewModel.checkPlayGamesAuth(activity)
+    }
 
     // Notification permission launcher (Android 13+)
     val notifPermLauncher = rememberLauncherForActivityResult(
@@ -533,35 +540,48 @@ fun SettingsScreen(
             // ── Account ───────────────────────────────────────────────────────
             SettingsSection(title = "Account")
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                onClick = {
+                    if (state.playGamesSignedIn) viewModel.signOutOfPlayGames()
+                    else viewModel.signInToPlayGames(activity)
+                },
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Google Play Games",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = if (state.playGamesSignedIn) {
+                                state.playerDisplayName ?: "Signed in"
+                            } else {
+                                "Sign in for cloud saves"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
                     Text(
-                        text = "Google Play Games",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = if (state.playGamesSignedIn) {
-                            state.playerDisplayName ?: "Signed in"
-                        } else {
-                            "Sign in for cloud saves"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        text = if (state.playGamesSignedIn) "Sign Out" else "Sign In",
+                        color = if (state.playGamesSignedIn)
+                            MaterialTheme.colorScheme.error
+                        else
+                            MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
-                Text(
-                    text = if (state.playGamesSignedIn) "Connected" else "Not connected",
-                    color = if (state.playGamesSignedIn) TileCorrect else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

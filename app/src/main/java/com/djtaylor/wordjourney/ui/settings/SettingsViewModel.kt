@@ -1,12 +1,15 @@
 package com.djtaylor.wordjourney.ui.settings
 
+import android.app.Activity
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.djtaylor.wordjourney.auth.PlayGamesHelper
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.GameTheme
+import com.google.android.gms.games.PlayGames
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import com.djtaylor.wordjourney.domain.model.SeasonalThemeManager
 import com.djtaylor.wordjourney.domain.model.ThemeCategory
@@ -32,7 +35,7 @@ data class SettingsUiState(
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.16.2",
+    val appVersion: String = "2.16.3",
     val selectedTheme: String = "classic",
     val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
     val diamonds: Int = 0,
@@ -45,7 +48,8 @@ class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val playerRepository: PlayerRepository,
     private val dailyChallengeRepository: DailyChallengeRepository,
-    private val audioManager: WordJourneysAudioManager
+    private val audioManager: WordJourneysAudioManager,
+    private val playGamesHelper: PlayGamesHelper
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -196,6 +200,38 @@ class SettingsViewModel @Inject constructor(
         saveField { it.copy(devModeEnabled = enabled) }
     }
 
+    // ── Google Play Games ─────────────────────────────────────────────────────
+
+    /**
+     * Checks current authentication state and updates UI state accordingly.
+     * Call from the composable on resume so the row always reflects reality.
+     */
+    fun checkPlayGamesAuth(activity: Activity) {
+        playGamesHelper.isAuthenticated(activity) { signedIn ->
+            if (signedIn) {
+                playGamesHelper.getPlayerDisplayName(activity) { name ->
+                    _uiState.update { it.copy(playGamesSignedIn = true, playerDisplayName = name) }
+                    saveField { it.copy(playGamesSignedIn = true) }
+                }
+            } else {
+                _uiState.update { it.copy(playGamesSignedIn = false, playerDisplayName = null) }
+                saveField { it.copy(playGamesSignedIn = false) }
+            }
+        }
+    }
+
+    /** Triggers the Play Games sign-in flow and refreshes state on completion. */
+    fun signInToPlayGames(activity: Activity) {
+        PlayGames.getGamesSignInClient(activity).signIn()
+            .addOnCompleteListener { checkPlayGamesAuth(activity) }
+    }
+
+    /** Signs out of Play Games by clearing the local signed-in flag. */
+    fun signOutOfPlayGames() {
+        _uiState.update { it.copy(playGamesSignedIn = false, playerDisplayName = null) }
+        saveField { it.copy(playGamesSignedIn = false) }
+    }
+
     /** [DEV] Clears all daily challenge progress so they appear undone today. */
     fun devResetDailyChallenges() {
         viewModelScope.launch {
@@ -235,6 +271,7 @@ class SettingsViewModel @Inject constructor(
                     darkMode               = updated.darkMode,
                     colorblindMode         = updated.colorblindMode,
                     textScaleFactor        = updated.textScaleFactor,
+                    playGamesSignedIn      = updated.playGamesSignedIn,
                     selectedTheme          = updated.selectedTheme,
                     ownedThemes            = updated.ownedThemes.split(",").filter { it.isNotBlank() }.toSet(),
                     diamonds               = updated.diamonds,

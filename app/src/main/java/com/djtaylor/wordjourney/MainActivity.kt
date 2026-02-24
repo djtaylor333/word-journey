@@ -12,6 +12,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.data.cloud.CloudSaveManager
 import com.djtaylor.wordjourney.data.datastore.PlayerDataStore
 import com.djtaylor.wordjourney.domain.model.ThemeRegistry
 import com.djtaylor.wordjourney.ui.navigation.AppNavigation
@@ -24,6 +25,7 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var audioManager: WordJourneysAudioManager
     @Inject lateinit var playerDataStore: PlayerDataStore
+    @Inject lateinit var cloudSaveManager: CloudSaveManager
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -72,11 +74,13 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         audioManager.onForeground()
+        cloudSaveManager.setActivity(this)
     }
 
     override fun onPause() {
         super.onPause()
         audioManager.onBackground()
+        cloudSaveManager.setActivity(null)
     }
 
     override fun onDestroy() {
