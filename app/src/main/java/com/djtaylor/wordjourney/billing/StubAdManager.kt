@@ -44,8 +44,8 @@ class StubAdManager @Inject constructor() : IAdManager {
         // No-op in stub — real implementation would pre-fetch an ad
     }
 
-    override suspend fun showRewardedAd(): AdRewardResult {
-        // Simulate ad viewing
+    override suspend fun showRewardedAd(activity: android.app.Activity): AdRewardResult {
+        // Simulate ad viewing (Activity not used in stub)
         kotlinx.coroutines.delay(500)
         return AdRewardResult(watched = true, rewardType = "coins", rewardAmount = 100)
     }

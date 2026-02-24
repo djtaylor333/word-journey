@@ -151,10 +151,10 @@ class StoreViewModel @Inject constructor(
 
     // ── Ad Rewards ────────────────────────────────────────────────────────────
 
-    fun watchAdForCoins() {
+    fun watchAdForCoins(activity: android.app.Activity) {
         _uiState.update { it.copy(isWatchingAd = true) }
         viewModelScope.launch {
-            val result = adManager.showRewardedAd()
+            val result = adManager.showRewardedAd(activity)
             if (result.watched) {
                 val current = _uiState.value.progress
                 val updated = current.copy(coins = current.coins + 100)
@@ -169,10 +169,10 @@ class StoreViewModel @Inject constructor(
         }
     }
 
-    fun watchAdForLife() {
+    fun watchAdForLife(activity: android.app.Activity) {
         _uiState.update { it.copy(isWatchingAd = true) }
         viewModelScope.launch {
-            val result = adManager.showRewardedAd()
+            val result = adManager.showRewardedAd(activity)
             if (result.watched) {
                 val current = _uiState.value.progress
                 val updated = current.copy(lives = current.lives + 1)
@@ -187,10 +187,10 @@ class StoreViewModel @Inject constructor(
         }
     }
 
-    fun watchAdForItem() {
+    fun watchAdForItem(activity: android.app.Activity) {
         _uiState.update { it.copy(isWatchingAd = true) }
         viewModelScope.launch {
-            val result = adManager.showRewardedAd()
+            val result = adManager.showRewardedAd(activity)
             if (result.watched) {
                 val current = _uiState.value.progress
                 // Grant a random item

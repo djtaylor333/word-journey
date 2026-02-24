@@ -15,6 +15,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djtaylor.wordjourney.billing.ProductIds
@@ -27,6 +29,7 @@ fun StoreScreen(
     viewModel: StoreViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val activity = LocalContext.current as Activity
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
     val isLight = !isSystemInDarkTheme()
@@ -113,6 +116,7 @@ fun StoreScreen(
 private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
     val isLt = !isSystemInDarkTheme()
     val cColor = adaptiveCoinColor(isLt)
+    val activity = LocalContext.current as Activity
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -205,7 +209,7 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             costLabel = if (uiState.isAdReady) "Watch" else "Loading…",
             costColor = AccentEasy,
             enabled = uiState.isAdReady && !uiState.isWatchingAd,
-            onBuy = { viewModel.watchAdForCoins() }
+            onBuy = { viewModel.watchAdForCoins(activity) }
         )
         StoreCard(
             emoji = "🎬",
@@ -214,7 +218,7 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             costLabel = if (uiState.isAdReady) "Watch" else "Loading…",
             costColor = HeartRed,
             enabled = uiState.isAdReady && !uiState.isWatchingAd,
-            onBuy = { viewModel.watchAdForLife() }
+            onBuy = { viewModel.watchAdForLife(activity) }
         )
         StoreCard(
             emoji = "🎬",
@@ -223,7 +227,7 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             costLabel = if (uiState.isAdReady) "Watch" else "Loading…",
             costColor = Primary,
             enabled = uiState.isAdReady && !uiState.isWatchingAd,
-            onBuy = { viewModel.watchAdForItem() }
+            onBuy = { viewModel.watchAdForItem(activity) }
         )
     }
 }

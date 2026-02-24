@@ -84,10 +84,11 @@ interface IAdManager {
     suspend fun loadRewardedAd()
 
     /**
-     * Shows a rewarded ad. Returns the [AdRewardResult] when the user
-     * finishes watching (or cancels).
+     * Shows a rewarded ad on top of [activity]. Returns the [AdRewardResult] when the user
+     * finishes watching (or cancels). Requires an Activity reference because
+     * AdMob's RewardedAd.show() must be called with a live Activity.
      */
-    suspend fun showRewardedAd(): AdRewardResult
+    suspend fun showRewardedAd(activity: android.app.Activity): AdRewardResult
 }
 
 data class AdRewardResult(

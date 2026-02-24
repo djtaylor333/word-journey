@@ -32,7 +32,7 @@ data class SettingsUiState(
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.15.0",
+    val appVersion: String = "2.16.0",
     val selectedTheme: String = "classic",
     val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
     val diamonds: Int = 0,

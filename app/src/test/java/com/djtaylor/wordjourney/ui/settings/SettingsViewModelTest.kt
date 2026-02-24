@@ -265,13 +265,13 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `appVersion is 2_15_0`() = runTest {
+    fun `appVersion is 2_16_0`() = runTest {
         // Test that the appVersion field reflects the current version
         val vm = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.first()
-        assertEquals("2.15.0", state.appVersion)
+        assertEquals("2.16.0", state.appVersion)
     }
 
     // ══════════════════════════════════════════════════════════════════════════

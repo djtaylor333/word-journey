@@ -24,8 +24,8 @@ android {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 35
-        versionCode 26
-        versionName "2.15.0"
+        versionCode 27
+        versionName "2.16.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -149,6 +149,9 @@ dependencies {
 
     // ── Google Play Games (cloud saves) ─────────────────────────────────────
     implementation 'com.google.android.gms:play-services-games-v2:20.1.2'
+
+    // ── AdMob (rewarded ads) ─────────────────────────────────────────────────
+    implementation 'com.google.android.gms:play-services-ads:23.6.0'
 
     // ── Google Play Billing (stubbed) ────────────────────────────────────────
     implementation 'com.android.billingclient:billing-ktx:7.1.1'
