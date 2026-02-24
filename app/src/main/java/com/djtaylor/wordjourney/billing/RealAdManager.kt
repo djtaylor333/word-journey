@@ -17,8 +17,21 @@ import kotlin.coroutines.resume
 
 private const val TAG = "RealAdManager"
 
-/** AdMob rewarded ad unit ID for Word Journey. */
-private const val REWARDED_AD_UNIT_ID = "ca-app-pub-8973997605504935/9065149682"
+/**
+ * AdMob rewarded ad unit ID for Word Journey.
+ *
+ * IMPORTANT: Use TEST_REWARDED_AD_UNIT_ID during development/testing.
+ * Switch to PROD_REWARDED_AD_UNIT_ID only when the app is live on Google Play
+ * and your AdMob account is verified — real ads will not serve to unpublished apps.
+ *
+ * To test on a real device: add your device as a test device in the AdMob console
+ * (Apps → your app → Ad units → Test devices), or use the test ad unit ID below.
+ */
+private const val TEST_REWARDED_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
+private const val PROD_REWARDED_AD_UNIT_ID = "ca-app-pub-8973997605504935/9065149682"
+
+// TODO: Switch to PROD_REWARDED_AD_UNIT_ID once app is published on Google Play
+private const val REWARDED_AD_UNIT_ID = TEST_REWARDED_AD_UNIT_ID
 
 /**
  * Production [IAdManager] backed by AdMob rewarded ads.
@@ -62,7 +75,8 @@ class RealAdManager @Inject constructor(
                     }
 
                     override fun onAdFailedToLoad(error: LoadAdError) {
-                        Log.e(TAG, "Rewarded ad failed to load: ${error.message} (code=${error.code})")
+                        Log.e(TAG, "Rewarded ad FAILED to load: code=${error.code} msg=${error.message} domain=${error.domain}")
+                        Log.e(TAG, "  → code 2 = network error, code 3 = no fill (no ads available for this app/device)")
                         rewardedAd = null
                         isLoading = false
                         if (cont.isActive) cont.resume(Unit)
