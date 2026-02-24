@@ -44,8 +44,11 @@ class StoreViewModel @Inject constructor(
                 _uiState.update { it.copy(progress = progress, isAdReady = adManager.isRewardedAdReady) }
             }
         }
-        // Pre-fetch a rewarded ad
-        viewModelScope.launch { adManager.loadRewardedAd() }
+        // Pre-fetch a rewarded ad and update isAdReady when the load completes
+        viewModelScope.launch {
+            adManager.loadRewardedAd()
+            _uiState.update { it.copy(isAdReady = adManager.isRewardedAdReady) }
+        }
     }
 
     fun purchase(productId: String) {
