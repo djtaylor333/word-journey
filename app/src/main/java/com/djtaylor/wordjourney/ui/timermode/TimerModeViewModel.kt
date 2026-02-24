@@ -188,7 +188,7 @@ class TimerModeViewModel @Inject constructor(
                 .toMutableList()
             if (wordPool.isEmpty()) wordPool = dailyChallengeRepository.getTimerWords(diff.wordLength).toMutableList()
         }
-        val word = wordPool.removeFirst()
+        val word = wordPool.removeAt(0)
         usedWords.add(word)
         currentWord = word
 
