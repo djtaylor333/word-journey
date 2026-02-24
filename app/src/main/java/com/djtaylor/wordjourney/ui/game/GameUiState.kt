@@ -77,7 +77,10 @@ data class GameUiState(
     val wordHasDefinition: Boolean = true,
 
     // Streak milestone reward message shown in win dialog
-    val streakRewardMessage: String? = null
+    val streakRewardMessage: String? = null,
+
+    // Area completion reward (every 25 levels) — shown in win dialog
+    val areaCompleteMessage: String? = null
 ) {
     val currentRow: Int get() = guesses.size
     val remainingGuesses: Int get() = maxGuesses - guesses.size

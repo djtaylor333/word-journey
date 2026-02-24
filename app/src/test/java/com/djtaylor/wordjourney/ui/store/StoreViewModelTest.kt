@@ -71,7 +71,7 @@ class StoreViewModelTest {
         adManager = mockk {
             every { isRewardedAdReady } returns true
             coEvery { loadRewardedAd() } just Runs
-            coEvery { showRewardedAd() } returns AdRewardResult(watched = true, rewardType = "coins", rewardAmount = 100)
+            coEvery { showRewardedAd(any()) } returns AdRewardResult(watched = true, rewardType = "coins", rewardAmount = 100)
         }
         audioManager = mockk(relaxed = true)
         inboxRepository = mockk(relaxed = true)
@@ -347,7 +347,7 @@ class StoreViewModelTest {
         val vm = createViewModel(PlayerProgress(coins = 0L))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        vm.watchAdForCoins()
+        vm.watchAdForCoins(mockk())
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { playerRepository.saveProgress(match { it.coins == 100L }) }
@@ -359,10 +359,10 @@ class StoreViewModelTest {
     @Test
     fun `watchAdForCoins does nothing when ad not watched`() = runTest {
         val vm = createViewModel(PlayerProgress(coins = 0L))
-        coEvery { adManager.showRewardedAd() } returns AdRewardResult(watched = false, rewardType = "", rewardAmount = 0)
+        coEvery { adManager.showRewardedAd(any()) } returns AdRewardResult(watched = false, rewardType = "", rewardAmount = 0)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        vm.watchAdForCoins()
+        vm.watchAdForCoins(mockk())
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { playerRepository.saveProgress(any()) }
@@ -371,10 +371,10 @@ class StoreViewModelTest {
     @Test
     fun `watchAdForLife grants 1 life when ad watched`() = runTest {
         val vm = createViewModel(PlayerProgress(lives = 5))
-        coEvery { adManager.showRewardedAd() } returns AdRewardResult(watched = true, rewardType = "life", rewardAmount = 1)
+        coEvery { adManager.showRewardedAd(any()) } returns AdRewardResult(watched = true, rewardType = "life", rewardAmount = 1)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        vm.watchAdForLife()
+        vm.watchAdForLife(mockk())
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { playerRepository.saveProgress(match { it.lives == 6 }) }
@@ -401,6 +401,155 @@ class StoreViewModelTest {
 
         val state = vm.uiState.first()
         assertFalse(state.isAdReady)
+    }
+
+    @Test
+    fun `watchAdForItem grants coins when category is coins`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 500L))
+        val mockRandom = mockk<kotlin.random.Random>()
+        every { mockRandom.nextInt(3) } returns 1   // category = coins
+        every { mockRandom.nextInt(451) } returns 100 // amount = 50 + 100 = 150
+        vm.random = mockRandom
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForItem(mockk())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.coins == 650L }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.message)
+        assertTrue(state.message!!.contains("150 coins"))
+    }
+
+    @Test
+    fun `watchAdForItem grants diamonds when category is diamonds`() = runTest {
+        val vm = createViewModel(PlayerProgress(diamonds = 5))
+        val mockRandom = mockk<kotlin.random.Random>()
+        every { mockRandom.nextInt(3) } returns 2  // category = diamonds
+        every { mockRandom.nextInt(10) } returns 5  // amount = 1 + 5 = 6
+        vm.random = mockRandom
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForItem(mockk())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 11 }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.message)
+        assertTrue(state.message!!.contains("6"))
+        assertTrue(state.message!!.contains("💎"))
+    }
+
+    @Test
+    fun `watchAdForItem grants item when category is item`() = runTest {
+        val vm = createViewModel(PlayerProgress(removeLetterItems = 0))
+        val mockRandom = mockk<kotlin.random.Random>()
+        every { mockRandom.nextInt(3) } returnsMany listOf(0, 2) // category=items (0), then count-1=2 → count=3
+        every { mockRandom.nextInt(4) } returns 1                 // item type = removeLetterItems
+        vm.random = mockRandom
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForItem(mockk())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.removeLetterItems == 3 }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.message)
+        assertTrue(state.message!!.contains("3"))
+        assertTrue(state.message!!.contains("Remove Letter"))
+    }
+
+    @Test
+    fun `watchAdForItem grants 1 item when count roll is 0`() = runTest {
+        val vm = createViewModel(PlayerProgress(definitionItems = 2))
+        val mockRandom = mockk<kotlin.random.Random>()
+        every { mockRandom.nextInt(3) } returnsMany listOf(0, 0) // category=items, count-1=0 → count=1
+        every { mockRandom.nextInt(4) } returns 2                 // item type = definitionItems
+        vm.random = mockRandom
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForItem(mockk())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.definitionItems == 3 }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.message)
+        assertFalse(state.message!!.contains("items"))  // singular: "item", not "items"
+        assertTrue(state.message!!.contains("Definition"))
+    }
+
+    @Test
+    fun `watchAdForItem coins range maximum boundary`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 0L))
+        val mockRandom = mockk<kotlin.random.Random>()
+        every { mockRandom.nextInt(3) } returns 1    // category = coins
+        every { mockRandom.nextInt(451) } returns 450 // 50 + 450 = 500
+        vm.random = mockRandom
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForItem(mockk())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.coins == 500L }) }
+    }
+
+    @Test
+    fun `watchAdForItem coins range minimum boundary`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 0L))
+        val mockRandom = mockk<kotlin.random.Random>()
+        every { mockRandom.nextInt(3) } returns 1    // category = coins
+        every { mockRandom.nextInt(451) } returns 0  // 50 + 0 = 50
+        vm.random = mockRandom
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForItem(mockk())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.coins == 50L }) }
+    }
+
+    @Test
+    fun `watchAdForItem diamonds range maximum boundary`() = runTest {
+        val vm = createViewModel(PlayerProgress(diamonds = 0))
+        val mockRandom = mockk<kotlin.random.Random>()
+        every { mockRandom.nextInt(3) } returns 2    // category = diamonds
+        every { mockRandom.nextInt(10) } returns 9   // 1 + 9 = 10
+        vm.random = mockRandom
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForItem(mockk())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 10 }) }
+    }
+
+    @Test
+    fun `watchAdForItem diamonds range minimum boundary`() = runTest {
+        val vm = createViewModel(PlayerProgress(diamonds = 0))
+        val mockRandom = mockk<kotlin.random.Random>()
+        every { mockRandom.nextInt(3) } returns 2    // category = diamonds
+        every { mockRandom.nextInt(10) } returns 0   // 1 + 0 = 1
+        vm.random = mockRandom
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForItem(mockk())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 1 }) }
+    }
+
+    @Test
+    fun `watchAdForItem does nothing when ad not watched`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 500L))
+        coEvery { adManager.showRewardedAd(any()) } returns AdRewardResult(watched = false)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForItem(mockk())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { playerRepository.saveProgress(any()) }
+        val state = vm.uiState.first()
+        assertTrue(state.message!!.contains("not completed"))
     }
 
     // ══════════════════════════════════════════════════════════════════════════

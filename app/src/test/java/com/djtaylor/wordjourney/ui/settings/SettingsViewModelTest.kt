@@ -3,6 +3,7 @@ package com.djtaylor.wordjourney.ui.settings
 import android.content.Context
 import com.djtaylor.wordjourney.audio.AudioSettings
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.auth.PlayGamesHelper
 import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -93,7 +94,8 @@ class SettingsViewModelTest {
             context = context,
             playerRepository = playerRepository,
             dailyChallengeRepository = dailyChallengeRepository,
-            audioManager = audioManager
+            audioManager = audioManager,
+            playGamesHelper = mockk(relaxed = true)
         )
     }
 

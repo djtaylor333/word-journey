@@ -504,7 +504,7 @@ class GameViewModel @Inject constructor(
         } else {
             val remaining = e.remainingGuesses
             val coinsEarned = 100L + (remaining * 10L)
-            val (updatedProgress, bonusLife) = applyLevelCompletion(coinsEarned)
+            val (updatedProgress, bonusLife, areaComplete) = applyLevelCompletion(coinsEarned)
 
             audioManager.playSfx(SfxSound.WIN)
             audioManager.playSfx(SfxSound.COIN_EARN)
@@ -545,7 +545,8 @@ class GameViewModel @Inject constructor(
                     starsEarned = stars,
                     lives = p.lives,
                     coins = p.coins,
-                    diamonds = p.diamonds
+                    diamonds = p.diamonds,
+                    areaCompleteMessage = if (areaComplete) "🏆 Area Complete! +25 💎" else null
                 )
             }
             playerRepository.clearInProgressGame(difficulty)
@@ -947,9 +948,10 @@ class GameViewModel @Inject constructor(
     private fun getTargetWord(): String = _targetWordCache
     private var _targetWordCache: String = ""
 
-    private suspend fun applyLevelCompletion(coinsEarned: Long): Pair<PlayerProgress, Boolean> {
+    private suspend fun applyLevelCompletion(coinsEarned: Long): Triple<PlayerProgress, Boolean, Boolean> {
         var p = playerProgress
-        val newLevel = _uiState.value.level + 1
+        val completedLevel = _uiState.value.level
+        val newLevel = completedLevel + 1
 
         // VIP gets x2 coin rewards
         val effectiveCoins = if (difficulty == Difficulty.VIP) coinsEarned * 2 else coinsEarned
@@ -962,6 +964,12 @@ class GameViewModel @Inject constructor(
         }
 
         p = p.copy(coins = p.coins + effectiveCoins)
+
+        // Award 25 diamonds for completing each major area (every 25 levels)
+        val areaComplete = completedLevel % 25 == 0 && completedLevel > 0
+        if (areaComplete) {
+            p = p.copy(diamonds = p.diamonds + 25)
+        }
 
         val counter = when (difficulty) {
             Difficulty.EASY    -> p.easyLevelsCompletedSinceBonusLife
@@ -991,7 +999,7 @@ class GameViewModel @Inject constructor(
 
         playerProgress = p
         playerRepository.saveProgress(p)
-        return Pair(p, bonusLife)
+        return Triple(p, bonusLife, areaComplete)
     }
 
     // ──────────────────────────── Play session time tracking ─────────────────

@@ -1,5 +1,6 @@
 package com.djtaylor.wordjourney.ui.store
 
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.SfxSound
@@ -34,6 +35,10 @@ class StoreViewModel @Inject constructor(
     private val inboxRepository: InboxRepository,
     private val vipDailyRewardUseCase: VipDailyRewardUseCase
 ) : ViewModel() {
+
+    /** Overrideable RNG — replace in tests for deterministic behaviour. */
+    @VisibleForTesting
+    internal var random: kotlin.random.Random = kotlin.random.Random
 
     private val _uiState = MutableStateFlow(StoreUiState())
     val uiState: StateFlow<StoreUiState> = _uiState.asStateFlow()
@@ -196,20 +201,35 @@ class StoreViewModel @Inject constructor(
             val result = adManager.showRewardedAd(activity)
             if (result.watched) {
                 val current = _uiState.value.progress
-                // Grant a random item
-                val itemIndex = (System.currentTimeMillis() % 4).toInt()
-                val updated = when (itemIndex) {
-                    0 -> current.copy(addGuessItems = current.addGuessItems + 1)
-                    1 -> current.copy(removeLetterItems = current.removeLetterItems + 1)
-                    2 -> current.copy(definitionItems = current.definitionItems + 1)
-                    else -> current.copy(showLetterItems = current.showLetterItems + 1)
-                }
-                val itemName = when (itemIndex) {
-                    0 -> "Add Guess"; 1 -> "Remove Letter"; 2 -> "Definition"; else -> "Show Letter"
+                // Randomly pick a reward category: 0 = item, 1 = coins, 2 = diamonds
+                val category = random.nextInt(3)
+                val (updated, message) = when (category) {
+                    0 -> {
+                        // Random item type (0-3), count 1-3
+                        val itemType = random.nextInt(4)
+                        val count = 1 + random.nextInt(3)
+                        val (newProgress, itemName) = when (itemType) {
+                            0 -> current.copy(addGuessItems = current.addGuessItems + count) to "Add Guess"
+                            1 -> current.copy(removeLetterItems = current.removeLetterItems + count) to "Remove Letter"
+                            2 -> current.copy(definitionItems = current.definitionItems + count) to "Definition"
+                            else -> current.copy(showLetterItems = current.showLetterItems + count) to "Show Letter"
+                        }
+                        newProgress to "✅ +$count $itemName item${if (count > 1) "s" else ""} from ad!"
+                    }
+                    1 -> {
+                        // Coins: 50–500
+                        val amount = 50 + random.nextInt(451)
+                        current.copy(coins = current.coins + amount) to "✅ +$amount coins from ad!"
+                    }
+                    else -> {
+                        // Diamonds: 1–10
+                        val amount = 1 + random.nextInt(10)
+                        current.copy(diamonds = current.diamonds + amount) to "✅ +$amount 💎 from ad!"
+                    }
                 }
                 playerRepository.saveProgress(updated)
                 audioManager.playSfx(SfxSound.COIN_EARN)
-                _uiState.update { it.copy(isWatchingAd = false, message = "✅ +1 $itemName item from ad!") }
+                _uiState.update { it.copy(isWatchingAd = false, message = message) }
             } else {
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
             }

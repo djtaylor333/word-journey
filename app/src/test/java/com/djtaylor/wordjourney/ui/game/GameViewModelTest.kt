@@ -1739,7 +1739,126 @@ class GameViewModelTest {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 23. STREAK REWARDS
+    // 23. AREA COMPLETION DIAMOND REWARD
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `completing level 25 awards 25 diamonds`() = runTest {
+        val progress = PlayerProgress(diamonds = 10, easyLevel = 25)
+        val vm = createViewModel(level = 25, difficulty = "easy", progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 35 }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.areaCompleteMessage)
+        assertTrue(state.areaCompleteMessage!!.contains("25"))
+    }
+
+    @Test
+    fun `completing level 50 awards 25 diamonds`() = runTest {
+        val progress = PlayerProgress(diamonds = 5, easyLevel = 50)
+        val vm = createViewModel(level = 50, difficulty = "easy", progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 30 }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.areaCompleteMessage)
+    }
+
+    @Test
+    fun `completing level 75 awards 25 diamonds`() = runTest {
+        val progress = PlayerProgress(diamonds = 0, easyLevel = 75)
+        val vm = createViewModel(level = 75, difficulty = "easy", progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 25 }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.areaCompleteMessage)
+    }
+
+    @Test
+    fun `completing level 100 awards 25 diamonds`() = runTest {
+        val progress = PlayerProgress(diamonds = 3, easyLevel = 100)
+        val vm = createViewModel(level = 100, difficulty = "easy", progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 28 }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.areaCompleteMessage)
+    }
+
+    @Test
+    fun `completing non-milestone level does not award diamonds or show area message`() = runTest {
+        val progress = PlayerProgress(diamonds = 10, easyLevel = 1)
+        val vm = createViewModel(level = 1, difficulty = "easy", progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // diamonds must not be changed to 35 (no +25 reward)
+        coVerify(exactly = 0) { playerRepository.saveProgress(match { it.diamonds == 35 }) }
+        val state = vm.uiState.first()
+        assertNull(state.areaCompleteMessage)
+    }
+
+    @Test
+    fun `completing level 24 does not award diamonds`() = runTest {
+        val progress = PlayerProgress(diamonds = 10, easyLevel = 24)
+        val vm = createViewModel(level = 24, difficulty = "easy", progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify(exactly = 0) { playerRepository.saveProgress(match { it.diamonds == 35 }) }
+        val state = vm.uiState.first()
+        assertNull(state.areaCompleteMessage)
+    }
+
+    @Test
+    fun `area completion diamond reward works across different difficulties`() = runTest {
+        // Hard difficulty level 50
+        val progress = PlayerProgress(diamonds = 8, hardLevel = 50)
+        val vm = createViewModel(level = 50, difficulty = "hard", progress = progress, word = "BRIDGE")
+        awaitInit(vm)
+
+        "BRIDGE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 33 }) }
+        val state = vm.uiState.first()
+        assertNotNull(state.areaCompleteMessage)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 24. STREAK REWARDS
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
