@@ -41,13 +41,15 @@ android {
     }
 
     signingConfigs {
-        release {
-            storeFile file("${rootProject.projectDir}/${keystoreProperties['storeFile']}")
-            storePassword keystoreProperties['storePassword']
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            v1SigningEnabled true
-            v2SigningEnabled true
+        if (keystorePropertiesFile.exists()) {
+            release {
+                storeFile file("${rootProject.projectDir}/${keystoreProperties['storeFile']}")
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                v1SigningEnabled true
+                v2SigningEnabled true
+            }
         }
     }
 
@@ -56,12 +58,16 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
-            // Use the same signing key as release so debug↔release installs
-            // never require uninstall — seamless in-place updates always work.
-            signingConfig signingConfigs.release
+            if (keystorePropertiesFile.exists()) {
+                // Use the same signing key as release so debug↔release installs
+                // never require uninstall — seamless in-place updates always work.
+                signingConfig signingConfigs.release
+            }
             debuggable true
         }
     }
