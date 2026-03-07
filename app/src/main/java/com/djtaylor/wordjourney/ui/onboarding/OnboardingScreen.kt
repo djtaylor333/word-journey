@@ -45,6 +45,7 @@ fun OnboardingScreen(
                 )
             )
             .statusBarsPadding()
+            .navigationBarsPadding()
     ) {
         Column(
             modifier = Modifier

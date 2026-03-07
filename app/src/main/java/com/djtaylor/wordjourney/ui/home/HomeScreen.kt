@@ -71,6 +71,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -229,15 +230,28 @@ fun HomeScreen(
             SectionHeader(emoji = "🗺️", title = "Adventure")
             Spacer(Modifier.height(8.dp))
 
-            for (difficulty in Difficulty.entries.filter { it != Difficulty.VIP }) {
-                DifficultyCard(
-                    difficulty = difficulty,
-                    currentLevel = viewModel.levelForDifficulty(difficulty),
-                    onClick = {
-                        viewModel.playButtonClick()
-                        onNavigateToLevelSelect(difficulty.saveKey)
+            // 2-column grid to match web PWA layout
+            val adventureDifficulties = Difficulty.entries.filter { it != Difficulty.VIP }
+            adventureDifficulties.chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    row.forEach { diff ->
+                        DifficultyCardSmall(
+                            difficulty = diff,
+                            currentLevel = viewModel.levelForDifficulty(diff),
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                viewModel.playButtonClick()
+                                onNavigateToLevelSelect(diff.saveKey)
+                            }
+                        )
                     }
-                )
+                    if (row.size < 2) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
                 Spacer(Modifier.height(10.dp))
             }
 
@@ -792,6 +806,74 @@ private fun HeartsBar(lives: Int, timerMs: Long) {
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     fontSize = 16.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DifficultyCardSmall(
+    difficulty: Difficulty,
+    currentLevel: Int,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val accent = when (difficulty) {
+        Difficulty.EASY    -> AccentEasy
+        Difficulty.REGULAR -> AccentRegular
+        Difficulty.HARD    -> AccentHard
+        Difficulty.VIP     -> CoinGold
+    }
+    val emoji = when (difficulty) {
+        Difficulty.EASY    -> "🌿"
+        Difficulty.REGULAR -> "⚔️"
+        Difficulty.HARD    -> "🔥"
+        Difficulty.VIP     -> "👑"
+    }
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+        tonalElevation = 2.dp,
+        border = BorderStroke(1.5f.dp, accent.copy(alpha = 0.5f)),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.10f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(horizontal = 16.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(emoji, fontSize = 40.sp)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                difficulty.displayName,
+                style = MaterialTheme.typography.titleMedium,
+                color = accent,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                fontSize = 16.sp
+            )
+            Spacer(Modifier.height(4.dp))
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = accent.copy(alpha = 0.2f)
+            ) {
+                Text(
+                    "Level $currentLevel",
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                    color = accent,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
                 )
             }
         }

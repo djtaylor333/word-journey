@@ -3,12 +3,13 @@ package com.djtaylor.wordjourney
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
@@ -34,7 +35,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
+        // Edge-to-edge without the deprecated Window color/cutout APIs.
+        // - WindowCompat.setDecorFitsSystemWindows(false) lets content draw behind system bars
+        //   without calling the deprecated Window.setStatusBarColor / setNavigationBarColor.
+        // - LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS (API 30+) extends content into the camera
+        //   notch area; not needed on API 29 where notched phones were rare.
+        // enableEdgeToEdge() (the activity-ktx helper) is intentionally NOT called here:
+        // its bytecode calls all three deprecated APIs that Play Console flags, and R8 will
+        // strip it entirely from the release build since nothing references it.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        }
 
         // Request POST_NOTIFICATIONS on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
