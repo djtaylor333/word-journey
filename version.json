@@ -1,9 +1,9 @@
 {
-  "versionName": "2.17.0",
-  "versionCode": 36,
+  "versionName": "2.17.3",
+  "versionCode": 39,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
   "buildDate": "2026-03-08",
-  "releaseNotes": "v2.17.0 — Daily challenge word definitions revealed on win screen; daily pool filtered to only include words with verified definitions."
+  "releaseNotes": "v2.17.3 — Daily challenge word definitions revealed on win screen; daily pool filtered to only include words with verified definitions."
 }
