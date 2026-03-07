@@ -24,8 +24,8 @@ android {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 35
-        versionCode 38
-        versionName "2.17.2"
+        versionCode 36
+        versionName "2.17.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -41,15 +41,13 @@ android {
     }
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
-            release {
-                storeFile file("${rootProject.projectDir}/${keystoreProperties['storeFile']}")
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-                v1SigningEnabled true
-                v2SigningEnabled true
-            }
+        release {
+            storeFile file("${rootProject.projectDir}/${keystoreProperties['storeFile']}")
+            storePassword keystoreProperties['storePassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            v1SigningEnabled true
+            v2SigningEnabled true
         }
     }
 
@@ -58,16 +56,12 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if (keystorePropertiesFile.exists()) {
-                signingConfig signingConfigs.release
-            }
+            signingConfig signingConfigs.release
         }
         debug {
-            if (keystorePropertiesFile.exists()) {
-                // Use the same signing key as release so debug↔release installs
-                // never require uninstall — seamless in-place updates always work.
-                signingConfig signingConfigs.release
-            }
+            // Use the same signing key as release so debug↔release installs
+            // never require uninstall — seamless in-place updates always work.
+            signingConfig signingConfigs.release
             debuggable true
         }
     }
@@ -120,7 +114,7 @@ dependencies {
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
 
     // ── Activity & Lifecycle ─────────────────────────────────────────────────
-    implementation 'androidx.activity:activity-compose:1.10.0'
+    implementation 'androidx.activity:activity-compose:1.11.0'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.9.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.9.0'

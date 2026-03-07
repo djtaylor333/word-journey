@@ -1568,6 +1568,57 @@ class GameViewModelTest {
         assertFalse(vm.uiState.first().isReplay)
     }
 
+    @Test
+    fun `daily challenge win sets winDefinition when definition is available`() = runTest {
+        // Arrange: override default mock so the daily word has a definition
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
+        every { dailyChallengeRepository.getDefinitionForDailyWord("QUIZ") } returns "A test or examination"
+        awaitInit(vm)
+
+        // Act: type and submit the correct word
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // Assert: winDefinition is populated in UI state so WinDialog can display it
+        val state = vm.uiState.first()
+        assertEquals(GameStatus.WON, state.status)
+        assertEquals("A test or examination", state.winDefinition)
+    }
+
+    @Test
+    fun `daily challenge win has blank winDefinition when no definition exists`() = runTest {
+        // Arrange: default mock already returns null for getDefinitionForDailyWord
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
+        awaitInit(vm)
+
+        // Act: win the game
+        "QUIZ".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // Assert: winDefinition is blank (WinDialog will not render the definition section)
+        val state = vm.uiState.first()
+        assertEquals(GameStatus.WON, state.status)
+        assertTrue("winDefinition should be blank when no definition found",
+            state.winDefinition.isBlank())
+    }
+
+    @Test
+    fun `daily challenge wordHasDefinition is always false to hide in-game hint button`() = runTest {
+        // Even if a definition is available for the word, wordHasDefinition must be false
+        // so the "Definition" power-up button is disabled during gameplay (N/A label shown).
+        // The definition is revealed only AFTER winning, in the win dialog.
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
+        every { dailyChallengeRepository.getDefinitionForDailyWord("QUIZ") } returns "A test or examination"
+        awaitInit(vm)
+
+        assertFalse("wordHasDefinition must be false during daily challenge gameplay",
+            vm.uiState.first().wordHasDefinition)
+    }
+
     // ══════════════════════════════════════════════════════════════════════════
     // 21. DAILY CHALLENGE LOSS
     // ══════════════════════════════════════════════════════════════════════════

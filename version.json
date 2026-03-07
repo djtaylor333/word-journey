@@ -1,9 +1,9 @@
 {
-  "versionName": "2.17.2",
-  "versionCode": 38,
+  "versionName": "2.17.0",
+  "versionCode": 36,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-03-07",
-  "releaseNotes": "v2.17.1 — CI infrastructure: fix GitHub Actions (allowed_actions=all, gradlew LF line endings, unit test step, signing secrets). Build is now green."
+  "buildDate": "2026-03-08",
+  "releaseNotes": "v2.17.0 — Daily challenge word definitions revealed on win screen; daily pool filtered to only include words with verified definitions."
 }

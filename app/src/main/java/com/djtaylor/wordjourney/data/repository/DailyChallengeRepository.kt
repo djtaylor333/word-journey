@@ -82,7 +82,9 @@ class DailyChallengeRepository @Inject constructor(
         val words = mutableListOf<String>()
         for (i in 0 until arr.length()) {
             val w = arr.getString(i).uppercase()
-            if (w !in exclude) words.add(w)
+            // Only include words that are not level words AND have a definition available,
+            // so the daily challenge win screen can always show a meaningful definition.
+            if (w !in exclude && dailyDefinitions.containsKey(w)) words.add(w)
         }
         // Sort for determinism before seeding
         words.sort()

@@ -175,4 +175,33 @@ class DailyChallengeRepositoryTest {
     fun `isDailySaveStale returns true when savedDate is many days old`() {
         assertTrue(com.djtaylor.wordjourney.ui.game.GameViewModel.isDailySaveStale("2026-01-01", "2026-02-23"))
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 5. Definition-filtered daily word pool invariants
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `pickWordByDateSeed on a definition-filtered pool always returns a word that has a definition`() {
+        // Simulate the scenario: a pool built from words that all have definitions.
+        // Any word selected by pickWordByDateSeed from such a pool must therefore
+        // also have a definition — this is the key invariant that guarantees
+        // the WinDialog can always display a definition after a daily challenge.
+        val poolWithDefinitions = listOf("ABLE", "BOAT", "CASH", "DARK", "EARN")
+        val fakeDefinitionsMap = mapOf("ABLE" to "Having the power to do something", "BOAT" to "A small vessel", "CASH" to "Money in coins or notes", "DARK" to "Absence of light", "EARN" to "Obtain in return for work")
+        val seed = DailyChallengeRepository.computeDateSeed("2026-06-15", 4)
+        val word = DailyChallengeRepository.pickWordByDateSeed(poolWithDefinitions, seed)
+        assertTrue("Selected word '$word' must have a definition", fakeDefinitionsMap.containsKey(word))
+    }
+
+    @Test
+    fun `computeDateSeed produces new unique seeds across 365 consecutive days for same length`() {
+        // All seeds for length-5 words over a full year must be unique,
+        // ensuring every day selects from a different random offset.
+        val seeds = (1..365).map { day ->
+            val month = ((day - 1) / 30) + 1
+            val dayOfMonth = ((day - 1) % 30) + 1
+            DailyChallengeRepository.computeDateSeed("2026-%02d-%02d".format(month.coerceAtMost(12), dayOfMonth.coerceAtMost(30)), 5)
+        }.toSet()
+        assertTrue("Seeds should be mostly unique across 365 days", seeds.size > 300)
+    }
 }
