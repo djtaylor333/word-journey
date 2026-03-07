@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.djtaylor.wordjourney.domain.model.TileState
@@ -22,6 +23,9 @@ import com.djtaylor.wordjourney.ui.theme.*
 private val ROW1 = listOf('Q','W','E','R','T','Y','U','I','O','P')
 private val ROW2 = listOf('A','S','D','F','G','H','J','K','L')
 private val ROW3 = listOf('Z','X','C','V','B','N','M')
+
+// Gap between keys (dp). Slightly tighter than before so more room goes to key width.
+private val KEY_GAP = 4.dp
 
 @Composable
 fun GameKeyboard(
@@ -34,46 +38,64 @@ fun GameKeyboard(
     modifier: Modifier = Modifier
 ) {
     val textScale = LocalTextScale.current
-    Column(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        KeyRow(ROW1, letterStates, removedLetters, onKey, highContrast, textScale)
-        KeyRow(ROW2, letterStates, removedLetters, onKey, highContrast, textScale)
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ActionKey(label = "ENTER", onClick = onEnter, textScale = textScale)
-            KeyRow(ROW3, letterStates, removedLetters, onKey, highContrast, textScale)
-            ActionKey(label = "⌫", onClick = onDelete, textScale = textScale)
-        }
-    }
-}
 
-@Composable
-private fun KeyRow(
-    letters: List<Char>,
-    letterStates: Map<Char, TileState>,
-    removedLetters: Set<Char>,
-    onKey: (Char) -> Unit,
-    highContrast: Boolean,
-    textScale: Float
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-        letters.forEach { ch ->
-            LetterKey(
-                letter = ch,
-                state = when {
-                    removedLetters.contains(ch) -> TileState.ABSENT
-                    else -> letterStates[ch] ?: TileState.EMPTY
-                },
-                enabled = !removedLetters.contains(ch),
-                onClick = { onKey(ch) },
-                highContrast = highContrast,
-                textScale = textScale
-            )
+    // Measure available width and derive key dimensions from it so the keyboard
+    // scales correctly on every screen size without any key getting clipped.
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp)
+    ) {
+        // Row 1 has 10 letter keys with 9 gaps → solve for key width.
+        val keyWidth: Dp  = (maxWidth - KEY_GAP * 9) / 10
+        // Action keys (ENTER / delete) are 1.5× a letter key.
+        val actionWidth: Dp = keyWidth * 1.5f
+        val keyHeight: Dp = 56.dp
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // ── Row 1: Q W E R T Y U I O P (10 keys) ──────────────────────
+            Row(horizontalArrangement = Arrangement.spacedBy(KEY_GAP)) {
+                ROW1.forEach { ch ->
+                    LetterKey(ch, letterStates, removedLetters, onKey, highContrast, textScale,
+                        Modifier.width(keyWidth).height(keyHeight))
+                }
+            }
+
+            // ── Row 2: A S D F G H J K L (9 keys, centered) ───────────────
+            Row(horizontalArrangement = Arrangement.spacedBy(KEY_GAP)) {
+                ROW2.forEach { ch ->
+                    LetterKey(ch, letterStates, removedLetters, onKey, highContrast, textScale,
+                        Modifier.width(keyWidth).height(keyHeight))
+                }
+            }
+
+            // ── Row 3: ENTER + Z…M + ⌫ ───────────────────────────────────
+            // Total: actionWidth + 7×keyWidth + actionWidth + 8×gap
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(KEY_GAP),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ActionKey(
+                    label = "ENTER",
+                    onClick = onEnter,
+                    textScale = textScale,
+                    modifier = Modifier.width(actionWidth).height(keyHeight)
+                )
+                ROW3.forEach { ch ->
+                    LetterKey(ch, letterStates, removedLetters, onKey, highContrast, textScale,
+                        Modifier.width(keyWidth).height(keyHeight))
+                }
+                ActionKey(
+                    label = "⌫",
+                    onClick = onDelete,
+                    textScale = textScale,
+                    modifier = Modifier.width(actionWidth).height(keyHeight)
+                )
+            }
         }
     }
 }
@@ -81,14 +103,20 @@ private fun KeyRow(
 @Composable
 private fun LetterKey(
     letter: Char,
-    state: TileState,
-    enabled: Boolean,
-    onClick: () -> Unit,
+    letterStates: Map<Char, TileState>,
+    removedLetters: Set<Char>,
+    onKey: (Char) -> Unit,
     highContrast: Boolean,
-    textScale: Float
+    textScale: Float,
+    modifier: Modifier = Modifier
 ) {
-    var pressed by remember { mutableStateOf(false) }
+    val state = when {
+        removedLetters.contains(letter) -> TileState.ABSENT
+        else -> letterStates[letter] ?: TileState.EMPTY
+    }
+    val enabled = !removedLetters.contains(letter)
 
+    var pressed by remember { mutableStateOf(false) }
     val theme = LocalGameTheme.current
     val targetBg = keyBackground(state, highContrast, theme)
     val bg by animateColorAsState(targetBg, tween(200), label = "keyBg$letter")
@@ -97,14 +125,12 @@ private fun LetterKey(
 
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .width(38.dp)
-            .height(58.dp)
+        modifier = modifier
             .clip(RoundedCornerShape(6.dp))
             .background(bg.copy(alpha = alpha))
             .clickable(enabled = enabled) {
                 pressed = true
-                onClick()
+                onKey(letter)
                 pressed = false
             }
     ) {
@@ -118,20 +144,22 @@ private fun LetterKey(
 }
 
 @Composable
-private fun ActionKey(label: String, onClick: () -> Unit, textScale: Float = 1f) {
+private fun ActionKey(
+    label: String,
+    onClick: () -> Unit,
+    textScale: Float = 1f,
+    modifier: Modifier = Modifier
+) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .height(58.dp)
-            .defaultMinSize(minWidth = 54.dp)
+        modifier = modifier
             .clip(RoundedCornerShape(6.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable { onClick() }
-            .padding(horizontal = 10.dp)
     ) {
         Text(
             text = label,
-            fontSize = ((if (label == "ENTER") 14f else 20f) * textScale).sp,
+            fontSize = ((if (label == "ENTER") 13f else 20f) * textScale).sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )

@@ -1,9 +1,9 @@
 {
-  "versionName": "2.16.4",
-  "versionCode": 31,
+  "versionName": "2.16.7",
+  "versionCode": 34,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2025-02-24",
-  "releaseNotes": "v2.14.0 — Fix daily challenge reset (clear Room DB), dev mode free purchases bypass Play Store."
+  "buildDate": "2026-03-07",
+  "releaseNotes": "v2.16.7 — Scalable keyboard (BoxWithConstraints, keys fill available width on all devices), immersive fullscreen nav-bar hide during gameplay."
 }

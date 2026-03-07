@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base XML theme – the actual Material 3 theming is applied in Compose code -->
-    <style name="Theme.WordJourneys" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">@color/background_dark</item>
-        <item name="android:navigationBarColor">@color/background_dark</item>
-    </style>
+    <!-- statusBarColor and navigationBarColor removed — enableEdgeToEdge() in MainActivity handles system bar colours -->
+    <style name="Theme.WordJourneys" parent="android:Theme.Material.NoActionBar" />
 
     <style name="Theme.WordJourneys.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
