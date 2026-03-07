@@ -1,9 +1,9 @@
 {
-  "versionName": "2.17.0",
-  "versionCode": 36,
+  "versionName": "2.17.1",
+  "versionCode": 37,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-03-08",
-  "releaseNotes": "v2.17.0 — Redesign: adventure cards in 2-column PWA-style grid, nav bar alignment fixes on HomeScreen and OnboardingScreen, 3 new test files (AudioSettings, EvaluateGuess word-length coverage, DifficultyGridLayout)."
+  "buildDate": "2026-03-07",
+  "releaseNotes": "v2.17.1 — CI infrastructure: fix GitHub Actions (allowed_actions=all, gradlew LF line endings, unit test step, signing secrets). Build is now green."
 }
