@@ -1,5 +1,6 @@
 # Ensure gradlew always has LF line endings (required for Linux CI)
 gradlew text eol=lf
+*.sh    text eol=lf
 
 # Common settings
 *.kt text diff=kotlin
