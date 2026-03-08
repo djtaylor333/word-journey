@@ -21,7 +21,8 @@ class VipDailyRewardUseCaseTest {
         val reward = useCase.calculateRewards("", today)
         assertNotNull(reward)
         assertEquals(1, reward!!.daysAccumulated)
-        assertEquals(5, reward.livesGranted)
+        assertEquals(2, reward.livesGranted)
+        assertEquals(167L, reward.coinsGranted)
         // 5 items / 4 types = 1 each + 1 remainder
         assertEquals(2, reward.addGuessItemsGranted)
         assertEquals(1, reward.removeLetterItemsGranted)
@@ -41,7 +42,7 @@ class VipDailyRewardUseCaseTest {
         val reward = useCase.calculateRewards("2025-06-30", today)
         assertNotNull(reward)
         assertEquals(1, reward!!.daysAccumulated)
-        assertEquals(5, reward.livesGranted)
+        assertEquals(2, reward.livesGranted)
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -53,7 +54,8 @@ class VipDailyRewardUseCaseTest {
         val reward = useCase.calculateRewards("2025-06-28", today)
         assertNotNull(reward)
         assertEquals(3, reward!!.daysAccumulated)
-        assertEquals(15, reward.livesGranted)
+        assertEquals(6, reward.livesGranted)
+        assertEquals(501L, reward.coinsGranted)
         // 15 items / 4 = 3 each + 3 remainder => 4, 4, 4, 3
         assertEquals(4, reward.addGuessItemsGranted)
         assertEquals(4, reward.removeLetterItemsGranted)
@@ -66,7 +68,7 @@ class VipDailyRewardUseCaseTest {
         val reward = useCase.calculateRewards("2025-06-24", today)
         assertNotNull(reward)
         assertEquals(7, reward!!.daysAccumulated)
-        assertEquals(35, reward.livesGranted)
+        assertEquals(14, reward.livesGranted)
     }
 
     @Test
@@ -75,7 +77,8 @@ class VipDailyRewardUseCaseTest {
         val reward = useCase.calculateRewards("2025-05-02", today)
         assertNotNull(reward)
         assertEquals(30, reward!!.daysAccumulated)
-        assertEquals(150, reward.livesGranted) // 30 * 5
+        assertEquals(60, reward.livesGranted)   // 30 * 2
+        assertEquals(5010L, reward.coinsGranted) // 30 * 167
     }
 
     // ══════════════════════════════════════════════════════════════════════════

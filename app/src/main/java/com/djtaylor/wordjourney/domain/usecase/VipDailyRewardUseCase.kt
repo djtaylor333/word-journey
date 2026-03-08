@@ -9,7 +9,10 @@ import javax.inject.Singleton
 /**
  * Calculates VIP daily rewards.
  *
- * VIP members receive +5 lives and +5 random items per day.
+ * VIP members receive rewards each day they log in:
+ *   ~50 lives per month  (2 per day × 30 days)
+ *   ~5,000 coins per month (167 per day × 30 days)
+ *   +5 random items per day
  * If the player hasn't logged in for multiple days, rewards accumulate
  * (capped at 30 days to prevent abuse).
  */
@@ -17,13 +20,15 @@ import javax.inject.Singleton
 class VipDailyRewardUseCase @Inject constructor() {
 
     companion object {
-        const val LIVES_PER_DAY = 5
-        const val ITEMS_PER_DAY = 5      // total items, distributed randomly
+        const val LIVES_PER_DAY  = 2          // ≈ 50 lives per 30-day month
+        const val COINS_PER_DAY  = 167L       // ≈ 5,000 coins per 30-day month
+        const val ITEMS_PER_DAY  = 5          // total items, distributed randomly
         const val MAX_ACCUMULATION_DAYS = 30
     }
 
     data class VipReward(
         val livesGranted: Int,
+        val coinsGranted: Long,
         val addGuessItemsGranted: Int,
         val removeLetterItemsGranted: Int,
         val definitionItemsGranted: Int,
@@ -60,6 +65,7 @@ class VipDailyRewardUseCase @Inject constructor() {
         }
 
         val totalLives = daysAccumulated * LIVES_PER_DAY
+        val totalCoins = daysAccumulated * COINS_PER_DAY
         val totalItems = daysAccumulated * ITEMS_PER_DAY
 
         // Distribute items evenly across 4 types, with remainder going round-robin
@@ -68,6 +74,7 @@ class VipDailyRewardUseCase @Inject constructor() {
 
         return VipReward(
             livesGranted = totalLives,
+            coinsGranted = totalCoins,
             addGuessItemsGranted = basePerType + if (remainder > 0) 1 else 0,
             removeLetterItemsGranted = basePerType + if (remainder > 1) 1 else 0,
             definitionItemsGranted = basePerType + if (remainder > 2) 1 else 0,

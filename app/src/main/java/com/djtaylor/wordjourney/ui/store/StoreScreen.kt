@@ -490,8 +490,8 @@ private fun VipTab(uiState: StoreUiState, viewModel: StoreViewModel) {
                 Spacer(Modifier.height(8.dp))
                 val benefits = listOf(
                     "👑 No ads — ever",
-                    "❤️ +5 bonus lives per month",
-                    "⬡ 500 bonus coins per month",
+                    "❤️ +50 bonus lives per month",
+                    "⬡ +5,000 bonus coins per month",
                     "⭐ 2× star rewards on all levels",
                     "🎁 Exclusive seasonal themes",
                     "📊 Advanced statistics"

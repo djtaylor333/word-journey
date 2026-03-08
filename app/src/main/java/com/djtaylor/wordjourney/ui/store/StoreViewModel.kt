@@ -119,6 +119,7 @@ class StoreViewModel @Inject constructor(
                 updated = updated.copy(lastVipRewardDate = reward.updatedLastRewardDate)
                 inboxRepository.addVipDailyRewardIfNeeded(
                     livesGranted = reward.livesGranted,
+                    coinsGranted = reward.coinsGranted,
                     addGuessItems = reward.addGuessItemsGranted,
                     removeLetterItems = reward.removeLetterItemsGranted,
                     definitionItems = reward.definitionItemsGranted,

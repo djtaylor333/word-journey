@@ -72,18 +72,22 @@ class InboxRepository @Inject constructor(
     }
 
     /**
-     * Add a VIP daily reward to the inbox (if not already added today).
-     * Returns the created InboxItem id, or -1 if already added today.
+     * Add a VIP daily reward to the inbox.
+     * Returns the created InboxItem id.
+     *
+     * NOTE: Date-based deduplication is handled by [VipDailyRewardUseCase.calculateRewards]
+     * (via [PlayerProgress.lastVipRewardDate]) — NOT here, which avoids SQLite UTC vs local
+     * timezone mismatches that could silently drop valid rewards.
      */
     suspend fun addVipDailyRewardIfNeeded(
         livesGranted: Int,
+        coinsGranted: Long = 0L,
         addGuessItems: Int,
         removeLetterItems: Int,
         definitionItems: Int,
         showLetterItems: Int,
         daysAccumulated: Int
     ): Long {
-        if (hasVipRewardToday()) return -1L
         val totalItems = addGuessItems + removeLetterItems + definitionItems + showLetterItems
         val title = if (daysAccumulated > 1) {
             "👑 VIP ${daysAccumulated}-Day Reward"
@@ -92,6 +96,7 @@ class InboxRepository @Inject constructor(
         }
         val message = buildString {
             append("+$livesGranted lives")
+            if (coinsGranted > 0) append(", +$coinsGranted coins")
             if (totalItems > 0) append(", +$totalItems items")
             if (daysAccumulated > 1) append(" ($daysAccumulated days accumulated)")
         }
@@ -100,6 +105,7 @@ class InboxRepository @Inject constructor(
             title = title,
             message = message,
             livesGranted = livesGranted,
+            coinsGranted = coinsGranted,
             addGuessItemsGranted = addGuessItems,
             removeLetterItemsGranted = removeLetterItems,
             definitionItemsGranted = definitionItems,

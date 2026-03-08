@@ -631,7 +631,7 @@ class StoreViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Inbox reward added immediately on purchase
-        coVerify { inboxRepository.addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any()) }
+        coVerify { inboxRepository.addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any(), any()) }
     }
 
     // ══════════════════════════════════════════════════════════════════════════

@@ -55,7 +55,7 @@ class HomeViewModelTest {
         }
         inboxRepository = mockk {
             coEvery { getUnclaimedCount() } returns 0
-            coEvery { addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any()) } returns -1L
+            coEvery { addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any(), any()) } returns -1L
         }
         audioManager = mockk(relaxed = true)
 
@@ -311,7 +311,7 @@ class HomeViewModelTest {
     @Test
     fun `VIP player receives daily rewards`() = runTest {
         // VIP rewards now go to inbox rather than being applied directly.
-        // The lastVipRewardDate should be updated and a vipRewardsMessage shown.
+        // The showVipClaimDialog should be set to true when a reward is deposited.
         val vm = createViewModel(
             PlayerProgress(
                 isVip = true,
@@ -321,16 +321,40 @@ class HomeViewModelTest {
             )
         )
         // Override inbox mock so addVipDailyRewardIfNeeded returns a valid id (reward added)
-        coEvery { inboxRepository.addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any()) } returns 1L
+        coEvery { inboxRepository.addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any(), any()) } returns 1L
         coEvery { inboxRepository.getUnclaimedCount() } returns 1
         testDispatcher.scheduler.runCurrent()
         try {
             val state = vm.uiState.first()
             // Lives are no longer added directly — they stay at 5
             assertEquals(5, state.progress.lives)
-            assertNotNull(state.vipRewardsMessage)
+            assertTrue("showVipClaimDialog should be true when reward is added", state.showVipClaimDialog)
+            assertNotNull(state.pendingVipDaysMessage)
             assertTrue(state.progress.lastVipRewardDate.isNotEmpty())
             assertEquals(1, state.inboxCount)
+        } finally {
+            vm.viewModelScope.cancel()
+        }
+    }
+
+    @Test
+    fun `dismissVipClaimDialog clears showVipClaimDialog`() = runTest {
+        val vm = createViewModel(
+            PlayerProgress(
+                isVip = true,
+                lastVipRewardDate = "",
+                lives = 5,
+                hasReceivedNewPlayerBonus = true
+            )
+        )
+        coEvery { inboxRepository.addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any(), any()) } returns 1L
+        coEvery { inboxRepository.getUnclaimedCount() } returns 1
+        testDispatcher.scheduler.runCurrent()
+        try {
+            assertTrue(vm.uiState.first().showVipClaimDialog)
+            vm.dismissVipClaimDialog()
+            testDispatcher.scheduler.runCurrent()
+            assertFalse(vm.uiState.first().showVipClaimDialog)
         } finally {
             vm.viewModelScope.cancel()
         }
@@ -342,7 +366,7 @@ class HomeViewModelTest {
     ) { vm ->
         val state = vm.uiState.first()
         assertEquals(5, state.progress.lives)
-        assertNull(state.vipRewardsMessage)
+        assertFalse(state.showVipClaimDialog)
     }
 
     // ══════════════════════════════════════════════════════════════════════════

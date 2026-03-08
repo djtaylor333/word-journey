@@ -221,6 +221,16 @@ fun HomeScreen(
                         Text("📅 Test Daily Notif", fontSize = 11.sp)
                     }
                 }
+                Spacer(Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { viewModel.devTriggerVipDailyReward() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFFFD700)
+                    )
+                ) {
+                    Text("👑 Test VIP Daily Reward (→ Inbox)", fontSize = 11.sp)
+                }
             }
 
             Spacer(Modifier.height(20.dp))
@@ -490,6 +500,43 @@ fun HomeScreen(
             }
 
             Spacer(Modifier.height(24.dp))
+        }
+
+        // ── VIP Daily Reward Claim Dialog ──────────────────────────────────
+        if (uiState.showVipClaimDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissVipClaimDialog() },
+                icon = { Text("👑", fontSize = 36.sp) },
+                title = {
+                    Text(
+                        "VIP Daily Reward!",
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                },
+                text = {
+                    Text(
+                        uiState.pendingVipDaysMessage
+                            ?: "Your daily VIP reward is waiting in your inbox!",
+                        textAlign = TextAlign.Center
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.dismissVipClaimDialog()
+                            onNavigateToInbox()
+                        }
+                    ) {
+                        Text("Claim Now")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.dismissVipClaimDialog() }) {
+                        Text("Later")
+                    }
+                }
+            )
         }
     }
 }

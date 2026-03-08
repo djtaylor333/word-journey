@@ -115,13 +115,12 @@ class InboxRepositoryTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `addVipDailyRewardIfNeeded inserts when no reward today`() = runTest {
-        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-        coEvery { inboxDao.getByTypeAndDate("vip_daily", today) } returns null
+    fun `addVipDailyRewardIfNeeded always inserts - dedup handled by VipDailyRewardUseCase`() = runTest {
         coEvery { inboxDao.insert(any()) } returns 42L
 
         val id = repo.addVipDailyRewardIfNeeded(
             livesGranted = 2,
+            coinsGranted = 167L,
             addGuessItems = 1,
             removeLetterItems = 1,
             definitionItems = 1,
@@ -133,20 +132,22 @@ class InboxRepositoryTest {
     }
 
     @Test
-    fun `addVipDailyRewardIfNeeded returns -1 when reward already added today`() = runTest {
-        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-        coEvery { inboxDao.getByTypeAndDate("vip_daily", today) } returns inbox()
+    fun `addVipDailyRewardIfNeeded includes coinsGranted in entity`() = runTest {
+        val captured = mutableListOf<InboxItemEntity>()
+        coEvery { inboxDao.insert(capture(captured)) } returns 1L
 
-        val id = repo.addVipDailyRewardIfNeeded(
+        repo.addVipDailyRewardIfNeeded(
             livesGranted = 2,
+            coinsGranted = 500L,
             addGuessItems = 1,
             removeLetterItems = 1,
             definitionItems = 1,
             showLetterItems = 1,
             daysAccumulated = 1
         )
-        assertEquals(-1L, id)
-        coVerify(exactly = 0) { inboxDao.insert(any()) }
+        assertEquals(1, captured.size)
+        assertEquals(500L, captured[0].coinsGranted)
+        assertEquals(2, captured[0].livesGranted)
     }
 
     // ══════════════════════════════════════════════════════════════════════════

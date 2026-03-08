@@ -24,13 +24,14 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val progress: PlayerProgress = PlayerProgress(),
-    val timerDisplayMs: Long = 0L,         // ms until next life
+    val timerDisplayMs: Long = 0L,          // ms until next life
     val isLoading: Boolean = true,
     val dailyChallengeStreak: Int = 0,
-    val vipRewardsMessage: String? = null,
+    val showVipClaimDialog: Boolean = false, // popup when VIP rewards land in inbox
+    val pendingVipDaysMessage: String? = null, // dialog body text
     val newPlayerBonusMessage: String? = null,
-    val inboxCount: Int = 0,               // unclaimed inbox items badge
-    val devModeEnabled: Boolean = false    // unlocked via 10-tap easter egg
+    val inboxCount: Int = 0,                // unclaimed inbox items badge
+    val devModeEnabled: Boolean = false     // unlocked via 10-tap easter egg
 )
 
 @HiltViewModel
@@ -88,27 +89,28 @@ class HomeViewModel @Inject constructor(
                 }
 
                 // ── VIP Daily Rewards → inbox (not applied directly) ────
-                var vipMsg: String? = null
+                var showVipDialog = false
+                var vipDialogMsg: String? = null
                 if (updated.isVip) {
                     val reward = vipDailyRewardUseCase.calculateRewards(updated.lastVipRewardDate)
                     if (reward != null) {
-                        // Only update the last-reward date; items are not applied until claimed
+                        // Update last-reward date first to prevent double-insertion on recompose
                         updated = updated.copy(lastVipRewardDate = reward.updatedLastRewardDate)
                         playerRepository.saveProgress(updated)
-                        val added = inboxRepository.addVipDailyRewardIfNeeded(
+                        inboxRepository.addVipDailyRewardIfNeeded(
                             livesGranted = reward.livesGranted,
+                            coinsGranted = reward.coinsGranted,
                             addGuessItems = reward.addGuessItemsGranted,
                             removeLetterItems = reward.removeLetterItemsGranted,
                             definitionItems = reward.definitionItemsGranted,
                             showLetterItems = reward.showLetterItemsGranted,
                             daysAccumulated = reward.daysAccumulated
                         )
-                        if (added != -1L) {
-                            vipMsg = if (reward.daysAccumulated > 1)
-                                "👑 ${reward.daysAccumulated} days of VIP rewards in your inbox!"
-                            else
-                                "👑 VIP daily reward ready in your inbox!"
-                        }
+                        showVipDialog = true
+                        vipDialogMsg = if (reward.daysAccumulated > 1)
+                            "You\'ve accumulated ${reward.daysAccumulated} days of VIP rewards! Claim ${reward.livesGranted} lives & ${reward.coinsGranted} coins now."
+                        else
+                            "Your daily VIP reward is ready — claim ${reward.livesGranted} lives & ${reward.coinsGranted} coins!"
                     }
                 }
 
@@ -134,7 +136,8 @@ class HomeViewModel @Inject constructor(
                         progress = updated,
                         isLoading = false,
                         dailyChallengeStreak = updated.dailyChallengeStreak,
-                        vipRewardsMessage = vipMsg,
+                        showVipClaimDialog = showVipDialog,
+                        pendingVipDaysMessage = vipDialogMsg,
                         newPlayerBonusMessage = newPlayerMsg,
                         inboxCount = inboxRepository.getUnclaimedCount(),
                         devModeEnabled = updated.devModeEnabled
@@ -191,6 +194,11 @@ class HomeViewModel @Inject constructor(
         audioManager.playSfx(SfxSound.BUTTON_CLICK)
     }
 
+    /** Dismiss the VIP daily reward claim dialog (player chose 'Later'). */
+    fun dismissVipClaimDialog() {
+        _uiState.update { it.copy(showVipClaimDialog = false) }
+    }
+
     // ── Dev Mode actions ──────────────────────────────────────────────────────
 
     /** [DEV] Immediately fires the lives-full notification for testing. */
@@ -208,5 +216,24 @@ class HomeViewModel @Inject constructor(
                 streak = _uiState.value.dailyChallengeStreak
             )
         } catch (_: Exception) {}
+    }
+
+    /** [DEV] Force-inserts a VIP daily reward into the inbox to test the claim popup. */
+    fun devTriggerVipDailyReward() {
+        viewModelScope.launch {
+            inboxRepository.addVipDailyRewardIfNeeded(
+                livesGranted = 2, coinsGranted = 167L,
+                addGuessItems = 2, removeLetterItems = 1,
+                definitionItems = 1, showLetterItems = 1,
+                daysAccumulated = 1
+            )
+            _uiState.update {
+                it.copy(
+                    showVipClaimDialog = true,
+                    pendingVipDaysMessage = "Your daily VIP reward is ready — claim 2 lives & 167 coins! (DEV TEST)",
+                    inboxCount = inboxRepository.getUnclaimedCount()
+                )
+            }
+        }
     }
 }

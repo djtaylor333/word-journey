@@ -1,9 +1,9 @@
 {
-  "versionName": "2.17.3",
-  "versionCode": 39,
+  "versionName": "2.18.0",
+  "versionCode": 40,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-03-08",
-  "releaseNotes": "v2.17.3 — Daily challenge word definitions revealed on win screen; daily pool filtered to only include words with verified definitions."
+  "buildDate": "2026-03-09",
+  "releaseNotes": "v2.18.0 — Fix VIP daily rewards not appearing in inbox; add VIP claim popup on daily sign-in; raise VIP bonuses to 50 lives & 5000 coins/month."
 }
