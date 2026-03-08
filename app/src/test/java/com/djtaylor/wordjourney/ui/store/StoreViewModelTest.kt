@@ -611,7 +611,8 @@ class StoreViewModelTest {
     @Test
     fun `VIP monthly purchase immediately triggers inbox reward`() = runTest {
         val reward = VipDailyRewardUseCase.VipReward(
-            livesGranted = 5,
+            livesGranted = 2,
+            coinsGranted = 167L,
             addGuessItemsGranted = 2,
             removeLetterItemsGranted = 1,
             definitionItemsGranted = 1,
