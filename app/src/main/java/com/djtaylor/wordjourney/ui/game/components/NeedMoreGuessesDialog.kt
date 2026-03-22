@@ -27,6 +27,7 @@ fun NeedMoreGuessesDialog(
     diamonds: Int,
     onUseLife: () -> Unit,
     onUseAddGuessItem: () -> Unit,
+    onUseCoinsForContinue: () -> Unit,
     onGoToStore: () -> Unit
 ) {
     Dialog(onDismissRequest = { /* cannot dismiss — must choose */ }) {
@@ -65,6 +66,19 @@ fun NeedMoreGuessesDialog(
                 ) {
                     Text(
                         "❤️ Use a Life (+${difficulty.bonusAttemptsPerLife} guesses)   [$currentLives remaining]",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Use 1000 coins for the same bonus guesses — always visible
+                Button(
+                    onClick = onUseCoinsForContinue,
+                    enabled = coins >= 1000L,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = TilePresent)
+                ) {
+                    Text(
+                        "⬡ Use 1000 Coins (+${difficulty.bonusAttemptsPerLife} guesses)   [$coins coins]",
                         fontWeight = FontWeight.Bold
                     )
                 }

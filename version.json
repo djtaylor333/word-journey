@@ -1,9 +1,9 @@
 {
-  "versionName": "2.18.0",
-  "versionCode": 40,
+  "versionName": "2.19.0",
+  "versionCode": 41,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
   "buildDate": "2026-03-09",
-  "releaseNotes": "v2.18.0 — Fix VIP daily rewards not appearing in inbox; add VIP claim popup on daily sign-in; raise VIP bonuses to 50 lives & 5000 coins/month."
+  "releaseNotes": "v2.19.0 — Easy mode gets 8 guesses (up from 6); fix failure popup not starting level when entering with 0 lives; NeedMoreGuessesDialog now shows both Life and Coin continue options at once."
 }

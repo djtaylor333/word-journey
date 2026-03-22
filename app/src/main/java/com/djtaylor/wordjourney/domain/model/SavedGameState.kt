@@ -108,5 +108,36 @@ data class PlayerProgress(
     // Onboarding
     val hasCompletedOnboarding: Boolean = false,
     // Dev Mode — enabled by tapping version string 10 times (disabled by 3 more taps)
-    val devModeEnabled: Boolean = false
+    val devModeEnabled: Boolean = false,
+    // Seasonal themed level pack progress (1-based, 100 levels per pack)
+    val seasonalEasterLevel: Int = 1,
+    val seasonalValentinesLevel: Int = 1,
+    val seasonalSummerLevel: Int = 1,
+    val seasonalHalloweenLevel: Int = 1,
+    val seasonalThanksgivingLevel: Int = 1,
+    val seasonalChristmasLevel: Int = 1
 )
+
+// ── Seasonal level helpers ────────────────────────────────────────────────────
+
+/** Returns the player's current level for the given season pack key (e.g. "easter"). */
+fun PlayerProgress.seasonalLevelFor(seasonKey: String): Int = when (seasonKey) {
+    "easter"       -> seasonalEasterLevel
+    "valentines"   -> seasonalValentinesLevel
+    "summer"       -> seasonalSummerLevel
+    "halloween"    -> seasonalHalloweenLevel
+    "thanksgiving" -> seasonalThanksgivingLevel
+    "christmas"    -> seasonalChristmasLevel
+    else           -> 1
+}
+
+/** Returns a copy of this progress with the named season's level advanced to [newLevel]. */
+fun PlayerProgress.withSeasonalLevelAdvanced(seasonKey: String, newLevel: Int): PlayerProgress = when (seasonKey) {
+    "easter"       -> copy(seasonalEasterLevel       = newLevel)
+    "valentines"   -> copy(seasonalValentinesLevel   = newLevel)
+    "summer"       -> copy(seasonalSummerLevel       = newLevel)
+    "halloween"    -> copy(seasonalHalloweenLevel    = newLevel)
+    "thanksgiving" -> copy(seasonalThanksgivingLevel = newLevel)
+    "christmas"    -> copy(seasonalChristmasLevel    = newLevel)
+    else           -> this
+}

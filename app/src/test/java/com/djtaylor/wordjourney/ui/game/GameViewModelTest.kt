@@ -145,7 +145,7 @@ class GameViewModelTest {
         assertEquals(Difficulty.EASY, state.difficulty)
         assertEquals(1, state.level)
         assertEquals(GameStatus.IN_PROGRESS, state.status)
-        assertEquals(6, state.maxGuesses)
+        assertEquals(8, state.maxGuesses) // EASY has 8 guesses
         assertTrue(state.guesses.isEmpty())
         assertTrue(state.currentInput.isEmpty())
     }
@@ -478,8 +478,8 @@ class GameViewModelTest {
         val vm = createViewModel(word = "ABLE")
         awaitInit(vm)
 
-        // Submit 6 wrong guesses
-        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        // Submit 8 wrong guesses (EASY has maxGuesses = 8)
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
         for (guess in wrongGuesses) {
             guess.forEach { vm.onKeyPressed(it) }
             awaitInit(vm)
@@ -502,8 +502,8 @@ class GameViewModelTest {
         val vm = createViewModel(word = "ABLE", progress = progress)
         awaitInit(vm)
 
-        // Exhaust all guesses
-        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        // Exhaust all guesses (EASY has 8)
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
         for (guess in wrongGuesses) {
             guess.forEach { vm.onKeyPressed(it) }
             awaitInit(vm)
@@ -517,7 +517,7 @@ class GameViewModelTest {
         val state = vm.uiState.first()
         assertEquals(GameStatus.IN_PROGRESS, state.status)
         // Easy difficulty grants 3 bonus guesses
-        assertEquals(9, state.maxGuesses) // 6 + 3
+        assertEquals(11, state.maxGuesses) // 8 + 3
     }
 
     @Test
@@ -534,17 +534,25 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `tradeCoinsForLife deducts coins and adds life`() = runTest {
+    fun `tradeCoinsForLife when engine null starts the level`() = runTest {
         val progress = PlayerProgress(lives = 0, coins = 2000L)
         val vm = createViewModel(progress = progress)
         awaitInit(vm)
+
+        // Sanity: game blocked due to zero lives
+        assertTrue(vm.uiState.first().showNoLivesDialog)
 
         vm.tradeCoinsForLife()
         awaitInit(vm)
 
         val state = vm.uiState.first()
+        // Coins deducted
         assertEquals(1000L, state.coins)
-        assertEquals(1, state.lives)
+        // Life gained (1) then spent starting the level (back to 0)
+        assertEquals(0, state.lives)
+        // Game has now started
+        assertFalse(state.showNoLivesDialog)
+        assertEquals(GameStatus.IN_PROGRESS, state.status)
     }
 
     @Test
@@ -561,17 +569,25 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `tradeDiamondsForLife deducts diamonds and adds life`() = runTest {
+    fun `tradeDiamondsForLife when engine null starts the level`() = runTest {
         val progress = PlayerProgress(lives = 0, diamonds = 10)
         val vm = createViewModel(progress = progress)
         awaitInit(vm)
+
+        // Sanity: game blocked due to zero lives
+        assertTrue(vm.uiState.first().showNoLivesDialog)
 
         vm.tradeDiamondsForLife()
         awaitInit(vm)
 
         val state = vm.uiState.first()
+        // Diamonds deducted
         assertEquals(7, state.diamonds)
-        assertEquals(1, state.lives)
+        // Life gained (1) then spent starting the level (back to 0)
+        assertEquals(0, state.lives)
+        // Game has now started
+        assertFalse(state.showNoLivesDialog)
+        assertEquals(GameStatus.IN_PROGRESS, state.status)
     }
 
     @Test
@@ -587,6 +603,90 @@ class GameViewModelTest {
         assertNotNull(state.snackbarMessage)
     }
 
+    @Test
+    fun `tradeCoinsForLife mid-game deducts coins and shows need more guesses`() = runTest {
+        // Player starts with 1 life (spent to open level), then runs out of guesses
+        val progress = PlayerProgress(lives = 1, coins = 2000L)
+        val vm = createViewModel(progress = progress)
+        awaitInit(vm)
+
+        // Exhaust all 8 guesses (game started with 1 life → now 0 lives)
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
+        for (guess in wrongGuesses) {
+            guess.forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+
+        // Lives = 0 after spending on level start → NoLivesDialog shown
+        var state = vm.uiState.first()
+        assertEquals(GameStatus.WAITING_FOR_LIFE, state.status)
+        assertTrue(state.showNoLivesDialog)
+
+        // Trade coins for a life mid-game (engine is NOT null here)
+        vm.tradeCoinsForLife()
+        awaitInit(vm)
+
+        state = vm.uiState.first()
+        assertEquals(1000L, state.coins)
+        assertEquals(1, state.lives)
+        // Should now move to NeedMoreGuessesDialog so player can spend the life
+        assertTrue(state.showNeedMoreGuessesDialog)
+    }
+
+    @Test
+    fun `useCoinsForContinue deducts coins and grants bonus guesses`() = runTest {
+        val progress = PlayerProgress(lives = 5, coins = 2000L)
+        val vm = createViewModel(word = "ABLE", progress = progress)
+        awaitInit(vm)
+
+        // Exhaust all 8 guesses (EASY)
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
+        for (guess in wrongGuesses) {
+            guess.forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+
+        assertEquals(GameStatus.WAITING_FOR_LIFE, vm.uiState.first().status)
+
+        // Use coins instead of a life to continue
+        vm.useCoinsForContinue()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertEquals(1000L, state.coins)          // 2000 - 1000
+        assertEquals(5, state.lives)              // unchanged
+        assertEquals(GameStatus.IN_PROGRESS, state.status)
+        assertEquals(11, state.maxGuesses)        // 8 + 3 bonus
+        assertFalse(state.showNeedMoreGuessesDialog)
+    }
+
+    @Test
+    fun `useCoinsForContinue fails with insufficient coins`() = runTest {
+        val progress = PlayerProgress(lives = 5, coins = 100L)
+        val vm = createViewModel(word = "ABLE", progress = progress)
+        awaitInit(vm)
+
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
+        for (guess in wrongGuesses) {
+            guess.forEach { vm.onKeyPressed(it) }
+            awaitInit(vm)
+            vm.onSubmit()
+            awaitInit(vm)
+        }
+
+        vm.useCoinsForContinue()
+        awaitInit(vm)
+
+        val state = vm.uiState.first()
+        assertEquals(8, state.maxGuesses)         // unchanged (8 for EASY)
+        assertNotNull(state.snackbarMessage)
+    }
+
+
     // ══════════════════════════════════════════════════════════════════════════
     // 7. ITEMS
     // ══════════════════════════════════════════════════════════════════════════
@@ -601,7 +701,7 @@ class GameViewModelTest {
         awaitInit(vm)
 
         val state = vm.uiState.first()
-        assertEquals(7, state.maxGuesses) // 6 + 1
+        assertEquals(9, state.maxGuesses) // 8 + 1
         assertEquals(1, state.addGuessItems) // decremented
     }
 
@@ -615,7 +715,7 @@ class GameViewModelTest {
         awaitInit(vm)
 
         val state = vm.uiState.first()
-        assertEquals(7, state.maxGuesses) // 6 + 1
+        assertEquals(9, state.maxGuesses) // 8 + 1
         assertEquals(300L, state.coins) // 500 - 200
     }
 
@@ -629,7 +729,7 @@ class GameViewModelTest {
         awaitInit(vm)
 
         val state = vm.uiState.first()
-        assertEquals(6, state.maxGuesses) // unchanged
+        assertEquals(8, state.maxGuesses) // unchanged (EASY starts at 8)
         assertNotNull(state.snackbarMessage)
     }
 
@@ -871,8 +971,8 @@ class GameViewModelTest {
         val vm = createViewModel(word = "ABLE", progress = progress)
         awaitInit(vm)
 
-        // Exhaust 6 guesses
-        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        // Exhaust 8 guesses (EASY maxGuesses = 8)
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
         for (guess in wrongGuesses) {
             guess.forEach { vm.onKeyPressed(it) }
             awaitInit(vm)
@@ -882,7 +982,7 @@ class GameViewModelTest {
 
         var state = vm.uiState.first()
         assertEquals(GameStatus.WAITING_FOR_LIFE, state.status)
-        assertEquals(6, state.guesses.size)
+        assertEquals(8, state.guesses.size)
 
         // Use a life to get 3 more guesses
         vm.useLifeForMoreGuesses()
@@ -890,7 +990,7 @@ class GameViewModelTest {
 
         state = vm.uiState.first()
         assertEquals(GameStatus.IN_PROGRESS, state.status)
-        assertEquals(9, state.maxGuesses)
+        assertEquals(11, state.maxGuesses) // 8 + 3
 
         // Now win
         "ABLE".forEach { vm.onKeyPressed(it) }
@@ -915,7 +1015,7 @@ class GameViewModelTest {
         // Use add guess item
         vm.useAddGuessItem()
         awaitInit(vm)
-        assertEquals(7, vm.uiState.first().maxGuesses)
+        assertEquals(9, vm.uiState.first().maxGuesses) // EASY 8 + 1
 
         // Use remove letter item
         vm.useRemoveLetterItem()
@@ -1530,7 +1630,7 @@ class GameViewModelTest {
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
         awaitInit(vm)
 
-        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
         for (guess in wrongGuesses) {
             guess.forEach { vm.onKeyPressed(it) }
             awaitInit(vm)
@@ -1628,8 +1728,8 @@ class GameViewModelTest {
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
         awaitInit(vm)
 
-        // Exhaust all guesses with wrong words
-        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        // Exhaust all guesses with wrong words (EASY daily has 8 guesses)
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
         for (guess in wrongGuesses) {
             guess.forEach { vm.onKeyPressed(it) }
             awaitInit(vm)
@@ -1649,7 +1749,7 @@ class GameViewModelTest {
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
         awaitInit(vm)
 
-        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
         for (guess in wrongGuesses) {
             guess.forEach { vm.onKeyPressed(it) }
             awaitInit(vm)
@@ -1665,7 +1765,7 @@ class GameViewModelTest {
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
         awaitInit(vm)
 
-        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
         for (guess in wrongGuesses) {
             guess.forEach { vm.onKeyPressed(it) }
             awaitInit(vm)
@@ -1674,7 +1774,7 @@ class GameViewModelTest {
         }
 
         coVerify { dailyChallengeRepository.saveResult(
-            wordLength = 4, word = "QUIZ", guessCount = 6, won = false, stars = 0, dateStr = any()
+            wordLength = 4, word = "QUIZ", guessCount = 8, won = false, stars = 0, dateStr = any()
         ) }
     }
 
@@ -1684,7 +1784,7 @@ class GameViewModelTest {
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
         awaitInit(vm)
 
-        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK")
+        val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
         for (guess in wrongGuesses) {
             guess.forEach { vm.onKeyPressed(it) }
             awaitInit(vm)

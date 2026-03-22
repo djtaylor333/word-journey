@@ -125,6 +125,20 @@ class PlayerDataStore @Inject constructor(
         val KEY_GAME_STATE_DAILY_4             = stringPreferencesKey("game_state_daily_4")
         val KEY_GAME_STATE_DAILY_5             = stringPreferencesKey("game_state_daily_5")
         val KEY_GAME_STATE_DAILY_6             = stringPreferencesKey("game_state_daily_6")
+        // Seasonal level pack progress
+        val KEY_SEASONAL_EASTER_LEVEL          = intPreferencesKey("seasonal_easter_level")
+        val KEY_SEASONAL_VALENTINES_LEVEL      = intPreferencesKey("seasonal_valentines_level")
+        val KEY_SEASONAL_SUMMER_LEVEL          = intPreferencesKey("seasonal_summer_level")
+        val KEY_SEASONAL_HALLOWEEN_LEVEL       = intPreferencesKey("seasonal_halloween_level")
+        val KEY_SEASONAL_THANKSGIVING_LEVEL    = intPreferencesKey("seasonal_thanksgiving_level")
+        val KEY_SEASONAL_CHRISTMAS_LEVEL       = intPreferencesKey("seasonal_christmas_level")
+        // In-progress serialized game states for seasonal packs
+        val KEY_GAME_STATE_SEASONAL_EASTER     = stringPreferencesKey("game_state_seasonal_easter")
+        val KEY_GAME_STATE_SEASONAL_VALENTINES = stringPreferencesKey("game_state_seasonal_valentines")
+        val KEY_GAME_STATE_SEASONAL_SUMMER     = stringPreferencesKey("game_state_seasonal_summer")
+        val KEY_GAME_STATE_SEASONAL_HALLOWEEN  = stringPreferencesKey("game_state_seasonal_halloween")
+        val KEY_GAME_STATE_SEASONAL_THANKSGIVING = stringPreferencesKey("game_state_seasonal_thanksgiving")
+        val KEY_GAME_STATE_SEASONAL_CHRISTMAS  = stringPreferencesKey("game_state_seasonal_christmas")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -208,7 +222,13 @@ class PlayerDataStore @Inject constructor(
                 hasCompletedOnboarding = prefs[KEY_HAS_COMPLETED_ONBOARDING] ?: false,
                 vipLevel              = prefs[KEY_VIP_LEVEL] ?: 1,
                 vipLevelsCompletedSinceBonusLife = prefs[KEY_VIP_BONUS_COUNTER] ?: 0,
-                devModeEnabled        = prefs[KEY_DEV_MODE_ENABLED] ?: false
+                devModeEnabled        = prefs[KEY_DEV_MODE_ENABLED] ?: false,
+                seasonalEasterLevel        = prefs[KEY_SEASONAL_EASTER_LEVEL] ?: 1,
+                seasonalValentinesLevel    = prefs[KEY_SEASONAL_VALENTINES_LEVEL] ?: 1,
+                seasonalSummerLevel        = prefs[KEY_SEASONAL_SUMMER_LEVEL] ?: 1,
+                seasonalHalloweenLevel     = prefs[KEY_SEASONAL_HALLOWEEN_LEVEL] ?: 1,
+                seasonalThanksgivingLevel  = prefs[KEY_SEASONAL_THANKSGIVING_LEVEL] ?: 1,
+                seasonalChristmasLevel     = prefs[KEY_SEASONAL_CHRISTMAS_LEVEL] ?: 1
             )
         }
 
@@ -294,49 +314,44 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_HAS_COMPLETED_ONBOARDING] = progress.hasCompletedOnboarding
             prefs[KEY_NOTIFY_DAILY_CHALLENGE]   = progress.notifyDailyChallenge
             prefs[KEY_DEV_MODE_ENABLED]         = progress.devModeEnabled
-            prefs[KEY_VIP_LEVEL]                = progress.vipLevel
-            prefs[KEY_VIP_BONUS_COUNTER]        = progress.vipLevelsCompletedSinceBonusLife
+            prefs[KEY_VIP_LEVEL]                    = progress.vipLevel
+            prefs[KEY_VIP_BONUS_COUNTER]            = progress.vipLevelsCompletedSinceBonusLife
+            prefs[KEY_SEASONAL_EASTER_LEVEL]        = progress.seasonalEasterLevel
+            prefs[KEY_SEASONAL_VALENTINES_LEVEL]    = progress.seasonalValentinesLevel
+            prefs[KEY_SEASONAL_SUMMER_LEVEL]        = progress.seasonalSummerLevel
+            prefs[KEY_SEASONAL_HALLOWEEN_LEVEL]     = progress.seasonalHalloweenLevel
+            prefs[KEY_SEASONAL_THANKSGIVING_LEVEL]  = progress.seasonalThanksgivingLevel
+            prefs[KEY_SEASONAL_CHRISTMAS_LEVEL]     = progress.seasonalChristmasLevel
         }
+    }
+
+    private fun gameStateKeyFor(difficultyKey: String) = when {
+        difficultyKey == "easy"                   -> KEY_GAME_STATE_EASY
+        difficultyKey == "regular"                -> KEY_GAME_STATE_REGULAR
+        difficultyKey == "daily_4"                -> KEY_GAME_STATE_DAILY_4
+        difficultyKey == "daily_5"                -> KEY_GAME_STATE_DAILY_5
+        difficultyKey == "daily_6"                -> KEY_GAME_STATE_DAILY_6
+        difficultyKey.startsWith("daily")         -> KEY_GAME_STATE_DAILY
+        difficultyKey == "seasonal_easter"        -> KEY_GAME_STATE_SEASONAL_EASTER
+        difficultyKey == "seasonal_valentines"    -> KEY_GAME_STATE_SEASONAL_VALENTINES
+        difficultyKey == "seasonal_summer"        -> KEY_GAME_STATE_SEASONAL_SUMMER
+        difficultyKey == "seasonal_halloween"     -> KEY_GAME_STATE_SEASONAL_HALLOWEEN
+        difficultyKey == "seasonal_thanksgiving"  -> KEY_GAME_STATE_SEASONAL_THANKSGIVING
+        difficultyKey == "seasonal_christmas"     -> KEY_GAME_STATE_SEASONAL_CHRISTMAS
+        else                                      -> KEY_GAME_STATE_HARD
     }
 
     suspend fun saveInProgressGame(state: SavedGameState) {
         val json = Json.encodeToString(state)
-        val key = when {
-            state.difficultyKey == "easy"    -> KEY_GAME_STATE_EASY
-            state.difficultyKey == "regular" -> KEY_GAME_STATE_REGULAR
-            state.difficultyKey == "daily_4" -> KEY_GAME_STATE_DAILY_4
-            state.difficultyKey == "daily_5" -> KEY_GAME_STATE_DAILY_5
-            state.difficultyKey == "daily_6" -> KEY_GAME_STATE_DAILY_6
-            state.difficultyKey.startsWith("daily") -> KEY_GAME_STATE_DAILY
-            else      -> KEY_GAME_STATE_HARD
-        }
-        ds.edit { prefs -> prefs[key] = json }
+        ds.edit { prefs -> prefs[gameStateKeyFor(state.difficultyKey)] = json }
     }
 
     suspend fun clearInProgressGame(difficultyKey: String) {
-        val key = when {
-            difficultyKey == "easy"    -> KEY_GAME_STATE_EASY
-            difficultyKey == "regular" -> KEY_GAME_STATE_REGULAR
-            difficultyKey == "daily_4" -> KEY_GAME_STATE_DAILY_4
-            difficultyKey == "daily_5" -> KEY_GAME_STATE_DAILY_5
-            difficultyKey == "daily_6" -> KEY_GAME_STATE_DAILY_6
-            difficultyKey.startsWith("daily") -> KEY_GAME_STATE_DAILY
-            else      -> KEY_GAME_STATE_HARD
-        }
-        ds.edit { prefs -> prefs.remove(key) }
+        ds.edit { prefs -> prefs.remove(gameStateKeyFor(difficultyKey)) }
     }
 
     suspend fun loadInProgressGame(difficultyKey: String): SavedGameState? {
-        val key = when {
-            difficultyKey == "easy"    -> KEY_GAME_STATE_EASY
-            difficultyKey == "regular" -> KEY_GAME_STATE_REGULAR
-            difficultyKey == "daily_4" -> KEY_GAME_STATE_DAILY_4
-            difficultyKey == "daily_5" -> KEY_GAME_STATE_DAILY_5
-            difficultyKey == "daily_6" -> KEY_GAME_STATE_DAILY_6
-            difficultyKey.startsWith("daily") -> KEY_GAME_STATE_DAILY
-            else      -> KEY_GAME_STATE_HARD
-        }
-        val json = ds.data.map { it[key] }.catch { emit(null) }.first()
+        val json = ds.data.map { it[gameStateKeyFor(difficultyKey)] }.catch { emit(null) }.first()
         return json?.let { runCatching { Json.decodeFromString<SavedGameState>(it) }.getOrNull() }
     }
 

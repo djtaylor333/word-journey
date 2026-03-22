@@ -95,6 +95,30 @@ class DifficultyTest {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
+    // 2b. MAX GUESSES PER DIFFICULTY
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `EASY difficulty has maxGuesses 8`() {
+        assertEquals(8, Difficulty.EASY.maxGuesses)
+    }
+
+    @Test
+    fun `REGULAR difficulty has maxGuesses 6`() {
+        assertEquals(6, Difficulty.REGULAR.maxGuesses)
+    }
+
+    @Test
+    fun `HARD difficulty has maxGuesses 6`() {
+        assertEquals(6, Difficulty.HARD.maxGuesses)
+    }
+
+    @Test
+    fun `VIP difficulty has maxGuesses 6`() {
+        assertEquals(6, Difficulty.VIP.maxGuesses)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
     // 3. DIFFICULTY ENUM VALUES
     // ══════════════════════════════════════════════════════════════════════════
 

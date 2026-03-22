@@ -237,6 +237,7 @@ fun GameScreen(
             diamonds = uiState.diamonds,
             onUseLife = { viewModel.useLifeForMoreGuesses() },
             onUseAddGuessItem = { viewModel.useAddGuessItem() },
+            onUseCoinsForContinue = { viewModel.useCoinsForContinue() },
             onGoToStore = onNavigateToStore
         )
     }

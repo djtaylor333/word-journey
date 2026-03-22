@@ -1,0 +1,20 @@
+{
+  "version": "2.19.0",
+  "versionCode": 41,
+  "buildDate": "2026-03-09",
+  "apkFile": "word-journey-v2.19.0-release.apk",
+  "apkSizeMB": 12.4,
+  "aabFile": "word-journey-v2.19.0-release.aab",
+  "aabSizeMB": 9.9,
+  "releaseNotes": "Themed level packs now fully playable: 100 levels per pack, 6 packs, 600 themed 5-letter words total. New Browse All Packs screen. Home screen active season card is now interactive.",
+  "features": [
+    "100 levels per seasonal themed pack (Easter, Valentines, Summer, Halloween, Thanksgiving, Christmas)",
+    "600 total themed words, all exactly 5 letters",
+    "New ThemedPacksScreen showing all 6 packs with progress",
+    "Browse All Packs button on home screen",
+    "Active season card navigates directly to level select",
+    "Progress tracked independently per seasonal pack",
+    "In-progress game state saved per seasonal pack",
+    "19 new unit tests for word pack integrity"
+  ]
+}

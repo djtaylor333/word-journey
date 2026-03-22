@@ -9,6 +9,8 @@ import com.djtaylor.wordjourney.data.db.StarRatingDao
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
+import com.djtaylor.wordjourney.domain.model.SeasonalWordPacks
+import com.djtaylor.wordjourney.domain.model.seasonalLevelFor
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -42,7 +44,10 @@ class LevelSelectViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val difficultyKey: String = checkNotNull(savedStateHandle["difficulty"])
-    private val difficulty: Difficulty = Difficulty.entries.first { it.saveKey == difficultyKey }
+    private val isSeasonalLevel: Boolean = difficultyKey.startsWith("seasonal_")
+    private val seasonalPackKey: String? = if (isSeasonalLevel) difficultyKey.removePrefix("seasonal_") else null
+    private val difficulty: Difficulty = if (isSeasonalLevel) Difficulty.REGULAR
+        else Difficulty.entries.first { it.saveKey == difficultyKey }
     private var playerProgress: PlayerProgress = PlayerProgress()
 
     private val _uiState = MutableStateFlow(LevelSelectUiState(difficulty = difficulty))
@@ -76,9 +81,17 @@ class LevelSelectViewModel @Inject constructor(
                     p
                 } else progress
 
+                val currentLevel = if (isSeasonalLevel)
+                    playerProgress.seasonalLevelFor(seasonalPackKey!!)
+                else
+                    playerProgress.levelFor(difficulty)
+                val totalLevels = if (isSeasonalLevel)
+                    SeasonalWordPacks.packSize(seasonalPackKey!!)
+                else 100
                 _uiState.update {
                     it.copy(
-                        currentLevel = playerProgress.levelFor(difficulty),
+                        currentLevel = currentLevel,
+                        totalLevels = totalLevels,
                         lives = minOf(playerProgress.lives, 10),
                         bonusLives = maxOf(playerProgress.lives - 10, 0),
                         coins = playerProgress.coins,
@@ -112,7 +125,8 @@ class LevelSelectViewModel @Inject constructor(
      * For completed levels (replay), no life is deducted.
      */
     fun canStartLevel(level: Int): Boolean {
-        val currentLevel = playerProgress.levelFor(difficulty)
+        val currentLevel = if (isSeasonalLevel) playerProgress.seasonalLevelFor(seasonalPackKey!!)
+                           else playerProgress.levelFor(difficulty)
         val isReplay = level < currentLevel
         if (isReplay) return true  // free replay
         return playerProgress.lives > 0
@@ -123,7 +137,8 @@ class LevelSelectViewModel @Inject constructor(
      * Returns true if successful.
      */
     fun deductLifeForLevel(level: Int): Boolean {
-        val currentLevel = playerProgress.levelFor(difficulty)
+        val currentLevel = if (isSeasonalLevel) playerProgress.seasonalLevelFor(seasonalPackKey!!)
+                           else playerProgress.levelFor(difficulty)
         if (level < currentLevel) return true  // replay, no cost
 
         if (playerProgress.lives <= 0) {
@@ -168,4 +183,8 @@ class LevelSelectViewModel @Inject constructor(
         Difficulty.HARD    -> hardLevel
         Difficulty.VIP     -> vipLevel
     }
+
+    // Expose seasonal info for the UI
+    val isSeasonalPack: Boolean get() = isSeasonalLevel
+    val seasonPackKey: String? get() = seasonalPackKey
 }

@@ -14,7 +14,10 @@ import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.GameStatus
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import com.djtaylor.wordjourney.domain.model.SavedGameState
+import com.djtaylor.wordjourney.domain.model.SeasonalWordPacks
 import com.djtaylor.wordjourney.domain.model.TileState
+import com.djtaylor.wordjourney.domain.model.seasonalLevelFor
+import com.djtaylor.wordjourney.domain.model.withSeasonalLevelAdvanced
 import com.djtaylor.wordjourney.domain.usecase.EvaluateGuessUseCase
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
 import com.djtaylor.wordjourney.engine.GameEngine
@@ -39,14 +42,16 @@ class GameViewModel @Inject constructor(
 
     private val difficultyKey: String = checkNotNull(savedStateHandle["difficulty"])
     private val isDailyChallenge: Boolean = difficultyKey.startsWith("daily")
-    private val difficulty: Difficulty = if (isDailyChallenge) {
-        when (difficultyKey.substringAfter("_").toIntOrNull()) {
+    private val isSeasonalLevel: Boolean = difficultyKey.startsWith("seasonal_")
+    private val seasonalPackKey: String? = if (isSeasonalLevel) difficultyKey.removePrefix("seasonal_") else null
+    private val difficulty: Difficulty = when {
+        isDailyChallenge -> when (difficultyKey.substringAfter("_").toIntOrNull()) {
             4 -> Difficulty.EASY
             6 -> Difficulty.HARD
             else -> Difficulty.REGULAR
         }
-    } else {
-        Difficulty.entries.first { it.saveKey == difficultyKey }
+        isSeasonalLevel -> Difficulty.REGULAR
+        else -> Difficulty.entries.first { it.saveKey == difficultyKey }
     }
     private val levelArg: Int = savedStateHandle["level"] ?: 1
 
@@ -136,17 +141,24 @@ class GameViewModel @Inject constructor(
                     startFreshLevel(levelArg)
                 }
             } else {
-                val currentLevel = playerProgress.levelFor(difficulty)
+                val currentLevel = if (isSeasonalLevel)
+                    playerProgress.seasonalLevelFor(seasonalPackKey!!)
+                else
+                    playerProgress.levelFor(difficulty)
                 isReplay = levelArg < currentLevel
 
                 // Try to restore in-progress game (only for current level, not replays)
-                val saved = if (!isReplay) playerRepository.loadInProgressGame(difficulty) else null
+                val saved = if (!isReplay) {
+                    if (isSeasonalLevel) playerRepository.loadInProgressGame(difficultyKey)
+                    else playerRepository.loadInProgressGame(difficulty)
+                } else null
                 if (saved != null && saved.level == levelArg) {
                     try {
                         restoreFromSave(saved)
                     } catch (restoreEx: Exception) {
                         android.util.Log.e(TAG, "Failed to restore saved game, starting fresh", restoreEx)
-                        playerRepository.clearInProgressGame(difficulty)
+                        if (isSeasonalLevel) playerRepository.clearInProgressGame(difficultyKey)
+                        else playerRepository.clearInProgressGame(difficulty)
                         startFreshLevel(levelArg)
                     }
                 } else {
@@ -190,10 +202,10 @@ class GameViewModel @Inject constructor(
             difficulty.wordLength
         }
 
-        val word = if (isDailyChallenge) {
-            dailyChallengeRepository.getDailyWord(difficulty.wordLength)
-        } else {
-            wordRepository.getWordForLevel(difficulty, level, effectiveWordLength)
+        val word = when {
+            isDailyChallenge -> dailyChallengeRepository.getDailyWord(difficulty.wordLength)
+            isSeasonalLevel  -> SeasonalWordPacks.getWord(seasonalPackKey!!, level)
+            else             -> wordRepository.getWordForLevel(difficulty, level, effectiveWordLength)
         }
         if (word.isNullOrEmpty()) {
             _uiState.update { s ->
@@ -218,7 +230,7 @@ class GameViewModel @Inject constructor(
         var defHint: String? = null
         var defUsed = false
         var wordHasDefinition = false
-        if (!isDailyChallenge) {
+        if (!isDailyChallenge && !isSeasonalLevel) {
             val definition = wordRepository.getDefinition(difficulty, level, defWordLength)
             wordHasDefinition = definition.isNotBlank()
             if (isReplay && wordHasDefinition) {
@@ -365,10 +377,11 @@ class GameViewModel @Inject constructor(
         val vipWordLen = if (difficulty == Difficulty.VIP) e.effectiveWordLength else null
         val targetWord = e.guesses.last()
             .joinToString("") { it.first.toString() } // reconstruct from last guess (all CORRECT)
-        val definition = if (isDailyChallenge)
-            dailyChallengeRepository.getDefinitionForDailyWord(targetWord) ?: ""
-        else
-            wordRepository.getDefinition(difficulty, level, vipWordLen)
+        val definition = when {
+            isDailyChallenge -> dailyChallengeRepository.getDefinitionForDailyWord(targetWord) ?: ""
+            isSeasonalLevel  -> ""
+            else             -> wordRepository.getDefinition(difficulty, level, vipWordLen)
+        }
         val guessCount = e.guesses.size
 
         // Calculate stars: 3★ = 1-2 guesses, 2★ = 3-4 guesses, 1★ = 5+ guesses
@@ -549,7 +562,8 @@ class GameViewModel @Inject constructor(
                     areaCompleteMessage = if (areaComplete) "🏆 Area Complete! +25 💎" else null
                 )
             }
-            playerRepository.clearInProgressGame(difficulty)
+            if (isSeasonalLevel) playerRepository.clearInProgressGame(difficultyKey)
+            else playerRepository.clearInProgressGame(difficulty)
         }
     }
 
@@ -693,7 +707,12 @@ class GameViewModel @Inject constructor(
         _uiState.update { s ->
             s.copy(lives = updated.lives, coins = updated.coins, showNoLivesDialog = false)
         }
-        _uiState.update { it.copy(showNeedMoreGuessesDialog = true) }
+        // If the game hasn't started yet (level blocked by zero lives), start it now
+        if (engine == null) {
+            viewModelScope.launch { startFreshLevel(_uiState.value.level) }
+        } else {
+            _uiState.update { it.copy(showNeedMoreGuessesDialog = true) }
+        }
     }
 
     fun tradeDiamondsForLife(cost: Int = 3) {
@@ -712,7 +731,40 @@ class GameViewModel @Inject constructor(
         _uiState.update { s ->
             s.copy(lives = updated.lives, diamonds = updated.diamonds, showNoLivesDialog = false)
         }
-        _uiState.update { it.copy(showNeedMoreGuessesDialog = true) }
+        // If the game hasn't started yet (level blocked by zero lives), start it now
+        if (engine == null) {
+            viewModelScope.launch { startFreshLevel(_uiState.value.level) }
+        } else {
+            _uiState.update { it.copy(showNeedMoreGuessesDialog = true) }
+        }
+    }
+
+    /**
+     * Trade 1000 coins for [difficulty.bonusAttemptsPerLife] extra guesses without
+     * spending a life.  Shown in [NeedMoreGuessesDialog] when lives == 0.
+     */
+    fun useCoinsForContinue() {
+        val e = engine ?: return
+        val progress = playerProgress
+        val cost = 1000L
+        if (progress.coins < cost) {
+            _uiState.update { it.copy(snackbarMessage = "Need 1000 coins to continue") }
+            return
+        }
+        audioManager.playSfx(SfxSound.COIN_EARN)
+        val updated = progress.copy(coins = progress.coins - cost)
+        playerProgress = updated
+        viewModelScope.launch { playerRepository.saveProgress(updated) }
+        e.addBonusGuesses(difficulty.bonusAttemptsPerLife)
+        syncEngineToUiState()
+        _uiState.update { s ->
+            s.copy(
+                showNeedMoreGuessesDialog = false,
+                showNoLivesDialog = false,
+                coins = updated.coins
+            )
+        }
+        persistCurrentState()
     }
 
     // ── Items ─────────────────────────────────────────────────────────────────
@@ -956,11 +1008,16 @@ class GameViewModel @Inject constructor(
         // VIP gets x2 coin rewards
         val effectiveCoins = if (difficulty == Difficulty.VIP) coinsEarned * 2 else coinsEarned
 
-        p = when (difficulty) {
-            Difficulty.EASY    -> p.copy(easyLevel = newLevel)
-            Difficulty.REGULAR -> p.copy(regularLevel = newLevel)
-            Difficulty.HARD    -> p.copy(hardLevel = newLevel)
-            Difficulty.VIP     -> p.copy(vipLevel = newLevel)
+        if (isSeasonalLevel) {
+            // Advance seasonal level progress independently of normal difficulty levels
+            p = p.withSeasonalLevelAdvanced(seasonalPackKey!!, newLevel)
+        } else {
+            p = when (difficulty) {
+                Difficulty.EASY    -> p.copy(easyLevel = newLevel)
+                Difficulty.REGULAR -> p.copy(regularLevel = newLevel)
+                Difficulty.HARD    -> p.copy(hardLevel = newLevel)
+                Difficulty.VIP     -> p.copy(vipLevel = newLevel)
+            }
         }
 
         p = p.copy(coins = p.coins + effectiveCoins)

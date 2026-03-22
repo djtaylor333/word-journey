@@ -39,6 +39,7 @@ fun HomeScreen(
     onNavigateToStatistics: () -> Unit,
     onNavigateToInbox: () -> Unit = {},
     onNavigateToTimerMode: () -> Unit = {},
+    onNavigateToThemedPacks: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -349,15 +350,18 @@ fun HomeScreen(
                             textAlign = TextAlign.Center
                         )
                         Spacer(Modifier.height(10.dp))
-                        Surface(
+                        Button(
+                            onClick = {
+                                viewModel.playButtonClick()
+                                val seasonKey = activeSeason.season.name.lowercase()
+                                onNavigateToLevelSelect("seasonal_$seasonKey")
+                            },
                             shape = RoundedCornerShape(10.dp),
-                            color = themeAccent.copy(alpha = 0.15f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                "Word pack coming soon",
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                color = themeAccent,
-                                fontWeight = FontWeight.SemiBold,
+                                "▶  Play Now — 100 Levels",
+                                fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
                         }
@@ -440,6 +444,18 @@ fun HomeScreen(
                     }
                     Spacer(Modifier.height(10.dp))
                 }
+            }
+
+            // Browse All themed packs button (always visible in the section)
+            OutlinedButton(
+                onClick = {
+                    viewModel.playButtonClick()
+                    onNavigateToThemedPacks()
+                },
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("🎁  Browse All Themed Packs", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             }
 
             Spacer(Modifier.height(16.dp))
