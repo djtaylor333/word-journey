@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Word Journeys</string>
     <!-- Game App ID for Play Games - replace with real ID -->
-    <string name="app_id">000000000000</string>
+    <string name="app_id">1097721266836</string>
 
     <!-- Difficulties -->
     <string name="difficulty_easy">Easy</string>

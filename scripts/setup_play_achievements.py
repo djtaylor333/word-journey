@@ -26,6 +26,7 @@ AFTER RUNNING:
 
 import argparse
 import json
+import os
 import sys
 import time
 
@@ -322,7 +323,7 @@ def create_achievement(service, app_id: str, ach: dict) -> str | None:
         "kind":          "gamesConfiguration#achievementConfiguration",
         "achievementType": ach["type"],
         "initialState":  "REVEALED",
-        "published":     {
+        "draft":     {
             "name":        {"kind": "gamesConfiguration#localizedStringBundle",
                             "translations": [{"kind": "gamesConfiguration#localizedString",
                                               "locale": "en-US",
@@ -331,7 +332,9 @@ def create_achievement(service, app_id: str, ach: dict) -> str | None:
                             "translations": [{"kind": "gamesConfiguration#localizedString",
                                               "locale": "en-US",
                                               "value":  ach["description"]}]},
-            "pointValue":  ach.get("xp", 100),
+            # pointValue must be a multiple of 5 in range 5-200, and game total XP ≤ 2000.
+            # Use 5 XP per achievement to stay safely within the game-level XP budget.
+            "pointValue":  5,
         },
     }
     if is_incremental:
@@ -364,7 +367,8 @@ def main():
         print("=== DRY RUN ===\n")
         for a in ACHIEVEMENTS:
             inc = f"  ({a['steps']} steps)" if a.get("steps") else ""
-            print(f"  [{a['type']:11s}] {a['key']:25s}  {a['name']}{inc}")
+            xp = min(200, max(5, (a.get("xp", 50) // 5) * 5))
+            print(f"  [{a['type']:11s}] {a['key']:25s}  {a['name']}  (xp={xp}){inc}")
         print(f"\nTotal: {len(ACHIEVEMENTS)} achievements")
         return
 
@@ -382,28 +386,50 @@ def main():
     print("Enabling Games Configuration API...")
     enable_games_api(args.key)
 
-    print(f"\nCreating {len(ACHIEVEMENTS)} achievements for app {args.app_id}...\n")
+    # Load previously created achievement IDs so we skip (not re-create) them
+    out_path = "scripts/achievement_ids.txt"
+    results = {}
+    if os.path.exists(out_path):
+        import re
+        with open(out_path) as f:
+            for line in f:
+                m = re.match(r'\s*const val\s+(\w+)\s*=\s*"([\w]+)"', line)
+                if m and m.group(2) != "MISSING":
+                    results[m.group(1)] = m.group(2)
+        if results:
+            print(f"  Loaded {len(results)} existing IDs from {out_path}")
+
+    keys_needed = [a["key"] for a in ACHIEVEMENTS if a["key"] not in results]
+    print(f"\n{len(keys_needed)} achievements to create (skipping {len(results)} already done)...\n")
+
     service = build_games_service(args.key)
 
-    results = {}
     for ach in ACHIEVEMENTS:
+        if ach["key"] in results:
+            print(f"  = {ach['key']:25s}  (already exists: {results[ach['key']]})")
+            continue
         ach_id = create_achievement(service, args.app_id, ach)
         if ach_id:
             results[ach["key"]] = ach_id
-        time.sleep(0.3)
+        time.sleep(1.0)   # 1 second to avoid API rate limits
 
     print(f"\n{'─'*60}")
-    print(f"Created {len(results)}/{len(ACHIEVEMENTS)} achievements.\n")
+    total_created = sum(1 for k in results if k in keys_needed)
+    print(f"Created {total_created}/{len(keys_needed)} new achievements  "
+          f"(total in file: {len(results)}/{len(ACHIEVEMENTS)}).\n")
 
     if results:
         print("Copy these lines into AchievementIds.kt:\n")
-        for key, ach_id in results.items():
+        for ach in ACHIEVEMENTS:
+            key = ach["key"]
+            ach_id = results.get(key, "MISSING")
             print(f'    const val {key:25s} = "{ach_id}"')
 
-        # Also write to a file for easy copy-paste
-        out_path = "scripts/achievement_ids.txt"
+        # Write full mapping to file for easy copy-paste
         with open(out_path, "w") as f:
-            for key, ach_id in results.items():
+            for ach in ACHIEVEMENTS:
+                key = ach["key"]
+                ach_id = results.get(key, "MISSING")
                 f.write(f'    const val {key:25s} = "{ach_id}"\n')
         print(f"\nAlso saved to {out_path}")
 
