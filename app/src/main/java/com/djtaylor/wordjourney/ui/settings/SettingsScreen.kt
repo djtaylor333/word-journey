@@ -72,6 +72,11 @@ fun SettingsScreen(
         if (granted) viewModel.setNotifyLivesFull(true)
     }
 
+    // Play Games achievements overlay launcher
+    val achievementsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { /* result ignored — achievements UI is read-only */ }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -581,6 +586,48 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold
                     )
+                }
+            }
+
+            // Achievements button — shown when signed in
+            if (state.playGamesSignedIn) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    onClick = {
+                        viewModel.showAchievements(activity) { intent ->
+                            achievementsLauncher.launch(intent)
+                        }
+                    },
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Achievements",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "View your Play Games achievements",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                        Text(
+                            text = "View",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
 

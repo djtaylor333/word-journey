@@ -262,7 +262,7 @@ class StoreViewModelTest {
         val vm = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("$0.99", vm.getPriceLabel("coins_500"))
+        assertEquals("$0.99", vm.getPriceLabel("coin_pack_500"))
     }
 
     // ══════════════════════════════════════════════════════════════════════════

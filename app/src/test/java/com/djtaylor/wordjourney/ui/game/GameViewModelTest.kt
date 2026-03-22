@@ -2,6 +2,8 @@ package com.djtaylor.wordjourney.ui.game
 
 import androidx.lifecycle.SavedStateHandle
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.auth.AchievementManager
+import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.data.db.StarRatingDao
 import com.djtaylor.wordjourney.data.db.StarRatingEntity
 import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
@@ -123,7 +125,9 @@ class GameViewModelTest {
             lifeRegenUseCase = LifeRegenUseCase(),
             audioManager = audioManager,
             starRatingDao = starRatingDao,
-            dailyChallengeRepository = dailyChallengeRepository
+            dailyChallengeRepository = dailyChallengeRepository,
+            achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true)
         )
     }
 
@@ -2184,7 +2188,9 @@ class GameViewModelTest {
             lifeRegenUseCase = LifeRegenUseCase(),
             audioManager = audioManager,
             starRatingDao = starRatingDao,
-            dailyChallengeRepository = dailyChallengeRepository
+            dailyChallengeRepository = dailyChallengeRepository,
+            achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true)
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -2444,7 +2450,9 @@ class GameViewModelTest {
             lifeRegenUseCase = LifeRegenUseCase(),
             audioManager = audioManager,
             starRatingDao = starRatingDao,
-            dailyChallengeRepository = dailyChallengeRepository
+            dailyChallengeRepository = dailyChallengeRepository,
+            achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true)
         )
     }
 }

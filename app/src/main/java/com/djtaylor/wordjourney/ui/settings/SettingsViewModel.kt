@@ -4,12 +4,13 @@ import android.app.Activity
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Intent
+import com.djtaylor.wordjourney.auth.AchievementManager
 import com.djtaylor.wordjourney.auth.PlayGamesHelper
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.GameTheme
-import com.google.android.gms.games.PlayGames
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import com.djtaylor.wordjourney.domain.model.SeasonalThemeManager
 import com.djtaylor.wordjourney.domain.model.ThemeCategory
@@ -49,7 +50,8 @@ class SettingsViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
     private val dailyChallengeRepository: DailyChallengeRepository,
     private val audioManager: WordJourneysAudioManager,
-    private val playGamesHelper: PlayGamesHelper
+    private val playGamesHelper: PlayGamesHelper,
+    private val achievementManager: AchievementManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -222,8 +224,20 @@ class SettingsViewModel @Inject constructor(
 
     /** Triggers the Play Games sign-in flow and refreshes state on completion. */
     fun signInToPlayGames(activity: Activity) {
-        PlayGames.getGamesSignInClient(activity).signIn()
-            .addOnCompleteListener { checkPlayGamesAuth(activity) }
+        playGamesHelper.signIn(activity)
+        // Refresh auth state after a short delay to let the flow complete
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(2000)
+            checkPlayGamesAuth(activity)
+        }
+    }
+
+    /**
+     * Opens the Play Games achievements overlay.
+     * Calls [onIntent] with the Intent to launch via [Activity.startActivityForResult].
+     */
+    fun showAchievements(activity: Activity, onIntent: (Intent) -> Unit) {
+        achievementManager.showAchievementsIntent(activity, onIntent)
     }
 
     /** Signs out of Play Games by clearing the local signed-in flag. */

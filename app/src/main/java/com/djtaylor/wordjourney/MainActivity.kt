@@ -13,6 +13,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.auth.PlayGamesHelper
 import com.djtaylor.wordjourney.data.cloud.CloudSaveManager
 import com.djtaylor.wordjourney.data.datastore.PlayerDataStore
 import com.djtaylor.wordjourney.domain.model.ThemeRegistry
@@ -27,6 +28,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var audioManager: WordJourneysAudioManager
     @Inject lateinit var playerDataStore: PlayerDataStore
     @Inject lateinit var cloudSaveManager: CloudSaveManager
+    @Inject lateinit var playGamesHelper: PlayGamesHelper
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -45,6 +47,9 @@ class MainActivity : ComponentActivity() {
         // its bytecode calls all three deprecated APIs that Play Console flags, and R8 will
         // strip it entirely from the release build since nothing references it.
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // Attempt silent Play Games sign-in — no UI shown if already signed in
+        playGamesHelper.trySilentSignIn(this)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.attributes.layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS

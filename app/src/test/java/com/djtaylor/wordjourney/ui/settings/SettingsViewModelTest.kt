@@ -3,6 +3,7 @@ package com.djtaylor.wordjourney.ui.settings
 import android.content.Context
 import com.djtaylor.wordjourney.audio.AudioSettings
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.auth.AchievementManager
 import com.djtaylor.wordjourney.auth.PlayGamesHelper
 import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
@@ -95,7 +96,8 @@ class SettingsViewModelTest {
             playerRepository = playerRepository,
             dailyChallengeRepository = dailyChallengeRepository,
             audioManager = audioManager,
-            playGamesHelper = mockk(relaxed = true)
+            playGamesHelper = mockk(relaxed = true),
+            achievementManager = mockk(relaxed = true)
         )
     }
 

@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.auth.AchievementManager
+import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.data.db.StarRatingDao
 import com.djtaylor.wordjourney.data.db.StarRatingEntity
 import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
@@ -37,7 +39,9 @@ class GameViewModel @Inject constructor(
     private val lifeRegenUseCase: LifeRegenUseCase,
     private val audioManager: WordJourneysAudioManager,
     private val starRatingDao: StarRatingDao,
-    private val dailyChallengeRepository: DailyChallengeRepository
+    private val dailyChallengeRepository: DailyChallengeRepository,
+    private val achievementManager: AchievementManager,
+    private val activityProvider: ActivityProvider
 ) : ViewModel() {
 
     private val difficultyKey: String = checkNotNull(savedStateHandle["difficulty"])
@@ -59,6 +63,8 @@ class GameViewModel @Inject constructor(
     private var engine: GameEngine? = null
     private var playerProgress: PlayerProgress = PlayerProgress()
     private var isReplay: Boolean = false
+    /** Tracks whether any power-up was used this level (for the no-powerup achievement). */
+    private var usedPowerUpThisLevel: Boolean = false
 
     companion object {
         private const val TAG = "GameViewModel"
@@ -177,6 +183,7 @@ class GameViewModel @Inject constructor(
     }
 
     private suspend fun startFreshLevel(level: Int) {
+        usedPowerUpThisLevel = false
         // Spend 1 life to start a non-replay, non-daily level
         if (!isReplay && !isDailyChallenge) {
             if (playerProgress.lives <= 0) {
@@ -497,6 +504,19 @@ class GameViewModel @Inject constructor(
             playerProgress = p
             playerRepository.saveProgress(p)
 
+            // Unlock Play Games achievements for daily win
+            activityProvider.currentActivity?.let { activity ->
+                achievementManager.onPuzzleWon(
+                    activity       = activity,
+                    totalWins      = p.totalWins,
+                    guessCount     = guessCount,
+                    usedPowerUp    = usedPowerUpThisLevel,
+                    dailyStreak    = p.dailyChallengeStreak,
+                    totalDailyWins = p.totalDailyChallengesCompleted,
+                    isDaily        = true
+                )
+            }
+
             _uiState.update { s ->
                 s.copy(
                     status = GameStatus.WON,
@@ -546,6 +566,17 @@ class GameViewModel @Inject constructor(
             )
             playerProgress = p
             playerRepository.saveProgress(p)
+
+            // Unlock Play Games achievements for regular/seasonal win
+            activityProvider.currentActivity?.let { activity ->
+                achievementManager.onPuzzleWon(
+                    activity    = activity,
+                    totalWins   = p.totalWins,
+                    guessCount  = guessCount,
+                    usedPowerUp = usedPowerUpThisLevel,
+                    currentLevel = level
+                )
+            }
 
             _uiState.update { s ->
                 s.copy(
@@ -773,6 +804,7 @@ class GameViewModel @Inject constructor(
         val progress = playerProgress
         if (progress.addGuessItems > 0) {
             audioManager.playSfx(SfxSound.BUTTON_CLICK)
+            usedPowerUpThisLevel = true
             val updated = progress.copy(
                 addGuessItems = progress.addGuessItems - 1,
                 totalItemsUsed = progress.totalItemsUsed + 1
@@ -824,6 +856,7 @@ class GameViewModel @Inject constructor(
 
             if (progress.removeLetterItems > 0) {
                 audioManager.playSfx(SfxSound.BUTTON_CLICK)
+                usedPowerUpThisLevel = true
                 val updated = progress.copy(removeLetterItems = progress.removeLetterItems - 1)
                 playerProgress = updated
                 playerRepository.saveProgress(updated)
