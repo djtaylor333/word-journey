@@ -6,7 +6,7 @@ package com.djtaylor.wordjourney.billing
  * the app is published to an internal test track.
  */
 object ProductIds {
-    const val COINS_500    = "coin_pack_500"
+    const val COINS_500    = "coins_500"
     const val COINS_1500   = "coins_1500"
     const val COINS_5000   = "coins_5000"
     const val DIAMONDS_10  = "diamonds_10"

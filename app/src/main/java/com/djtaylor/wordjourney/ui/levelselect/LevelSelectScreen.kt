@@ -49,6 +49,7 @@ data class ZoneTheme(
     val decor: List<String>
 )
 
+/** Standard adventure journey zones (Easy / Regular / Hard / VIP) */
 private val zones = listOf(
     ZoneTheme("Enchanted Meadow", "🌿",   Color(0xFF1A3D2E), Color(0xFF0D2118), Color(0xFF4ADE80), Color(0xFF22C55E), listOf("🌸", "🦋", "🌼", "🐝", "🍀")),
     ZoneTheme("Crystal Cavern",  "💎",    Color(0xFF1A1A3D), Color(0xFF0D0D21), Color(0xFF818CF8), Color(0xFF6366F1), listOf("💎", "✨", "🔮", "⚡", "🌟")),
@@ -62,7 +63,112 @@ private val zones = listOf(
     ZoneTheme("Dragon's Summit", "🐉",    Color(0xFF3D0D1A), Color(0xFF210810), Color(0xFFFB7185), Color(0xFFF43F5E), listOf("🐉", "👑", "💎", "🗡️", "🏰"))
 )
 
-private fun zoneFor(level: Int) = zones[((level - 1) / 10) % zones.size]
+// ── Seasonal zone themes ──────────────────────────────────────────────────────
+// Each season has 10 uniquely-themed zones replacing the standard adventure zones.
+
+private val easterZones = listOf(
+    ZoneTheme("Bunny Meadow",      "🐰",  Color(0xFF2E3D1A), Color(0xFF1A2110), Color(0xFFA3E635), Color(0xFF84CC16), listOf("🌷", "🐰", "🌼", "🥚", "🦋")),
+    ZoneTheme("Egg Hunt Garden",   "🥚",  Color(0xFF1E3A2A), Color(0xFF112118), Color(0xFF6EE7B7), Color(0xFF34D399), listOf("🥚", "🌿", "🐣", "🌸", "🍃")),
+    ZoneTheme("Chick Parade",      "🐣",  Color(0xFF3D3210), Color(0xFF211808), Color(0xFFFDE68A), Color(0xFFFBBF24), listOf("🐣", "🐥", "☀️", "🌻", "🌈")),
+    ZoneTheme("Daisy Fields",      "🌸",  Color(0xFF3D1A2E), Color(0xFF210D18), Color(0xFFF9A8D4), Color(0xFFF472B6), listOf("🌸", "🌺", "🦊", "🐇", "💮")),
+    ZoneTheme("Rainbow Bridge",    "🌈",  Color(0xFF1A2D3D), Color(0xFF0D1821), Color(0xFF7DD3FC), Color(0xFF38BDF8), listOf("🌈", "☁️", "🌤️", "🕊️", "🎀")),
+    ZoneTheme("Clover Hills",      "🍀",  Color(0xFF0D3D1A), Color(0xFF082110), Color(0xFF4ADE80), Color(0xFF22C55E), listOf("🍀", "🐝", "🌾", "🦌", "🎍")),
+    ZoneTheme("Blossom Cave",      "🌺",  Color(0xFF3D1A1A), Color(0xFF210D0D), Color(0xFFFCA5A5), Color(0xFFF87171), listOf("🌺", "🌹", "🌸", "🌷", "💐")),
+    ZoneTheme("Painted Eggs",      "🎨",  Color(0xFF2A1A3D), Color(0xFF180D21), Color(0xFFC084FC), Color(0xFFA855F7), listOf("🎨", "🥚", "🌟", "🐰", "✨")),
+    ZoneTheme("Spring Pond",       "🐸",  Color(0xFF0D2D1A), Color(0xFF081810), Color(0xFF86EFAC), Color(0xFF4ADE80), listOf("🐸", "🌊", "🐟", "🌿", "🍃")),
+    ZoneTheme("Easter Sunrise",    "🌅",  Color(0xFF3D2A10), Color(0xFF211808), Color(0xFFFDE68A), Color(0xFFF59E0B), listOf("🌅", "🌈", "🕊️", "💛", "🐣"))
+)
+
+private val valentinesZones = listOf(
+    ZoneTheme("Rose Garden",       "🌹",  Color(0xFF3D0D1A), Color(0xFF210810), Color(0xFFFDA4AF), Color(0xFFFB7185), listOf("🌹", "💕", "🦢", "🎀", "💐")),
+    ZoneTheme("Love Meadow",       "💕",  Color(0xFF3D1A2E), Color(0xFF210D18), Color(0xFFE879F9), Color(0xFFD946EF), listOf("💕", "🌸", "🦋", "🌺", "🎵")),
+    ZoneTheme("Candy Hearts",      "🍬",  Color(0xFF2E1A3D), Color(0xFF180D21), Color(0xFFC084FC), Color(0xFFA855F7), listOf("🍬", "💝", "🫧", "✨", "🌟")),
+    ZoneTheme("Lovebird Forest",   "🕊️", Color(0xFF0D3D2A), Color(0xFF082118), Color(0xFF6EE7B7), Color(0xFF34D399), listOf("🕊️", "🌿", "🍃", "💚", "🦚")),
+    ZoneTheme("Chocolate Hills",   "🍫",  Color(0xFF3D1A10), Color(0xFF210D08), Color(0xFFFCA5A5), Color(0xFFF87171), listOf("🍫", "🎁", "🎀", "💝", "🌟")),
+    ZoneTheme("Starry Romance",    "⭐",  Color(0xFF1A1A3D), Color(0xFF0D0D21), Color(0xFF818CF8), Color(0xFF6366F1), listOf("⭐", "💫", "🌙", "💕", "🌌")),
+    ZoneTheme("Picnic Bluffs",     "🧺",  Color(0xFF2E3D1A), Color(0xFF1A2110), Color(0xFFA3E635), Color(0xFF84CC16), listOf("🧺", "🌷", "🍓", "🌼", "🎵")),
+    ZoneTheme("Petal Cascade",     "🌸",  Color(0xFF3D2A1A), Color(0xFF211810), Color(0xFFFBBF24), Color(0xFFF59E0B), listOf("🌸", "🌺", "💮", "🌼", "🎀")),
+    ZoneTheme("Heart Cove",        "💖",  Color(0xFF3D0D2D), Color(0xFF210818), Color(0xFFF9A8D4), Color(0xFFF472B6), listOf("💖", "🌊", "🐚", "🌹", "🫧")),
+    ZoneTheme("Valentine Peak",    "💝",  Color(0xFF3D1A1A), Color(0xFF210D0D), Color(0xFFFDA4AF), Color(0xFFE11D48), listOf("💝", "🏔️", "⭐", "🌹", "🎀"))
+)
+
+private val summerZones = listOf(
+    ZoneTheme("Sunny Beach",       "🏖️", Color(0xFF3D2A0D), Color(0xFF211608), Color(0xFFFDE68A), Color(0xFFFBBF24), listOf("🌊", "🏄", "🐠", "🦀", "🌺")),
+    ZoneTheme("Coral Reef",        "🐠",  Color(0xFF0D2D3D), Color(0xFF081821), Color(0xFF67E8F9), Color(0xFF06B6D4), listOf("🐠", "🐡", "🐙", "🪸", "🦈")),
+    ZoneTheme("Tropical Forest",   "🌴",  Color(0xFF0D3D1A), Color(0xFF082110), Color(0xFF4ADE80), Color(0xFF22C55E), listOf("🌴", "🦜", "🍍", "🌺", "🦋")),
+    ZoneTheme("Lemonade Stand",    "🍋",  Color(0xFF3D3210), Color(0xFF211808), Color(0xFFFDE68A), Color(0xFFF59E0B), listOf("🍋", "🍹", "☀️", "🌻", "🍧")),
+    ZoneTheme("BBQ Grounds",       "🔥",  Color(0xFF3D1A0D), Color(0xFF210D08), Color(0xFFFB923C), Color(0xFFEA580C), listOf("🔥", "🌽", "🍖", "🎉", "🌶️")),
+    ZoneTheme("Waterfall Oasis",   "💦",  Color(0xFF0D2D2D), Color(0xFF081818), Color(0xFF34D399), Color(0xFF10B981), listOf("💦", "🌊", "🦋", "🌿", "🐸")),
+    ZoneTheme("Sprinkler Park",    "🌈",  Color(0xFF1A1A3D), Color(0xFF0D0D21), Color(0xFF7DD3FC), Color(0xFF38BDF8), listOf("🌈", "💦", "☀️", "🌻", "🎠")),
+    ZoneTheme("Ice Cream Hills",   "🍦",  Color(0xFF3D1A2E), Color(0xFF210D18), Color(0xFFF9A8D4), Color(0xFFF472B6), listOf("🍦", "🍧", "🌸", "🌟", "🎀")),
+    ZoneTheme("Festival Grounds",  "🎆",  Color(0xFF3D0D1A), Color(0xFF210810), Color(0xFFFCA5A5), Color(0xFFF43F5E), listOf("🎆", "🎇", "🎉", "🎵", "✨")),
+    ZoneTheme("Sunset Horizon",    "🌅",  Color(0xFF3D2810), Color(0xFF211808), Color(0xFFFBBF24), Color(0xFFD97706), listOf("🌅", "🏄", "🌊", "🐬", "🌠"))
+)
+
+private val halloweenZones = listOf(
+    ZoneTheme("Haunted Forest",    "🌲",  Color(0xFF1A1A0D), Color(0xFF0D0D08), Color(0xFFBEF264), Color(0xFFA3E635), listOf("🕷️", "🕸️", "🌲", "🦇", "💀")),
+    ZoneTheme("Pumpkin Patch",     "🎃",  Color(0xFF3D1A0D), Color(0xFF210D08), Color(0xFFFB923C), Color(0xFFEA580C), listOf("🎃", "🌽", "🍂", "🍁", "🦔")),
+    ZoneTheme("Ghost Graveyard",   "👻",  Color(0xFF1A1A2D), Color(0xFF0D0D18), Color(0xFF818CF8), Color(0xFF6366F1), listOf("👻", "💀", "🪦", "🕯️", "🦉")),
+    ZoneTheme("Witch's Caldron",   "🧙",  Color(0xFF0D1A0D), Color(0xFF081008), Color(0xFF4ADE80), Color(0xFF22C55E), listOf("🧙", "🪄", "🔮", "🌙", "✨")),
+    ZoneTheme("Vampire Castle",    "🏰",  Color(0xFF2D0D1A), Color(0xFF180810), Color(0xFFFDA4AF), Color(0xFFF43F5E), listOf("🏰", "🦇", "🩸", "🌙", "🕯️")),
+    ZoneTheme("Skull Cavern",      "💀",  Color(0xFF1A0D0D), Color(0xFF100808), Color(0xFFF87171), Color(0xFFEF4444), listOf("💀", "🕯️", "🪦", "⛓️", "🔮")),
+    ZoneTheme("Candy Trail",       "🍬",  Color(0xFF3D1A3D), Color(0xFF210D21), Color(0xFFC084FC), Color(0xFFA855F7), listOf("🍬", "🍭", "🎃", "🍫", "🌟")),
+    ZoneTheme("Spider Bog",        "🕷️", Color(0xFF0D1A0D), Color(0xFF081008), Color(0xFF86EFAC), Color(0xFF4ADE80), listOf("🕷️", "🕸️", "🐸", "🐍", "🌿")),
+    ZoneTheme("Shadow Realm",      "🌑",  Color(0xFF0D0D0D), Color(0xFF080808), Color(0xFF94A3B8), Color(0xFF64748B), listOf("🌑", "⭐", "💫", "🔮", "🌌")),
+    ZoneTheme("Halloween Peak",    "🎃",  Color(0xFF3D1A08), Color(0xFF210D04), Color(0xFFFBBF24), Color(0xFFF59E0B), listOf("🎃", "🏔️", "🌕", "🦇", "⭐"))
+)
+
+private val thanksgivingZones = listOf(
+    ZoneTheme("Harvest Fields",    "🌾",  Color(0xFF3D2A0D), Color(0xFF211508), Color(0xFFFDE68A), Color(0xFFFBBF24), listOf("🌾", "🍂", "🌽", "🎑", "🦃")),
+    ZoneTheme("Apple Orchard",     "🍎",  Color(0xFF3D1A0D), Color(0xFF210D08), Color(0xFFFCA5A5), Color(0xFFF87171), listOf("🍎", "🍏", "🍂", "🍁", "🌳")),
+    ZoneTheme("Pilgrim Trail",     "🗺️", Color(0xFF2A2010), Color(0xFF181208), Color(0xFFFCD34D), Color(0xFFEAB308), listOf("🗺️", "🏕️", "🍂", "🌲", "🔥")),
+    ZoneTheme("Golden Meadow",     "🍁",  Color(0xFF3D2810), Color(0xFF211808), Color(0xFFFB923C), Color(0xFFEA580C), listOf("🍁", "🍂", "🌾", "🦔", "🐿️")),
+    ZoneTheme("Pumpkin Spice",     "☕",  Color(0xFF2D1810), Color(0xFF180E08), Color(0xFFFBBF24), Color(0xFFF59E0B), listOf("☕", "🎃", "🍂", "🌟", "🧁")),
+    ZoneTheme("Turkey Valley",     "🦃",  Color(0xFF2A3010), Color(0xFF181A08), Color(0xFFA3E635), Color(0xFF84CC16), listOf("🦃", "🌾", "🍗", "🌽", "🍂")),
+    ZoneTheme("Cranberry Bogs",    "🫐",  Color(0xFF3D0D1A), Color(0xFF210810), Color(0xFFFDA4AF), Color(0xFFF43F5E), listOf("🫐", "🌿", "🍁", "🌊", "🦢")),
+    ZoneTheme("Cornucopia Cave",   "🌽",  Color(0xFF3D2A10), Color(0xFF211808), Color(0xFFFBBF24), Color(0xFFD97706), listOf("🌽", "🍎", "🥕", "🎃", "🌾")),
+    ZoneTheme("Family Hearth",     "🔥",  Color(0xFF3D1A08), Color(0xFF210D04), Color(0xFFFB923C), Color(0xFFEA580C), listOf("🔥", "🕯️", "🏡", "❤️", "🍂")),
+    ZoneTheme("Gratitude Summit",  "🌅",  Color(0xFF3D2A18), Color(0xFF211810), Color(0xFFFDE68A), Color(0xFFF59E0B), listOf("🌅", "🦃", "🌾", "⭐", "🏔️"))
+)
+
+private val christmasZones = listOf(
+    ZoneTheme("Santa's Village",   "🎅",  Color(0xFF3D0D0D), Color(0xFF210808), Color(0xFFFCA5A5), Color(0xFFF87171), listOf("🎅", "🎁", "🛷", "🦌", "⭐")),
+    ZoneTheme("Winter Wonderland", "❄️",  Color(0xFF0D2D3D), Color(0xFF081821), Color(0xFF7DD3FC), Color(0xFF38BDF8), listOf("❄️", "⛄", "🌨️", "🎿", "🦌")),
+    ZoneTheme("Gift Grotto",       "🎁",  Color(0xFF3D0D1A), Color(0xFF210810), Color(0xFFFDA4AF), Color(0xFFF472B6), listOf("🎁", "🎀", "✨", "🌟", "🎊")),
+    ZoneTheme("Candy Cane Lane",   "🍬",  Color(0xFF3D1A1A), Color(0xFF210D0D), Color(0xFFFCA5A5), Color(0xFFEF4444), listOf("🍬", "🍭", "❄️", "🎄", "⛄")),
+    ZoneTheme("Christmas Forest",  "🎄",  Color(0xFF0D2D10), Color(0xFF081808), Color(0xFF4ADE80), Color(0xFF22C55E), listOf("🎄", "⭐", "🌟", "🦌", "🎁")),
+    ZoneTheme("Elf Workshop",      "🧝",  Color(0xFF0D3D0D), Color(0xFF082108), Color(0xFF86EFAC), Color(0xFF4ADE80), listOf("🧝", "🔨", "🎁", "⭐", "🎄")),
+    ZoneTheme("Frozen Lake",       "🏒",  Color(0xFF0D2A3D), Color(0xFF081821), Color(0xFF67E8F9), Color(0xFF06B6D4), listOf("🏒", "⛸️", "❄️", "🌨️", "⛄")),
+    ZoneTheme("Reindeer Run",      "🦌",  Color(0xFF2D2010), Color(0xFF181408), Color(0xFFFBBF24), Color(0xFFF59E0B), listOf("🦌", "❄️", "🌟", "🛷", "⭐")),
+    ZoneTheme("Fireplace Hollow",  "🔥",  Color(0xFF3D1A08), Color(0xFF210D04), Color(0xFFFB923C), Color(0xFFEA580C), listOf("🔥", "🧦", "🎄", "☕", "🕯️")),
+    ZoneTheme("North Pole Peak",   "⭐",  Color(0xFF1A1A3D), Color(0xFF0D0D21), Color(0xFF818CF8), Color(0xFF6366F1), listOf("⭐", "🎄", "❄️", "🎅", "🌟"))
+)
+
+/** Returns the zone list for a given seasonal pack key (or the default adventures) */
+private fun zonesFor(seasonalPackKey: String?): List<ZoneTheme> = when (seasonalPackKey) {
+    "easter"       -> easterZones
+    "valentines"   -> valentinesZones
+    "summer"       -> summerZones
+    "halloween"    -> halloweenZones
+    "thanksgiving" -> thanksgivingZones
+    "christmas"    -> christmasZones
+    else           -> zones
+}
+
+/** Returns the zone theme for [level] given the optional seasonal context. */
+private fun zoneFor(level: Int, seasonalPackKey: String? = null) =
+    zonesFor(seasonalPackKey)[((level - 1) / 10) % 10]
+
+/** Seasonal accent colours for the screen chrome (TopAppBar, button, etc.) */
+private fun seasonalAccent(seasonalPackKey: String?): Color? = when (seasonalPackKey) {
+    "easter"       -> Color(0xFF84CC16)
+    "valentines"   -> Color(0xFFF472B6)
+    "summer"       -> Color(0xFFFBBF24)
+    "halloween"    -> Color(0xFFFB923C)
+    "thanksgiving" -> Color(0xFFF59E0B)
+    "christmas"    -> Color(0xFF4ADE80)
+    else           -> null
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Main Screen
@@ -79,7 +185,8 @@ fun LevelSelectScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val difficulty = state.difficulty
     val theme = LocalGameTheme.current
-    val accent = when (difficulty) {
+    // For seasonal packs use a themed accent colour; otherwise use difficulty colour
+    val accent = seasonalAccent(state.seasonalPackKey) ?: when (difficulty) {
         Difficulty.EASY    -> AccentEasy
         Difficulty.REGULAR -> AccentRegular
         Difficulty.HARD    -> AccentHard
@@ -126,14 +233,18 @@ fun LevelSelectScreen(
         label = "floatPhase"
     )
 
-    val curZone = zoneFor(state.currentLevel)
+    val curZone = zoneFor(state.currentLevel, state.seasonalPackKey)
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("${difficulty.displayName} Journey", fontWeight = FontWeight.Bold, fontSize = 23.sp)
+                        Text(
+                            text = state.journeyTitle.ifBlank { "${difficulty.displayName} Journey" },
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 23.sp
+                        )
                         Text("${curZone.emoji} ${curZone.name}", fontSize = 14.sp, color = curZone.glow)
                     }
                 },
@@ -217,7 +328,7 @@ fun LevelSelectScreen(
                     val start = zi * 10 + 1
                     val end = minOf(start + 9, total)
                     ZoneSection(
-                        zone = zoneFor(start),
+                        zone = zoneFor(start, state.seasonalPackKey),
                         zoneIdx = zi,
                         levels = (start..end).toList(),
                         currentLevel = state.currentLevel,

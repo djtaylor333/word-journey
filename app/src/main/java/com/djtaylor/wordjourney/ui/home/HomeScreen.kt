@@ -1,5 +1,8 @@
 package com.djtaylor.wordjourney.ui.home
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -19,6 +22,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,6 +52,12 @@ fun HomeScreen(
     val diamondColor = adaptiveDiamondColor(isLight)
     val themeAccent = MaterialTheme.colorScheme.primary
     val theme = LocalGameTheme.current
+    val activity = LocalContext.current as? Activity
+
+    // Launcher to start Play Games achievements overlay
+    val achievementsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { /* no result needed */ }
 
     // Rotating compass animation
     val infiniteTransition = rememberInfiniteTransition(label = "compass")
@@ -474,45 +484,18 @@ fun HomeScreen(
                         onNavigateToStatistics()
                     }
                 )
-                Box(modifier = Modifier.weight(1f)) {
-                    QuickNavCard(
+                QuickNavCard(
                         emoji = "🏆",
                         title = "Achievements",
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = false,
-                        onClick = { /* Coming soon */ }
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = Color.Black.copy(alpha = 0.70f),
-                        modifier = Modifier.matchParentSize()
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(8.dp)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text("🏆", fontSize = 26.sp)
-                                Text(
-                                    "Coming Soon!",
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    fontSize = 13.sp
-                                )
-                                Text(
-                                    "Track wins & badges",
-                                    color = Color.White.copy(alpha = 0.65f),
-                                    fontSize = 11.sp
-                                )
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            if (activity != null) {
+                                viewModel.showAchievements(activity) { intent ->
+                                    achievementsLauncher.launch(intent)
+                                }
                             }
                         }
-                    }
-                }
+                    )
             }
 
             Spacer(Modifier.height(24.dp))

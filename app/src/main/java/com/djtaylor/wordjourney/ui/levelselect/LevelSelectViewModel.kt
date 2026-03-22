@@ -31,7 +31,9 @@ data class LevelSelectUiState(
     val showNoLivesDialog: Boolean = false,
     val lifeDeducted: Boolean = false, // triggers heart animation
     val starRatings: Map<Int, Int> = emptyMap(), // level -> stars (1-3)
-    val totalStars: Int = 0
+    val totalStars: Int = 0,
+    val journeyTitle: String = "",       // display title: e.g. "Easter Journey 🐣"
+    val seasonalPackKey: String? = null  // non-null for seasonal pack screens
 )
 
 @HiltViewModel
@@ -50,7 +52,22 @@ class LevelSelectViewModel @Inject constructor(
         else Difficulty.entries.first { it.saveKey == difficultyKey }
     private var playerProgress: PlayerProgress = PlayerProgress()
 
-    private val _uiState = MutableStateFlow(LevelSelectUiState(difficulty = difficulty))
+    /** Human-readable title shown in the TopAppBar. */
+    private val journeyTitle: String = when (seasonalPackKey) {
+        "easter"       -> "Easter Journey 🐣"
+        "valentines"   -> "Valentines Journey 💕"
+        "summer"       -> "Summer Journey ☀️"
+        "halloween"    -> "Halloween Journey 🎃"
+        "thanksgiving" -> "Thanksgiving Journey 🦃"
+        "christmas"    -> "Christmas Journey 🎄"
+        else           -> "${difficulty.displayName} Journey"
+    }
+
+    private val _uiState = MutableStateFlow(LevelSelectUiState(
+        difficulty = difficulty,
+        journeyTitle = journeyTitle,
+        seasonalPackKey = seasonalPackKey
+    ))
     val uiState: StateFlow<LevelSelectUiState> = _uiState.asStateFlow()
 
     init {

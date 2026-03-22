@@ -307,5 +307,124 @@ class LevelSelectViewModelTest {
         val state = vm.uiState.first()
         assertEquals(100, state.totalLevels)
     }
-}
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // 7. SEASONAL PACK SUPPORT
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seasonal_easter sets journeyTitle to Easter Journey`() =
+        testWithVm("seasonal_easter") { vm ->
+            val state = vm.uiState.first()
+            assertTrue(
+                "Expected 'Easter' in journey title but got '${state.journeyTitle}'",
+                state.journeyTitle.contains("Easter", ignoreCase = true)
+            )
+        }
+
+    @Test
+    fun `seasonal_valentines sets journeyTitle to Valentines Journey`() =
+        testWithVm("seasonal_valentines") { vm ->
+            val state = vm.uiState.first()
+            assertTrue(state.journeyTitle.contains("Valentines", ignoreCase = true))
+        }
+
+    @Test
+    fun `seasonal_summer sets journeyTitle to Summer Journey`() =
+        testWithVm("seasonal_summer") { vm ->
+            val state = vm.uiState.first()
+            assertTrue(state.journeyTitle.contains("Summer", ignoreCase = true))
+        }
+
+    @Test
+    fun `seasonal_halloween sets journeyTitle to Halloween Journey`() =
+        testWithVm("seasonal_halloween") { vm ->
+            val state = vm.uiState.first()
+            assertTrue(state.journeyTitle.contains("Halloween", ignoreCase = true))
+        }
+
+    @Test
+    fun `seasonal_thanksgiving sets journeyTitle to Thanksgiving Journey`() =
+        testWithVm("seasonal_thanksgiving") { vm ->
+            val state = vm.uiState.first()
+            assertTrue(state.journeyTitle.contains("Thanksgiving", ignoreCase = true))
+        }
+
+    @Test
+    fun `seasonal_christmas sets journeyTitle to Christmas Journey`() =
+        testWithVm("seasonal_christmas") { vm ->
+            val state = vm.uiState.first()
+            assertTrue(state.journeyTitle.contains("Christmas", ignoreCase = true))
+        }
+
+    @Test
+    fun `seasonal pack key is exposed in uiState`() =
+        testWithVm("seasonal_easter") { vm ->
+            val state = vm.uiState.first()
+            assertEquals("easter", state.seasonalPackKey)
+        }
+
+    @Test
+    fun `non-seasonal difficulty has null seasonalPackKey`() =
+        testWithVm("regular") { vm ->
+            val state = vm.uiState.first()
+            assertNull(state.seasonalPackKey)
+        }
+
+    @Test
+    fun `seasonal_easter loads easter level from progress`() =
+        testWithVm("seasonal_easter", PlayerProgress(seasonalEasterLevel = 15)) { vm ->
+            val state = vm.uiState.first()
+            assertEquals(15, state.currentLevel)
+        }
+
+    @Test
+    fun `seasonal_halloween loads halloween level from progress`() =
+        testWithVm("seasonal_halloween", PlayerProgress(seasonalHalloweenLevel = 42)) { vm ->
+            val state = vm.uiState.first()
+            assertEquals(42, state.currentLevel)
+        }
+
+    @Test
+    fun `seasonal_christmas loads christmas level from progress`() =
+        testWithVm("seasonal_christmas", PlayerProgress(seasonalChristmasLevel = 77)) { vm ->
+            val state = vm.uiState.first()
+            assertEquals(77, state.currentLevel)
+        }
+
+    @Test
+    fun `totalLevels is 100 for seasonal easter pack`() =
+        testWithVm("seasonal_easter") { vm ->
+            assertEquals(100, vm.uiState.first().totalLevels)
+        }
+
+    @Test
+    fun `regular difficulty journey title contains Regular not seasonal name`() =
+        testWithVm("regular") { vm ->
+            val title = vm.uiState.first().journeyTitle
+            assertTrue(
+                "Expected 'Regular' in journey title but got '$title'",
+                title.contains("Regular", ignoreCase = true)
+            )
+            assertFalse(
+                "Journey title should not say Easter for regular mode",
+                title.contains("Easter", ignoreCase = true)
+            )
+        }
+
+    @Test
+    fun `seasonal deductLifeForLevel uses easter level for replay check`() =
+        testWithVm("seasonal_easter", PlayerProgress(seasonalEasterLevel = 10, lives = 5)) { vm ->
+            // level 5 is a replay (< 10), so no life should be deducted and returns true
+            val result = vm.deductLifeForLevel(5)
+            testDispatcher.scheduler.runCurrent()
+            assertTrue(result)
+            assertEquals(5, vm.uiState.first().lives) // lives unchanged
+        }
+
+    @Test
+    fun `seasonal canStartLevel returns false when 0 lives for current level`() =
+        testWithVm("seasonal_summer", PlayerProgress(seasonalSummerLevel = 3, lives = 0)) { vm ->
+            assertFalse(vm.canStartLevel(3))
+        }
+}

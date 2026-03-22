@@ -2,6 +2,7 @@ package com.djtaylor.wordjourney.ui.home
 
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.auth.AchievementManager
 import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
@@ -65,7 +66,8 @@ class HomeViewModelTest {
             lifeRegenUseCase = LifeRegenUseCase(),
             vipDailyRewardUseCase = VipDailyRewardUseCase(),
             inboxRepository = inboxRepository,
-            audioManager = audioManager
+            audioManager = audioManager,
+            achievementManager = mockk(relaxed = true)
         )
     }
 

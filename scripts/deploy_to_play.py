@@ -38,16 +38,13 @@ import sys
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.20.0 - Achievements Expansion
+RELEASE_NOTES = """v2.21.0 - Live Play Games Achievements
 
-• 31 Google Play Games achievements across all game areas
-• Daily streak milestones: 3, 7, 14, 30 days
+• All 31 achievements now connected to Google Play Games
+• Earn achievements for wins, streaks, VIP, purchases, and more
+• Daily challenge streaks: 3, 7, 14, 30 days
 • Login streak achievements: 7 and 30 days
-• VIP subscriber & seasonal champion achievements
-• Power-up usage milestones (first use, 50 items)
-• Coin earning milestone (10,000 total coins)
-• Achievements for watching ads & in-app purchases
-• New "Down to the Wire" last-guess win achievement
+• Win your first seasonal pack level achievement
 • Bug fixes and performance improvements"""
 
 

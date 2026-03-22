@@ -272,7 +272,7 @@ class StoreViewModelTest {
         val vm = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("$0.99", vm.getPriceLabel("coin_pack_500"))
+        assertEquals("$0.99", vm.getPriceLabel(ProductIds.COINS_500))
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -730,5 +730,86 @@ class StoreViewModelTest {
         assertTrue(vm.devBuildFreeResult(ProductIds.VIP_MONTHLY).success)
         assertTrue(vm.devBuildFreeResult(ProductIds.VIP_YEARLY).success)
         assertFalse(vm.devBuildFreeResult("unknown_product").success)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 13. PURCHASE FAILURES
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `failed purchase shows error message`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false, coins = 0L))
+        coEvery { billingManager.purchase(any(), any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(firstArg(), success = false))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertNotNull(state.message)
+        assertTrue(
+            "Expected 'Purchase failed' message but got: '${state.message}'",
+            state.message!!.contains("Purchase failed", ignoreCase = true)
+        )
+    }
+
+    @Test
+    fun `failed purchase does not change player progress`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false, coins = 500L))
+        coEvery { billingManager.purchase(any(), any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(firstArg(), success = false))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { playerRepository.saveProgress(any()) }
+    }
+
+    @Test
+    fun `failed purchase resets isPurchasing to false`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        coEvery { billingManager.purchase(any(), any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(firstArg(), success = false))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(vm.uiState.first().isPurchasing)
+    }
+
+    @Test
+    fun `successful purchase resets isPurchasing to false`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false, coins = 0L))
+        coEvery { billingManager.purchase(ProductIds.COINS_1500, any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(ProductIds.COINS_1500, success = true, coinsGranted = 1500L))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_1500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(vm.uiState.first().isPurchasing)
+    }
+
+    @Test
+    fun `purchase uses ProductIds_COINS_500 = coins_500`() = runTest {
+        // Verifies the constant used when calling billingManager matches Play Console
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { billingManager.purchase(eq("coins_500"), any()) }
     }
 }

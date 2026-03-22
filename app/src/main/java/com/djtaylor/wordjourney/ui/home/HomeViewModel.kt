@@ -2,9 +2,12 @@ package com.djtaylor.wordjourney.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.auth.AchievementManager
 import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
@@ -41,7 +44,8 @@ class HomeViewModel @Inject constructor(
     private val lifeRegenUseCase: LifeRegenUseCase,
     private val vipDailyRewardUseCase: VipDailyRewardUseCase,
     private val inboxRepository: InboxRepository,
-    private val audioManager: WordJourneysAudioManager
+    private val audioManager: WordJourneysAudioManager,
+    private val achievementManager: AchievementManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -235,5 +239,18 @@ class HomeViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    // ── Achievements ──────────────────────────────────────────────────────────
+
+    /**
+     * Opens the Google Play Games achievements overlay.
+     * Calls [onIntent] with the intent to launch; the caller is responsible for
+     * starting the activity (use [Activity.startActivityForResult] or
+     * [ActivityResultLauncher]).
+     */
+    fun showAchievements(activity: Activity, onIntent: (Intent) -> Unit) {
+        playButtonClick()
+        achievementManager.showAchievementsIntent(activity, onIntent)
     }
 }
