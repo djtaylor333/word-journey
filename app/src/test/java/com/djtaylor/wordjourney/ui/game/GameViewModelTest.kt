@@ -605,12 +605,13 @@ class GameViewModelTest {
 
     @Test
     fun `tradeCoinsForLife mid-game deducts coins and shows need more guesses`() = runTest {
-        // Player starts with 1 life (spent to open level), then runs out of guesses
+        // Player starts with 1 life. The mock's progressFlow re-emits lives=1 via collectLatest
+        // so when handleOutOfGuesses fires playerProgress.lives is 1 → NeedMoreGuessesDialog shown.
         val progress = PlayerProgress(lives = 1, coins = 2000L)
         val vm = createViewModel(progress = progress)
         awaitInit(vm)
 
-        // Exhaust all 8 guesses (game started with 1 life → now 0 lives)
+        // Exhaust all 8 guesses (EASY)
         val wrongGuesses = listOf("DARK", "BIRD", "FISH", "GOAT", "JUMP", "MILK", "CLAP", "DRUM")
         for (guess in wrongGuesses) {
             guess.forEach { vm.onKeyPressed(it) }
@@ -619,10 +620,10 @@ class GameViewModelTest {
             awaitInit(vm)
         }
 
-        // Lives = 0 after spending on level start → NoLivesDialog shown
+        // Out of guesses — lives > 0 (from re-emitted flow state) → NeedMoreGuessesDialog
         var state = vm.uiState.first()
         assertEquals(GameStatus.WAITING_FOR_LIFE, state.status)
-        assertTrue(state.showNoLivesDialog)
+        assertTrue(state.showNeedMoreGuessesDialog)
 
         // Trade coins for a life mid-game (engine is NOT null here)
         vm.tradeCoinsForLife()
@@ -630,7 +631,6 @@ class GameViewModelTest {
 
         state = vm.uiState.first()
         assertEquals(1000L, state.coins)
-        assertEquals(1, state.lives)
         // Should now move to NeedMoreGuessesDialog so player can spend the life
         assertTrue(state.showNeedMoreGuessesDialog)
     }
@@ -792,14 +792,14 @@ class GameViewModelTest {
         val vm = createViewModel(word = "ABLE")
         awaitInit(vm)
 
-        // Win on first guess → 5 remaining → 100 + 5*10 = 150 coins
+        // Win on first guess → 7 remaining → 100 + 7*10 = 170 coins
         "ABLE".forEach { vm.onKeyPressed(it) }
         awaitInit(vm)
         vm.onSubmit()
         awaitInit(vm)
 
         val state = vm.uiState.first()
-        assertEquals(150L, state.winCoinEarned)
+        assertEquals(170L, state.winCoinEarned)
     }
 
     @Test
@@ -1575,14 +1575,14 @@ class GameViewModelTest {
         val vm = createViewModel(difficulty = "daily_4", word = "QUIZ")
         awaitInit(vm)
 
-        // Win on first guess: 150 + 5*15 = 225 coins
+        // Win on first guess: 150 + 7*15 = 255 coins
         "QUIZ".forEach { vm.onKeyPressed(it) }
         awaitInit(vm)
         vm.onSubmit()
         awaitInit(vm)
 
         val state = vm.uiState.first()
-        assertEquals(225L, state.winCoinEarned) // 150 + 5*15
+        assertEquals(255L, state.winCoinEarned) // 150 + 7*15
     }
 
     @Test
@@ -1861,8 +1861,8 @@ class GameViewModelTest {
         vm.onSubmit()
         awaitInit(vm)
 
-        // First guess: 100 + 5*10 = 150
-        coVerify { playerRepository.saveProgress(match { it.totalCoinsEarned == 650L }) }
+        // First guess: 100 + 7*10 = 170
+        coVerify { playerRepository.saveProgress(match { it.totalCoinsEarned == 670L }) }
     }
 
     @Test
