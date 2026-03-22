@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.auth.AchievementManager
+import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.IBillingManager
 import com.djtaylor.wordjourney.billing.ProductIds
@@ -33,7 +35,9 @@ class StoreViewModel @Inject constructor(
     private val adManager: IAdManager,
     private val audioManager: WordJourneysAudioManager,
     private val inboxRepository: InboxRepository,
-    private val vipDailyRewardUseCase: VipDailyRewardUseCase
+    private val vipDailyRewardUseCase: VipDailyRewardUseCase,
+    private val achievementManager: AchievementManager,
+    private val activityProvider: ActivityProvider
 ) : ViewModel() {
 
     /** Overrideable RNG — replace in tests for deterministic behaviour. */
@@ -130,6 +134,15 @@ class StoreViewModel @Inject constructor(
         }
         playerRepository.saveProgress(updated)
         audioManager.playSfx(SfxSound.COIN_EARN)
+
+        // Trigger achievement checks (Play Games deduplicates, so always safe to call)
+        activityProvider.currentActivity?.let { activity ->
+            achievementManager.onPurchaseCompleted(activity, productId, isFirstEverPurchase = true)
+            if (productId == ProductIds.VIP_MONTHLY || productId == ProductIds.VIP_YEARLY) {
+                achievementManager.onVipPurchased(activity)
+            }
+        }
+
         val purchaseMsg = if (productId == ProductIds.VIP_MONTHLY || productId == ProductIds.VIP_YEARLY) {
             "👑 VIP activated! Your daily rewards are in your inbox — claim them now!"
         } else {
@@ -169,6 +182,9 @@ class StoreViewModel @Inject constructor(
                 val updated = current.copy(coins = current.coins + 100)
                 playerRepository.saveProgress(updated)
                 audioManager.playSfx(SfxSound.COIN_EARN)
+                activityProvider.currentActivity?.let { activity ->
+                    achievementManager.onAdWatched(activity)
+                }
                 _uiState.update { it.copy(isWatchingAd = false, message = "✅ +100 coins from ad!") }
             } else {
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
@@ -187,6 +203,9 @@ class StoreViewModel @Inject constructor(
                 val updated = current.copy(lives = current.lives + 1)
                 playerRepository.saveProgress(updated)
                 audioManager.playSfx(SfxSound.LIFE_GAINED)
+                activityProvider.currentActivity?.let { activity ->
+                    achievementManager.onAdWatched(activity)
+                }
                 _uiState.update { it.copy(isWatchingAd = false, message = "✅ +1 life from ad!") }
             } else {
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
@@ -230,6 +249,9 @@ class StoreViewModel @Inject constructor(
                 }
                 playerRepository.saveProgress(updated)
                 audioManager.playSfx(SfxSound.COIN_EARN)
+                activityProvider.currentActivity?.let { activity ->
+                    achievementManager.onAdWatched(activity)
+                }
                 _uiState.update { it.copy(isWatchingAd = false, message = message) }
             } else {
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }

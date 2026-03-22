@@ -1,6 +1,8 @@
 package com.djtaylor.wordjourney.ui.store
 
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.auth.AchievementManager
+import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.billing.AdRewardResult
 import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.IBillingManager
@@ -42,6 +44,8 @@ class StoreViewModelTest {
     private lateinit var audioManager: WordJourneysAudioManager
     private lateinit var inboxRepository: InboxRepository
     private lateinit var vipDailyRewardUseCase: VipDailyRewardUseCase
+    private lateinit var achievementManager: AchievementManager
+    private lateinit var activityProvider: ActivityProvider
 
     @Before
     fun setUp() {
@@ -78,6 +82,10 @@ class StoreViewModelTest {
         vipDailyRewardUseCase = mockk {
             every { calculateRewards(any(), any()) } returns null   // no reward by default
         }
+        achievementManager = mockk(relaxed = true)
+        activityProvider = mockk {
+            every { currentActivity } returns null
+        }
 
         return StoreViewModel(
             playerRepository = playerRepository,
@@ -85,7 +93,9 @@ class StoreViewModelTest {
             adManager = adManager,
             audioManager = audioManager,
             inboxRepository = inboxRepository,
-            vipDailyRewardUseCase = vipDailyRewardUseCase
+            vipDailyRewardUseCase = vipDailyRewardUseCase,
+            achievementManager = achievementManager,
+            activityProvider = activityProvider
         )
     }
 

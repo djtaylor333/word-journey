@@ -46,7 +46,6 @@ ACHIEVEMENTS = [
         "name":         "First Victory",
         "description":  "Solve your first Word Journeys puzzle.",
         "xp":           100,
-        "icon_hint":    "trophy icon",
     },
     # ── Win count milestones ──────────────────────────────────────────────────
     {
@@ -72,6 +71,14 @@ ACHIEVEMENTS = [
         "name":         "Word Master",
         "description":  "Solve 100 puzzles.",
         "xp":           1000,
+    },
+    {
+        "key":          "WIN_250",
+        "type":         "INCREMENTAL",
+        "steps":        250,
+        "name":         "Veteran Wordsmith",
+        "description":  "Solve 250 puzzles. A true veteran!",
+        "xp":           2500,
     },
     {
         "key":          "WIN_500",
@@ -103,6 +110,13 @@ ACHIEVEMENTS = [
         "description":  "Solve a puzzle without using any power-ups.",
         "xp":           250,
     },
+    {
+        "key":          "LAST_GUESS_WIN",
+        "type":         "STANDARD",
+        "name":         "Down to the Wire",
+        "description":  "Solve a puzzle on your very last available guess!",
+        "xp":           300,
+    },
     # ── Daily challenge streaks ───────────────────────────────────────────────
     {
         "key":          "STREAK_3",
@@ -119,11 +133,33 @@ ACHIEVEMENTS = [
         "xp":           500,
     },
     {
+        "key":          "STREAK_14",
+        "type":         "STANDARD",
+        "name":         "Two-Week Warrior",
+        "description":  "Solve the daily challenge 14 days in a row!",
+        "xp":           1000,
+    },
+    {
         "key":          "STREAK_30",
         "type":         "STANDARD",
         "name":         "Monthly Maven",
         "description":  "Solve the daily challenge 30 days in a row!",
         "xp":           2000,
+    },
+    # ── Login streaks ─────────────────────────────────────────────────────────
+    {
+        "key":          "LOGIN_STREAK_7",
+        "type":         "STANDARD",
+        "name":         "Frequent Flyer",
+        "description":  "Log in to Word Journeys 7 days in a row.",
+        "xp":           300,
+    },
+    {
+        "key":          "LOGIN_STREAK_30",
+        "type":         "STANDARD",
+        "name":         "Dedicated Player",
+        "description":  "Log in to Word Journeys 30 days in a row!",
+        "xp":           1000,
     },
     # ── Level pack progress ───────────────────────────────────────────────────
     {
@@ -132,6 +168,13 @@ ACHIEVEMENTS = [
         "name":         "Getting Started",
         "description":  "Reach level 10 in any word pack.",
         "xp":           100,
+    },
+    {
+        "key":          "REACH_LEVEL_25",
+        "type":         "STANDARD",
+        "name":         "Levelling Up",
+        "description":  "Reach level 25 in any word pack.",
+        "xp":           250,
     },
     {
         "key":          "REACH_LEVEL_50",
@@ -147,6 +190,14 @@ ACHIEVEMENTS = [
         "description":  "Complete all 100 levels in a word pack!",
         "xp":           1000,
     },
+    # ── Seasonal packs ────────────────────────────────────────────────────────
+    {
+        "key":          "SEASONAL_CHAMPION",
+        "type":         "STANDARD",
+        "name":         "Seasonal Champion",
+        "description":  "Win your first level in a seasonal word pack.",
+        "xp":           300,
+    },
     # ── Daily challenge volume ────────────────────────────────────────────────
     {
         "key":          "FIRST_DAILY",
@@ -156,12 +207,76 @@ ACHIEVEMENTS = [
         "xp":           100,
     },
     {
+        "key":          "DAILY_10",
+        "type":         "INCREMENTAL",
+        "steps":        10,
+        "name":         "Daily Regular",
+        "description":  "Complete 10 daily challenges.",
+        "xp":           500,
+    },
+    {
         "key":          "DAILY_100",
         "type":         "INCREMENTAL",
         "steps":        100,
         "name":         "Daily Devotee",
         "description":  "Complete 100 daily challenges. Impressive dedication!",
         "xp":           2000,
+    },
+    # ── Power-up / item usage ─────────────────────────────────────────────────
+    {
+        "key":          "FIRST_ITEM_USED",
+        "type":         "STANDARD",
+        "name":         "Tool of the Trade",
+        "description":  "Use a power-up item for the first time.",
+        "xp":           100,
+    },
+    {
+        "key":          "ITEMS_USED_50",
+        "type":         "INCREMENTAL",
+        "steps":        50,
+        "name":         "Power Player",
+        "description":  "Use 50 power-up items in total.",
+        "xp":           500,
+    },
+    # ── Economy ──────────────────────────────────────────────────────────────
+    {
+        "key":          "COIN_EARNER_10000",
+        "type":         "INCREMENTAL",
+        "steps":        10000,
+        "name":         "Coin Magnate",
+        "description":  "Earn 10,000 coins in total.",
+        "xp":           1000,
+    },
+    # ── Ad rewards ───────────────────────────────────────────────────────────
+    {
+        "key":          "FIRST_AD_WATCHED",
+        "type":         "STANDARD",
+        "name":         "Window Shopper",
+        "description":  "Watch a rewarded ad for the first time.",
+        "xp":           50,
+    },
+    # ── In-app purchases ─────────────────────────────────────────────────────
+    {
+        "key":          "FIRST_PURCHASE",
+        "type":         "STANDARD",
+        "name":         "Supporter",
+        "description":  "Make your first in-app purchase. Thank you!",
+        "xp":           200,
+    },
+    {
+        "key":          "BUNDLE_BUYER",
+        "type":         "STANDARD",
+        "name":         "Big Spender",
+        "description":  "Purchase a bundle pack (Starter, Adventurer, or Champion).",
+        "xp":           500,
+    },
+    # ── VIP ───────────────────────────────────────────────────────────────────
+    {
+        "key":          "VIP_SUBSCRIBER",
+        "type":         "STANDARD",
+        "name":         "VIP Member",
+        "description":  "Activate a VIP subscription. Welcome to the club!",
+        "xp":           500,
     },
 ]
 

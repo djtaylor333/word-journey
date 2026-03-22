@@ -507,14 +507,18 @@ class GameViewModel @Inject constructor(
             // Unlock Play Games achievements for daily win
             activityProvider.currentActivity?.let { activity ->
                 achievementManager.onPuzzleWon(
-                    activity       = activity,
-                    totalWins      = p.totalWins,
-                    guessCount     = guessCount,
-                    usedPowerUp    = usedPowerUpThisLevel,
-                    dailyStreak    = p.dailyChallengeStreak,
-                    totalDailyWins = p.totalDailyChallengesCompleted,
-                    isDaily        = true
+                    activity           = activity,
+                    totalWins          = p.totalWins,
+                    guessCount         = guessCount,
+                    maxGuessesAllowed  = e.maxGuesses,
+                    usedPowerUp        = usedPowerUpThisLevel,
+                    dailyStreak        = p.dailyChallengeStreak,
+                    loginStreak        = p.loginStreak,
+                    totalDailyWins     = p.totalDailyChallengesCompleted,
+                    isDaily            = true,
+                    isSeasonal         = false
                 )
+                achievementManager.onCoinsEarned(activity, p.totalCoinsEarned)
             }
 
             _uiState.update { s ->
@@ -570,12 +574,16 @@ class GameViewModel @Inject constructor(
             // Unlock Play Games achievements for regular/seasonal win
             activityProvider.currentActivity?.let { activity ->
                 achievementManager.onPuzzleWon(
-                    activity    = activity,
-                    totalWins   = p.totalWins,
-                    guessCount  = guessCount,
-                    usedPowerUp = usedPowerUpThisLevel,
-                    currentLevel = level
+                    activity          = activity,
+                    totalWins         = p.totalWins,
+                    guessCount        = guessCount,
+                    maxGuessesAllowed = e.maxGuesses,
+                    usedPowerUp       = usedPowerUpThisLevel,
+                    currentLevel      = level,
+                    loginStreak       = p.loginStreak,
+                    isSeasonal        = isSeasonalLevel
                 )
+                achievementManager.onCoinsEarned(activity, p.totalCoinsEarned)
             }
 
             _uiState.update { s ->
@@ -810,7 +818,12 @@ class GameViewModel @Inject constructor(
                 totalItemsUsed = progress.totalItemsUsed + 1
             )
             playerProgress = updated
-            viewModelScope.launch { playerRepository.saveProgress(updated) }
+            viewModelScope.launch {
+                playerRepository.saveProgress(updated)
+                activityProvider.currentActivity?.let { activity ->
+                    achievementManager.onItemUsed(activity, updated.totalItemsUsed)
+                }
+            }
             e.addBonusGuesses(1)
             syncEngineToUiState()
             _uiState.update { s ->
@@ -857,9 +870,15 @@ class GameViewModel @Inject constructor(
             if (progress.removeLetterItems > 0) {
                 audioManager.playSfx(SfxSound.BUTTON_CLICK)
                 usedPowerUpThisLevel = true
-                val updated = progress.copy(removeLetterItems = progress.removeLetterItems - 1)
+                val updated = progress.copy(
+                    removeLetterItems = progress.removeLetterItems - 1,
+                    totalItemsUsed = progress.totalItemsUsed + 1
+                )
                 playerProgress = updated
                 playerRepository.saveProgress(updated)
+                activityProvider.currentActivity?.let { activity ->
+                    achievementManager.onItemUsed(activity, updated.totalItemsUsed)
+                }
                 e.removeLetter(absent)
                 syncEngineToUiState()
                 _uiState.update { s ->
@@ -925,7 +944,12 @@ class GameViewModel @Inject constructor(
                 totalItemsUsed = progress.totalItemsUsed + 1
             )
             playerProgress = updated
-            viewModelScope.launch { playerRepository.saveProgress(updated) }
+            viewModelScope.launch {
+                playerRepository.saveProgress(updated)
+                activityProvider.currentActivity?.let { activity ->
+                    achievementManager.onItemUsed(activity, updated.totalItemsUsed)
+                }
+            }
 
             e.prefillPosition(pos, target[pos])
             syncEngineToUiState()
@@ -969,9 +993,15 @@ class GameViewModel @Inject constructor(
 
             if (progress.definitionItems > 0) {
                 audioManager.playSfx(SfxSound.BUTTON_CLICK)
-                val updated = progress.copy(definitionItems = progress.definitionItems - 1)
+                val updated = progress.copy(
+                    definitionItems = progress.definitionItems - 1,
+                    totalItemsUsed = progress.totalItemsUsed + 1
+                )
                 playerProgress = updated
                 playerRepository.saveProgress(updated)
+                activityProvider.currentActivity?.let { activity ->
+                    achievementManager.onItemUsed(activity, updated.totalItemsUsed)
+                }
                 _uiState.update { s ->
                     s.copy(
                         definitionHint = hint,

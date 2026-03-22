@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.google.android.gms.games.PlayGames
+import com.djtaylor.wordjourney.billing.ProductIds
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,7 +35,7 @@ class AchievementManager @Inject constructor(
 
     /**
      * Unlock a one-shot achievement by its Play Games ID.
-     * Requires an Activity context to access the GamesSignInClient.
+     * Silently skips placeholder IDs (those that start with "achievement_").
      */
     fun unlock(activity: Activity, achievementId: String) {
         if (achievementId.startsWith("achievement_")) {
@@ -81,57 +82,138 @@ class AchievementManager @Inject constructor(
         }
     }
 
-    // ── Helpers — call from GameViewModel after each win ─────────────────────
+    // ── Primary game-flow trigger — call after each puzzle win ────────────────
 
     /**
      * Evaluate and trigger all relevant achievements after a puzzle win.
      *
-     * @param activity      Current foreground activity (for API calls).
-     * @param totalWins     Cumulative wins across all modes.
-     * @param guessCount    Number of guesses used this game.
-     * @param usedPowerUp   Whether any power-up was used this game.
-     * @param currentLevel  The level just completed (regular packs only).
-     * @param dailyStreak   Current consecutive daily-challenge streak.
-     * @param totalDailyWins Total daily challenges completed.
+     * @param activity            Current foreground activity (for API calls).
+     * @param totalWins           Cumulative wins across all modes.
+     * @param guessCount          Number of guesses used this round.
+     * @param maxGuessesAllowed   Total guesses the player was allowed (default 6).
+     * @param usedPowerUp         Whether any power-up was used this game.
+     * @param currentLevel        The level just completed (regular packs only; 0 for daily).
+     * @param dailyStreak         Current consecutive daily-challenge streak.
+     * @param loginStreak         Current consecutive login streak.
+     * @param totalDailyWins      Total daily challenges ever completed.
+     * @param isDaily             Whether this was a daily challenge win.
+     * @param isSeasonal          Whether this was a seasonal pack level win.
      */
     fun onPuzzleWon(
         activity: Activity,
         totalWins: Int,
         guessCount: Int,
+        maxGuessesAllowed: Int = 6,
         usedPowerUp: Boolean = false,
         currentLevel: Int = 0,
         dailyStreak: Int = 0,
+        loginStreak: Int = 0,
         totalDailyWins: Int = 0,
-        isDaily: Boolean = false
+        isDaily: Boolean = false,
+        isSeasonal: Boolean = false
     ) {
-        // First win
+        // ── First win ────────────────────────────────────────────────────────
         if (totalWins == 1) unlock(activity, AchievementIds.FIRST_WIN)
 
-        // Win count milestones (incremental)
+        // ── Win count milestones (incremental) ───────────────────────────────
         setSteps(activity, AchievementIds.WIN_10,  totalWins)
         setSteps(activity, AchievementIds.WIN_50,  totalWins)
         setSteps(activity, AchievementIds.WIN_100, totalWins)
+        setSteps(activity, AchievementIds.WIN_250, totalWins)
         setSteps(activity, AchievementIds.WIN_500, totalWins)
 
-        // Skill-based
-        if (guessCount == 1) unlock(activity, AchievementIds.FIRST_GUESS_WIN)
-        if (guessCount <= 2) unlock(activity, AchievementIds.TWO_GUESS_WIN)
-        if (!usedPowerUp)   unlock(activity, AchievementIds.NO_POWERUP_WIN)
+        // ── Skill ────────────────────────────────────────────────────────────
+        if (guessCount == 1)                                    unlock(activity, AchievementIds.FIRST_GUESS_WIN)
+        if (guessCount <= 2)                                    unlock(activity, AchievementIds.TWO_GUESS_WIN)
+        if (!usedPowerUp)                                       unlock(activity, AchievementIds.NO_POWERUP_WIN)
+        if (maxGuessesAllowed > 0 && guessCount == maxGuessesAllowed)
+                                                                unlock(activity, AchievementIds.LAST_GUESS_WIN)
 
-        // Level progress
+        // ── Level pack progress (regular + seasonal both count) ───────────────
         if (currentLevel >= 10)  unlock(activity, AchievementIds.REACH_LEVEL_10)
+        if (currentLevel >= 25)  unlock(activity, AchievementIds.REACH_LEVEL_25)
         if (currentLevel >= 50)  unlock(activity, AchievementIds.REACH_LEVEL_50)
         if (currentLevel >= 100) unlock(activity, AchievementIds.PACK_MASTER)
 
-        // Daily challenges
+        // ── Seasonal pack ────────────────────────────────────────────────────
+        if (isSeasonal) unlock(activity, AchievementIds.SEASONAL_CHAMPION)
+
+        // ── Daily challenges ─────────────────────────────────────────────────
         if (isDaily) {
             if (totalDailyWins == 1) unlock(activity, AchievementIds.FIRST_DAILY)
+            setSteps(activity, AchievementIds.DAILY_10,  totalDailyWins)
             setSteps(activity, AchievementIds.DAILY_100, totalDailyWins)
         }
 
-        // Daily streak
+        // ── Daily challenge streak ────────────────────────────────────────────
         if (dailyStreak >= 3)  unlock(activity, AchievementIds.STREAK_3)
         if (dailyStreak >= 7)  unlock(activity, AchievementIds.STREAK_7)
+        if (dailyStreak >= 14) unlock(activity, AchievementIds.STREAK_14)
         if (dailyStreak >= 30) unlock(activity, AchievementIds.STREAK_30)
+
+        // ── Login streak ─────────────────────────────────────────────────────
+        if (loginStreak >= 7)  unlock(activity, AchievementIds.LOGIN_STREAK_7)
+        if (loginStreak >= 30) unlock(activity, AchievementIds.LOGIN_STREAK_30)
+    }
+
+    // ── Item usage trigger — call after any power-up item is used ─────────────
+
+    /**
+     * Evaluate item-usage achievements.
+     *
+     * @param activity        Current foreground activity.
+     * @param totalItemsUsed  Updated cumulative item-usage count (after this use).
+     */
+    fun onItemUsed(activity: Activity, totalItemsUsed: Int) {
+        if (totalItemsUsed == 1) unlock(activity, AchievementIds.FIRST_ITEM_USED)
+        setSteps(activity, AchievementIds.ITEMS_USED_50, totalItemsUsed)
+    }
+
+    // ── Economy trigger — call whenever total coins earned changes ─────────────
+
+    /**
+     * Evaluate coin-earning achievements.
+     *
+     * @param activity          Current foreground activity.
+     * @param totalCoinsEarned  Updated cumulative coins earned (lifetime).
+     */
+    fun onCoinsEarned(activity: Activity, totalCoinsEarned: Long) {
+        setSteps(activity, AchievementIds.COIN_EARNER_10000, totalCoinsEarned.coerceAtMost(10_000L).toInt())
+    }
+
+    // ── Ad-watching trigger ────────────────────────────────────────────────────
+
+    /**
+     * Unlock achievement for watching the first rewarded ad.
+     */
+    fun onAdWatched(activity: Activity) {
+        unlock(activity, AchievementIds.FIRST_AD_WATCHED)
+    }
+
+    // ── Store purchase triggers ────────────────────────────────────────────────
+
+    /**
+     * Evaluate purchase-related achievements.
+     *
+     * @param activity     Current foreground activity.
+     * @param productId    The product that was just purchased.
+     * @param isFirstEverPurchase  True if the player has never completed a real purchase before.
+     */
+    fun onPurchaseCompleted(activity: Activity, productId: String, isFirstEverPurchase: Boolean) {
+        if (isFirstEverPurchase) unlock(activity, AchievementIds.FIRST_PURCHASE)
+
+        val isBundlePurchase = productId in setOf(
+            ProductIds.STARTER_BUNDLE,
+            ProductIds.ADVENTURER_BUNDLE,
+            ProductIds.CHAMPION_BUNDLE
+        )
+        if (isBundlePurchase) unlock(activity, AchievementIds.BUNDLE_BUYER)
+    }
+
+    /**
+     * Unlock VIP achievement when any VIP subscription is activated.
+     */
+    fun onVipPurchased(activity: Activity) {
+        unlock(activity, AchievementIds.VIP_SUBSCRIBER)
     }
 }
