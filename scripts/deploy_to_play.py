@@ -38,14 +38,14 @@ import sys
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.21.0 - Live Play Games Achievements
+RELEASE_NOTES = """v2.22.0 - Themed Maps, Purchases & Achievements Fixed
 
-• All 31 achievements now connected to Google Play Games
-• Earn achievements for wins, streaks, VIP, purchases, and more
-• Daily challenge streaks: 3, 7, 14, 30 days
-• Login streak achievements: 7 and 30 days
-• Win your first seasonal pack level achievement
-• Bug fixes and performance improvements"""
+• Seasonal maps now show themed zones (Easter, Halloween, Christmas, etc.)
+• All in-app purchases now work: coins, diamonds, lives & value bundles
+• VIP subscriptions (monthly & yearly) are purchasable
+• Achievements button opens Google Play Games overlay
+• All 31 achievements are active and triggered correctly
+• Bug fixes"""
 
 
 def build_service(key_path: str):
