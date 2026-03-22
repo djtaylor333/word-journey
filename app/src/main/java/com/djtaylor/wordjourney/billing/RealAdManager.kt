@@ -31,7 +31,7 @@ private const val TEST_REWARDED_AD_UNIT_ID = "ca-app-pub-3940256099942544/522435
 private const val PROD_REWARDED_AD_UNIT_ID = "ca-app-pub-8973997605504935/9065149682"
 
 // TODO: Switch to PROD_REWARDED_AD_UNIT_ID once app is published on Google Play
-private const val REWARDED_AD_UNIT_ID = TEST_REWARDED_AD_UNIT_ID
+private const val REWARDED_AD_UNIT_ID = PROD_REWARDED_AD_UNIT_ID
 
 /**
  * Production [IAdManager] backed by AdMob rewarded ads.

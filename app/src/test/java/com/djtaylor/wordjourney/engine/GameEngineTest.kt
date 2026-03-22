@@ -61,10 +61,10 @@ class GameEngineTest {
     }
 
     @Test
-    fun `EASY difficulty has wordLength 4 and 6 max guesses`() {
+    fun `EASY difficulty has wordLength 4 and 8 max guesses`() {
         val e = easyEngine()
         assertEquals(4, e.wordLength)
-        assertEquals(6, e.maxGuesses)
+        assertEquals(8, e.maxGuesses)
     }
 
     @Test

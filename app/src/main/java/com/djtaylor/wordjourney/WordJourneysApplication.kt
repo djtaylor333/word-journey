@@ -3,6 +3,7 @@ package com.djtaylor.wordjourney
 import android.app.Application
 import androidx.work.Configuration
 import androidx.hilt.work.HiltWorkerFactory
+import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.notifications.NotificationChannels
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.games.PlayGamesSdk
@@ -14,6 +15,9 @@ class WordJourneysApplication : Application(), Configuration.Provider {
 
     // Injected after Hilt component is initialised (before any Worker is created)
     @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    /** Tracks the currently resumed Activity so RealBillingManager can launch the purchase sheet. */
+    @Inject lateinit var activityProvider: ActivityProvider
 
     /**
      * WorkManager queries this before constructing any Worker, so the factory
@@ -27,6 +31,8 @@ class WordJourneysApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // Register before anything else so activity references are available immediately
+        registerActivityLifecycleCallbacks(activityProvider)
         // Initialize AdMob SDK once at app start (required before any ad is loaded)
         MobileAds.initialize(this)
         // Initialize Play Games SDK

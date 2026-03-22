@@ -3,7 +3,7 @@ package com.djtaylor.wordjourney.di
 import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.IBillingManager
 import com.djtaylor.wordjourney.billing.RealAdManager
-import com.djtaylor.wordjourney.billing.StubBillingManager
+import com.djtaylor.wordjourney.billing.RealBillingManager
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -16,7 +16,7 @@ abstract class AppModule {
 
     @Binds
     @Singleton
-    abstract fun bindBillingManager(stub: StubBillingManager): IBillingManager
+    abstract fun bindBillingManager(impl: RealBillingManager): IBillingManager
 
     @Binds
     @Singleton
