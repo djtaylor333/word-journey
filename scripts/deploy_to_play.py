@@ -95,8 +95,17 @@ def deploy(key_path: str, aab_path: str, track: str, rollout_fraction: float,
         print(f"  Uploaded versionCode: {version_code}")
 
         # 3. Build the track release body
+        # Read version name dynamically from version.json
+        import json as _json, os as _os
+        _vj_path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "version.json")
+        _version_name = "unknown"
+        try:
+            with open(_vj_path) as _f:
+                _version_name = _json.load(_f)["versionName"]
+        except Exception:
+            pass
         release_body = {
-            "name": "v2.20.0",
+            "name": f"v{_version_name}",
             "status": "completed" if rollout_fraction >= 1.0 else "inProgress",
             "versionCodes": [str(version_code)],
             "releaseNotes": [
@@ -127,7 +136,7 @@ def deploy(key_path: str, aab_path: str, track: str, rollout_fraction: float,
         ).execute()
         print(f"  Edit committed: {commit_result.get('id', edit_id)}")
 
-        print(f"\n✅ Successfully submitted v2.20.0 to Play Console ({track} track).")
+        print(f"\n\u2705 Successfully submitted v{_version_name} to Play Console ({track} track).")
         print("   Google will review the update. Once approved it will go live automatically.")
         print(f"   Review status: https://play.google.com/console/u/0/developers/"
               f"9022665278248042/app-list")
