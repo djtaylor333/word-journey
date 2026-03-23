@@ -49,8 +49,9 @@ data class ZoneTheme(
     val decor: List<String>
 )
 
-/** Standard adventure journey zones (Easy / Regular / Hard / VIP) */
+/** Standard adventure journey zones (Easy / Regular / Hard / VIP) — 50 zones × 10 levels = 500 */
 private val zones = listOf(
+    // ── World 1: Beginnings (1–100) ─────────────────────────────────────────
     ZoneTheme("Enchanted Meadow", "🌿",   Color(0xFF1A3D2E), Color(0xFF0D2118), Color(0xFF4ADE80), Color(0xFF22C55E), listOf("🌸", "🦋", "🌼", "🐝", "🍀")),
     ZoneTheme("Crystal Cavern",  "💎",    Color(0xFF1A1A3D), Color(0xFF0D0D21), Color(0xFF818CF8), Color(0xFF6366F1), listOf("💎", "✨", "🔮", "⚡", "🌟")),
     ZoneTheme("Sunset Desert",   "🏜️",   Color(0xFF3D2A1A), Color(0xFF211A0D), Color(0xFFFBBF24), Color(0xFFF59E0B), listOf("🌵", "🦎", "☀️", "🏜️", "🐪")),
@@ -60,7 +61,51 @@ private val zones = listOf(
     ZoneTheme("Starlit Sky",     "🌌",    Color(0xFF1A1A4D), Color(0xFF0D0D28), Color(0xFFC084FC), Color(0xFFA855F7), listOf("⭐", "🌙", "🌌", "💫", "🪐")),
     ZoneTheme("Ocean Depths",    "🌊",    Color(0xFF0D2D3D), Color(0xFF081821), Color(0xFF38BDF8), Color(0xFF0EA5E9), listOf("🌊", "🐠", "🐙", "🐚", "🪸")),
     ZoneTheme("Ancient Ruins",   "🏛️",   Color(0xFF2D2A1A), Color(0xFF181710), Color(0xFFFCD34D), Color(0xFFEAB308), listOf("🏛️", "🗿", "📜", "🏺", "⚱️")),
-    ZoneTheme("Dragon's Summit", "🐉",    Color(0xFF3D0D1A), Color(0xFF210810), Color(0xFFFB7185), Color(0xFFF43F5E), listOf("🐉", "👑", "💎", "🗡️", "🏰"))
+    ZoneTheme("Dragon's Summit", "🐉",    Color(0xFF3D0D1A), Color(0xFF210810), Color(0xFFFB7185), Color(0xFFF43F5E), listOf("🐉", "👑", "💎", "🗡️", "🏰")),
+    // ── World 2: Wild Frontiers (101–200) ────────────────────────────────────
+    ZoneTheme("Jungle Canopy",   "🦜",    Color(0xFF0A2D12), Color(0xFF061A0A), Color(0xFF4ADE80), Color(0xFF16A34A), listOf("🌴", "🦜", "🐍", "🌿", "🦋")),
+    ZoneTheme("Thunder Plains",  "⚡",    Color(0xFF18181A), Color(0xFF0E0E10), Color(0xFFFDE047), Color(0xFFCA8A04), listOf("⚡", "🌩️", "🌪️", "💨", "🌧️")),
+    ZoneTheme("Coral Reef",      "🪸",    Color(0xFF001E30), Color(0xFF001220), Color(0xFFF472B6), Color(0xFFDB2777), listOf("🪸", "🐡", "🦑", "🐚", "🌊")),
+    ZoneTheme("Moonlit Marsh",   "🌙",    Color(0xFF0A0A1E), Color(0xFF060610), Color(0xFFC084FC), Color(0xFF9333EA), listOf("🌙", "🐸", "🌾", "🌫️", "🦉")),
+    ZoneTheme("Sky Temple",      "☁️",    Color(0xFF0A1E3D), Color(0xFF061220), Color(0xFFE0F2FE), Color(0xFF7DD3FC), listOf("☁️", "🏛️", "🌤️", "✨", "🕊️")),
+    ZoneTheme("Ember Fields",    "🔥",    Color(0xFF2E0D00), Color(0xFF1E0800), Color(0xFFFB923C), Color(0xFFEA580C), listOf("🔥", "🌾", "🌅", "🦊", "✨")),
+    ZoneTheme("Mushroom Kingdom","🍄",    Color(0xFF1A0A20), Color(0xFF100614), Color(0xFFF9A8D4), Color(0xFFEC4899), listOf("🍄", "🐛", "🌸", "🌿", "⭐")),
+    ZoneTheme("Sapphire Lake",   "💙",    Color(0xFF001E3D), Color(0xFF001228), Color(0xFF38BDF8), Color(0xFF0284C7), listOf("💙", "🐦", "🌊", "🪷", "🌿")),
+    ZoneTheme("Iron Citadel",    "⚔️",    Color(0xFF141418), Color(0xFF0C0C10), Color(0xFF94A3B8), Color(0xFF64748B), listOf("⚔️", "🛡️", "🏰", "⚙️", "🗡️")),
+    ZoneTheme("Rainbow Valley",  "🌈",    Color(0xFF0E0E1E), Color(0xFF080810), Color(0xFFF472B6), Color(0xFFBA38F8), listOf("🌈", "💫", "🌸", "⭐", "🎨")),
+    // ── World 3: Ancient Wonders (201–300) ───────────────────────────────────
+    ZoneTheme("Sandstone Maze",  "🏺",    Color(0xFF2E1E00), Color(0xFF1E1400), Color(0xFFFCD34D), Color(0xFFB45309), listOf("🏺", "🗿", "🐊", "🌵", "🌅")),
+    ZoneTheme("Blizzard Pass",   "❄️",    Color(0xFF082030), Color(0xFF041420), Color(0xFFBAE6FD), Color(0xFF38BDF8), listOf("❄️", "🌨️", "🏔️", "🐻", "🦢")),
+    ZoneTheme("Fairy Glen",      "🧚",    Color(0xFF1E041E), Color(0xFF140010), Color(0xFFF0ABFC), Color(0xFFD946EF), listOf("🧚", "🌸", "🌺", "🍄", "✨")),
+    ZoneTheme("Shipwreck Cove",  "⚓",    Color(0xFF001830), Color(0xFF001020), Color(0xFF6EE7B7), Color(0xFF059669), listOf("⚓", "🏴‍☠️", "🌊", "🐚", "🦀")),
+    ZoneTheme("Clouded Spire",   "🌫️",   Color(0xFF181820), Color(0xFF101014), Color(0xFFCBD5E1), Color(0xFF94A3B8), listOf("🌫️", "⛅", "🏰", "🕊️", "🌤️")),
+    ZoneTheme("Gilded Palace",   "👑",    Color(0xFF201800), Color(0xFF140E00), Color(0xFFFDE68A), Color(0xFFD97706), listOf("👑", "💎", "🏰", "✨", "🎭")),
+    ZoneTheme("Dark Labyrinth",  "🕯️",   Color(0xFF120808), Color(0xFF0A0404), Color(0xFFFCA5A5), Color(0xFFDC2626), listOf("🕯️", "🦇", "🕷️", "💀", "🌑")),
+    ZoneTheme("Cherry Blossom",  "🌸",    Color(0xFF340E2E), Color(0xFF200820), Color(0xFFFDA4AF), Color(0xFFF472B6), listOf("🌸", "🌺", "🦋", "🌷", "🍃")),
+    ZoneTheme("Haunted Hollow",  "👻",    Color(0xFF100820), Color(0xFF080414), Color(0xFFC4B5FD), Color(0xFF7C3AED), listOf("👻", "🦇", "🕯️", "🌑", "🕸️")),
+    ZoneTheme("Sunken Temple",   "🐚",    Color(0xFF001E30), Color(0xFF001428), Color(0xFF5EEAD4), Color(0xFF0D9488), listOf("🐚", "🐡", "🌊", "🏛️", "🐠")),
+    // ── World 4: Elemental Realms (301–400) ──────────────────────────────────
+    ZoneTheme("Wisteria Woods",  "🪻",    Color(0xFF1A0A2E), Color(0xFF100620), Color(0xFFD8B4FE), Color(0xFF9333EA), listOf("🪻", "🌸", "🦋", "🌿", "✨")),
+    ZoneTheme("Storm Coast",     "⛈️",    Color(0xFF0A1020), Color(0xFF04080E), Color(0xFF60A5FA), Color(0xFF2563EB), listOf("⛈️", "🌊", "⚡", "🌀", "🦅")),
+    ZoneTheme("Crystal Tundra",  "🧊",    Color(0xFF06121A), Color(0xFF040C10), Color(0xFFA5F3FC), Color(0xFF06B6D4), listOf("🧊", "❄️", "🏔️", "🐻‍❄️", "🌨️")),
+    ZoneTheme("Ember Lair",      "🐲",    Color(0xFF200800), Color(0xFF140400), Color(0xFFFCA5A5), Color(0xFFDC2626), listOf("🐲", "🔥", "💎", "🌋", "⚡")),
+    ZoneTheme("Eternal Garden",  "🌺",    Color(0xFF0C2010), Color(0xFF081408), Color(0xFF86EFAC), Color(0xFF16A34A), listOf("🌺", "🌸", "🦋", "🌿", "🌼")),
+    ZoneTheme("Space Station",   "🚀",    Color(0xFF020408), Color(0xFF010204), Color(0xFF818CF8), Color(0xFF4F46E5), listOf("🚀", "⭐", "🌌", "🛸", "🪐")),
+    ZoneTheme("Floating Islands","🏝️",   Color(0xFF06162E), Color(0xFF040E1E), Color(0xFF34D399), Color(0xFF059669), listOf("🏝️", "☁️", "🌊", "🌴", "🦋")),
+    ZoneTheme("Phoenix Peaks",   "🦅",    Color(0xFF2E0A00), Color(0xFF1E0600), Color(0xFFFDBA74), Color(0xFFEA580C), listOf("🦅", "🔥", "🌅", "🏔️", "✨")),
+    ZoneTheme("Shadow Realm",    "🌑",    Color(0xFF04040C), Color(0xFF020206), Color(0xFFA78BFA), Color(0xFF7C3AED), listOf("🌑", "💀", "🕷️", "🌑", "⭐")),
+    ZoneTheme("Amber Savanna",   "🦁",    Color(0xFF201600), Color(0xFF141000), Color(0xFFFBD38D), Color(0xFFD97706), listOf("🦁", "🦒", "🌅", "🌾", "🦓")),
+    // ── World 5: Legendary Endgame (401–500) ─────────────────────────────────
+    ZoneTheme("Frost Cathedral", "🕍",    Color(0xFF061020), Color(0xFF040A14), Color(0xFFE0F2FE), Color(0xFF38BDF8), listOf("🕍", "❄️", "✨", "🕊️", "🌨️")),
+    ZoneTheme("Hidden Oasis",    "🌴",    Color(0xFF0A1E0A), Color(0xFF061406), Color(0xFF86EFAC), Color(0xFF16A34A), listOf("🌴", "🌺", "💧", "🦋", "🌸")),
+    ZoneTheme("Clockwork City",  "⚙️",    Color(0xFF141012), Color(0xFF0C0A0C), Color(0xFFD1FAE5), Color(0xFF6EE7B7), listOf("⚙️", "🔧", "🏙️", "⌚", "🦾")),
+    ZoneTheme("Underwater Cave", "🐠",    Color(0xFF001E28), Color(0xFF001418), Color(0xFF67E8F9), Color(0xFF06B6D4), listOf("🐠", "🐡", "🐙", "🌊", "💎")),
+    ZoneTheme("Sky Fortress",    "🏰",    Color(0xFF0A0C18), Color(0xFF060810), Color(0xFFC7D2FE), Color(0xFF818CF8), listOf("🏰", "⭐", "☁️", "🌤️", "🕊️")),
+    ZoneTheme("Prism Canyon",    "🌈",    Color(0xFF1A0A1E), Color(0xFF100614), Color(0xFFF9A8D4), Color(0xFFDB2777), listOf("🌈", "💎", "✨", "🌸", "🎨")),
+    ZoneTheme("Mystic Swamp",    "🐊",    Color(0xFF0A1A08), Color(0xFF060E04), Color(0xFF6EE7B7), Color(0xFF059669), listOf("🐊", "🐸", "🌿", "🍄", "🌾")),
+    ZoneTheme("Titan's Peak",    "🗿",    Color(0xFF181012), Color(0xFF100A0C), Color(0xFFCBD5E1), Color(0xFF94A3B8), listOf("🗿", "⚡", "🏔️", "🌩️", "🦅")),
+    ZoneTheme("Celestial Gate",  "✨",    Color(0xFF100A20), Color(0xFF080614), Color(0xFFFDE68A), Color(0xFFD97706), listOf("✨", "⭐", "🌌", "💫", "🌙")),
+    ZoneTheme("Eternal Summit",  "⛰️",   Color(0xFF060A12), Color(0xFF04060C), Color(0xFFFBBF24), Color(0xFFD97706), listOf("⛰️", "🌅", "🏆", "✨", "🌟"))
 )
 
 // ── Seasonal zone themes ──────────────────────────────────────────────────────
@@ -156,8 +201,10 @@ private fun zonesFor(seasonalPackKey: String?): List<ZoneTheme> = when (seasonal
 }
 
 /** Returns the zone theme for [level] given the optional seasonal context. */
-private fun zoneFor(level: Int, seasonalPackKey: String? = null) =
-    zonesFor(seasonalPackKey)[((level - 1) / 10) % 10]
+private fun zoneFor(level: Int, seasonalPackKey: String? = null): ZoneTheme {
+    val list = zonesFor(seasonalPackKey)
+    return list[((level - 1) / 10).coerceIn(0, list.size - 1)]
+}
 
 /** Seasonal accent colours for the screen chrome (TopAppBar, button, etc.) */
 private fun seasonalAccent(seasonalPackKey: String?): Color? = when (seasonalPackKey) {

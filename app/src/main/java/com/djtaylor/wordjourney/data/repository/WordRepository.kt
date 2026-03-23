@@ -43,8 +43,9 @@ class WordRepository @Inject constructor(
          * Words at indices 0..VIP_POOL_START[len]-1 → standard difficulties only.
          * Words at indices VIP_POOL_START[len]..end  → VIP only.
          * Lengths 3 and 7 are VIP-exclusive so no partition is needed.
+         * Updated to 480 to support 500 levels of unique standard content (levels 481-500 cycle).
          */
-        val VIP_POOL_START = mapOf(4 to 76, 5 to 97, 6 to 193)
+        val VIP_POOL_START = mapOf(4 to 480, 5 to 480, 6 to 480)
     }
 
     // ── Cached shuffled word lists per length ──

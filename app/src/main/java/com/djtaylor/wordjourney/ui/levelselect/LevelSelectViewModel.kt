@@ -21,7 +21,7 @@ import javax.inject.Inject
 data class LevelSelectUiState(
     val difficulty: Difficulty = Difficulty.REGULAR,
     val currentLevel: Int = 1,        // player's current unsolved level
-    val totalLevels: Int = 100,
+    val totalLevels: Int = 500,
     val lives: Int = 10,
     val bonusLives: Int = 0,          // lives above 10
     val coins: Long = 0L,
@@ -104,7 +104,7 @@ class LevelSelectViewModel @Inject constructor(
                     playerProgress.levelFor(difficulty)
                 val totalLevels = if (isSeasonalLevel)
                     SeasonalWordPacks.packSize(seasonalPackKey!!)
-                else 100
+                else 500
                 _uiState.update {
                     it.copy(
                         currentLevel = currentLevel,

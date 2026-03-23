@@ -285,27 +285,27 @@ class LevelSelectViewModelTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `totalLevels is 100 for easy difficulty`() = testWithVm("easy") { vm ->
+    fun `totalLevels is 500 for easy difficulty`() = testWithVm("easy") { vm ->
         val state = vm.uiState.first()
-        assertEquals(100, state.totalLevels)
+        assertEquals(500, state.totalLevels)
     }
 
     @Test
-    fun `totalLevels is 100 for regular difficulty`() = testWithVm("regular") { vm ->
+    fun `totalLevels is 500 for regular difficulty`() = testWithVm("regular") { vm ->
         val state = vm.uiState.first()
-        assertEquals(100, state.totalLevels)
+        assertEquals(500, state.totalLevels)
     }
 
     @Test
-    fun `totalLevels is 100 for hard difficulty`() = testWithVm("hard") { vm ->
+    fun `totalLevels is 500 for hard difficulty`() = testWithVm("hard") { vm ->
         val state = vm.uiState.first()
-        assertEquals(100, state.totalLevels)
+        assertEquals(500, state.totalLevels)
     }
 
     @Test
-    fun `totalLevels is 100 for vip difficulty`() = testWithVm("vip") { vm ->
+    fun `totalLevels is 500 for vip difficulty`() = testWithVm("vip") { vm ->
         val state = vm.uiState.first()
-        assertEquals(100, state.totalLevels)
+        assertEquals(500, state.totalLevels)
     }
 
     // ══════════════════════════════════════════════════════════════════════════

@@ -459,9 +459,9 @@ class WordRepositoryTest {
         (1..count).map { i -> WordEntity(3000 + i, "U${i.toString().padStart(5, '0')}", 6, "Def6 $i") }
 
     private fun createRepoForPartition(): WordRepository {
-        val words4 = makeWords4(200)   // split = 76; standard=0..75, vip=76..199
-        val words5 = makeWords5(200)   // split = 97; standard=0..96, vip=97..199
-        val words6 = makeWords6(400)   // split = 193; standard=0..192, vip=193..399
+        val words4 = makeWords4(600)   // split = 480; standard=0..479, vip=480..599
+        val words5 = makeWords5(600)   // split = 480; standard=0..479, vip=480..599
+        val words6 = makeWords6(600)   // split = 480; standard=0..479, vip=480..599
         val dao = mockk<WordDao> {
             coEvery { getAllByLength(3) } returns sampleWords3
             coEvery { getAllByLength(4) } returns words4
@@ -480,9 +480,9 @@ class WordRepositoryTest {
     @Test
     fun `VIP 4-letter words are disjoint from EASY 4-letter words`() = runTest {
         val repo = createRepoForPartition()
-        // Standard pool = first 76 shuffled words; VIP pool = last 124 shuffled words
-        val easyWords = (1..76).map { repo.getWordForLevel(Difficulty.EASY, it) }.filterNotNull().toSet()
-        val vipWords = (1..124).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 4) }
+        // Standard pool = first 480 shuffled words; VIP pool = last 120 shuffled words
+        val easyWords = (1..480).map { repo.getWordForLevel(Difficulty.EASY, it) }.filterNotNull().toSet()
+        val vipWords = (1..120).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 4) }
             .filterNotNull().toSet()
         assertTrue("Standard and VIP 4-letter pools must be disjoint — overlap: ${easyWords.intersect(vipWords)}",
             easyWords.intersect(vipWords).isEmpty())
@@ -491,8 +491,8 @@ class WordRepositoryTest {
     @Test
     fun `VIP 5-letter words are disjoint from REGULAR 5-letter words`() = runTest {
         val repo = createRepoForPartition()
-        val regularWords = (1..97).map { repo.getWordForLevel(Difficulty.REGULAR, it) }.filterNotNull().toSet()
-        val vipWords = (1..103).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 5) }
+        val regularWords = (1..480).map { repo.getWordForLevel(Difficulty.REGULAR, it) }.filterNotNull().toSet()
+        val vipWords = (1..120).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 5) }
             .filterNotNull().toSet()
         assertTrue("Standard and VIP 5-letter pools must be disjoint — overlap: ${regularWords.intersect(vipWords)}",
             regularWords.intersect(vipWords).isEmpty())
@@ -501,8 +501,8 @@ class WordRepositoryTest {
     @Test
     fun `VIP 6-letter words are disjoint from HARD 6-letter words`() = runTest {
         val repo = createRepoForPartition()
-        val hardWords = (1..193).map { repo.getWordForLevel(Difficulty.HARD, it) }.filterNotNull().toSet()
-        val vipWords = (1..207).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 6) }
+        val hardWords = (1..480).map { repo.getWordForLevel(Difficulty.HARD, it) }.filterNotNull().toSet()
+        val vipWords = (1..120).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 6) }
             .filterNotNull().toSet()
         assertTrue("Standard and VIP 6-letter pools must be disjoint — overlap: ${hardWords.intersect(vipWords)}",
             hardWords.intersect(vipWords).isEmpty())
@@ -511,9 +511,9 @@ class WordRepositoryTest {
     @Test
     fun `EASY pool size is capped at VIP split point for 4-letter words`() = runTest {
         val repo = createRepoForPartition()
-        // 200 total 4-letter words, split = 76 → standard pool has 76 unique words
-        val easyWords = (1..200).map { repo.getWordForLevel(Difficulty.EASY, it) }.filterNotNull().toSet()
-        assertEquals("Standard pool should cycle within 76 words", 76, easyWords.size)
+        // 600 total 4-letter words, split = 480 → standard pool has 480 unique words
+        val easyWords = (1..600).map { repo.getWordForLevel(Difficulty.EASY, it) }.filterNotNull().toSet()
+        assertEquals("Standard pool should cycle within 480 words", 480, easyWords.size)
     }
 
     @Test

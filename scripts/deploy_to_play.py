@@ -38,14 +38,14 @@ import sys
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.22.0 - Themed Maps, Purchases & Achievements Fixed
+RELEASE_NOTES = """v2.23.0 - 500 Levels Per Difficulty + 50 Zone Themes
 
-• Seasonal maps now show themed zones (Easter, Halloween, Christmas, etc.)
-• All in-app purchases now work: coins, diamonds, lives & value bundles
-• VIP subscriptions (monthly & yearly) are purchasable
-• Achievements button opens Google Play Games overlay
-• All 31 achievements are active and triggered correctly
-• Bug fixes"""
+• Easy, Regular and Hard modes each expanded to 500 levels
+• 480 unique words per standard difficulty (with definitions on win screen)
+• 50 new zone themes across 5 worlds spanning all 500 levels
+• Worlds: Beginnings · Wild Frontiers · Ancient Wonders · Elemental Realms · Legendary Endgame
+• Android level select screen now shows full 500-level map
+• All new words include verified definitions displayed on win screen"""
 
 
 def build_service(key_path: str):
