@@ -545,6 +545,15 @@ fun HomeScreen(
                 }
             )
         }
+
+        // ── In-App Review Prompt Dialog ────────────────────────────────────
+        if (uiState.showReviewPrompt) {
+            val activity = LocalContext.current as Activity
+            ReviewPromptDialog(
+                onConfirmReview = { viewModel.completeReviewWithReward(activity) },
+                onDismiss       = { viewModel.dismissReviewPrompt() }
+            )
+        }
     }
 }
 

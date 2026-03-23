@@ -24,8 +24,8 @@ android {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 35
-        versionCode 47
-        versionName "2.25.0"
+        versionCode 48
+        versionName "2.26.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -169,6 +169,10 @@ dependencies {
 
     // ── Google Play Billing (stubbed) ────────────────────────────────────────
     implementation 'com.android.billingclient:billing-ktx:7.1.1'
+
+    // ── Google Play In-App Review ─────────────────────────────────────────
+    implementation 'com.google.android.play:review:2.0.2'
+    implementation 'com.google.android.play:review-ktx:2.0.2'
 
     // ── Splash screen ────────────────────────────────────────────────────────
     implementation 'androidx.core:core-splashscreen:1.0.1'

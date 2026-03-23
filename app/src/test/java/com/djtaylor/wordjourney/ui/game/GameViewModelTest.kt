@@ -1855,6 +1855,48 @@ class GameViewModelTest {
     }
 
     @Test
+    fun `win increments levelsCompletedForReview when review not yet requested`() = runTest {
+        val progress = PlayerProgress(levelsCompletedForReview = 5, hasReviewBeenRequested = false)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.levelsCompletedForReview == 6 }) }
+    }
+
+    @Test
+    fun `win does not increment levelsCompletedForReview when review already requested`() = runTest {
+        val progress = PlayerProgress(levelsCompletedForReview = 10, hasReviewBeenRequested = true)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.levelsCompletedForReview == 10 }) }
+    }
+
+    @Test
+    fun `10 wins with no previous review sets levelsCompletedForReview to 10`() = runTest {
+        val progress = PlayerProgress(levelsCompletedForReview = 9, hasReviewBeenRequested = false)
+        val vm = createViewModel(progress = progress, word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.levelsCompletedForReview == 10 }) }
+    }
+
+    @Test
     fun `win updates totalCoinsEarned`() = runTest {
         val progress = PlayerProgress(totalCoinsEarned = 500L)
         val vm = createViewModel(progress = progress, word = "ABLE")

@@ -1,9 +1,9 @@
 {
-  "versionName": "2.25.0",
-  "versionCode": 47,
+  "versionName": "2.26.0",
+  "versionCode": 48,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
   "buildDate": "2026-03-23",
-  "releaseNotes": "v2.25.0 — Gameplay polish and Star Levels preview\n• Fixed scroll position: grid now starts at top (or active row for resumed levels)\n• Main menu now shows accurate guess counts per difficulty\n• Added Star Levels section (Coming Soon — unlock with stars in Adventure)\n• Life now only deducted if you submit at least one guess on a level\n• Fixed 'Level N' badge splitting mid-word — now shows as 'Lv. N'\n• Added tests for onExitLevel life refund behavior and difficulty parameters"
+  "releaseNotes": "v2.26.0 — In-app review prompt, billing reliability & achievement fixes\n• Added in-app review prompt after completing 10 non-timer levels\n• Two-step dialog: asks if you enjoy the game then asks for a Play Store review\n• Reward for reviewing: +5 lives, +1,000 coins, +10 diamonds\n• Fixed billing retry: product details now re-fetched on reconnect and at startup\n• Billing cache now cleared on disconnect to prevent stale purchase failures\n• Achievements: verified all 31 real Play Console IDs are wired correctly"
 }

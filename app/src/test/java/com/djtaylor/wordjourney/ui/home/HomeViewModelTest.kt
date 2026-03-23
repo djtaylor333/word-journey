@@ -9,6 +9,7 @@ import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
 import com.djtaylor.wordjourney.domain.usecase.VipDailyRewardUseCase
+import com.djtaylor.wordjourney.review.InAppReviewManager
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -67,7 +68,10 @@ class HomeViewModelTest {
             vipDailyRewardUseCase = VipDailyRewardUseCase(),
             inboxRepository = inboxRepository,
             audioManager = audioManager,
-            achievementManager = mockk(relaxed = true)
+            achievementManager = mockk(relaxed = true),
+            inAppReviewManager = mockk {
+                coEvery { requestReview(any()) } returns true
+            }
         )
     }
 
@@ -399,5 +403,111 @@ class HomeViewModelTest {
         testDispatcher.scheduler.runCurrent()
 
         assertTrue(vm.uiState.first().devModeEnabled)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 12. IN-APP REVIEW PROMPT
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `showReviewPrompt is false when levelsCompletedForReview is below threshold`() = testWithVm(
+        PlayerProgress(
+            levelsCompletedForReview = 9,
+            hasReviewBeenRequested = false,
+            hasReceivedNewPlayerBonus = true
+        )
+    ) { vm ->
+        assertFalse(vm.uiState.first().showReviewPrompt)
+    }
+
+    @Test
+    fun `showReviewPrompt is true when levelsCompletedForReview reaches 10`() = testWithVm(
+        PlayerProgress(
+            levelsCompletedForReview = 10,
+            hasReviewBeenRequested = false,
+            hasReceivedNewPlayerBonus = true
+        )
+    ) { vm ->
+        assertTrue(vm.uiState.first().showReviewPrompt)
+    }
+
+    @Test
+    fun `showReviewPrompt is false when hasReviewBeenRequested is true even with 10 levels`() = testWithVm(
+        PlayerProgress(
+            levelsCompletedForReview = 10,
+            hasReviewBeenRequested = true,
+            hasReceivedNewPlayerBonus = true
+        )
+    ) { vm ->
+        assertFalse(vm.uiState.first().showReviewPrompt)
+    }
+
+    @Test
+    fun `dismissReviewPrompt hides dialog and saves hasReviewBeenRequested`() = testWithVm(
+        PlayerProgress(
+            levelsCompletedForReview = 10,
+            hasReviewBeenRequested = false,
+            hasReceivedNewPlayerBonus = true
+        )
+    ) { vm ->
+        // Dialog should be shown initially
+        assertTrue(vm.uiState.first().showReviewPrompt)
+
+        vm.dismissReviewPrompt()
+        testDispatcher.scheduler.runCurrent()
+
+        // Dialog should be hidden
+        assertFalse(vm.uiState.first().showReviewPrompt)
+
+        // Progress should be saved with hasReviewBeenRequested = true and levelsCompletedForReview reset
+        coVerify { playerRepository.saveProgress(match { it.hasReviewBeenRequested && it.levelsCompletedForReview == 0 }) }
+    }
+
+    @Test
+    fun `completeReviewWithReward grants 5 lives 1000 coins 10 diamonds`() = testWithVm(
+        PlayerProgress(
+            lives = 3, coins = 500L, diamonds = 2,
+            levelsCompletedForReview = 10,
+            hasReviewBeenRequested = false,
+            hasReceivedNewPlayerBonus = true
+        )
+    ) { vm ->
+        val activity = mockk<android.app.Activity>(relaxed = true)
+        vm.completeReviewWithReward(activity)
+        testDispatcher.scheduler.runCurrent()
+
+        // Dialog should be dismissed
+        assertFalse(vm.uiState.first().showReviewPrompt)
+
+        // Reward should be saved: +5 lives, +1000 coins, +10 diamonds
+        coVerify {
+            playerRepository.saveProgress(match {
+                it.lives == 8 &&
+                it.coins == 1500L &&
+                it.diamonds == 12 &&
+                it.hasReviewBeenRequested &&
+                it.reviewRewarded &&
+                it.levelsCompletedForReview == 0
+            })
+        }
+    }
+
+    @Test
+    fun `review prompt is not shown again once session flag is set`() = testWithVm(
+        PlayerProgress(
+            levelsCompletedForReview = 10,
+            hasReviewBeenRequested = false,
+            hasReceivedNewPlayerBonus = true
+        )
+    ) { vm ->
+        // First emission — should trigger prompt
+        assertTrue(vm.uiState.first().showReviewPrompt)
+
+        // Simulate flow re-emission (still 10 levels, not requested yet in DB)
+        progressFlow.value = progressFlow.value.copy(coins = 9999L)
+        testDispatcher.scheduler.runCurrent()
+
+        // showReviewPrompt should still be true (not toggled off by re-emission)
+        assertTrue(vm.uiState.first().showReviewPrompt)
     }
 }

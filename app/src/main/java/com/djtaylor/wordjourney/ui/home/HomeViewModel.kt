@@ -1,8 +1,8 @@
 package com.djtaylor.wordjourney.ui.home
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import com.djtaylor.wordjourney.audio.SfxSound
@@ -16,6 +16,7 @@ import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
 import com.djtaylor.wordjourney.domain.usecase.VipDailyRewardUseCase
 import com.djtaylor.wordjourney.notifications.LivesFullNotificationWorker
 import com.djtaylor.wordjourney.notifications.DailyChallengeReminderWorker
+import com.djtaylor.wordjourney.review.InAppReviewManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -34,7 +35,8 @@ data class HomeUiState(
     val pendingVipDaysMessage: String? = null, // dialog body text
     val newPlayerBonusMessage: String? = null,
     val inboxCount: Int = 0,                // unclaimed inbox items badge
-    val devModeEnabled: Boolean = false     // unlocked via 10-tap easter egg
+    val devModeEnabled: Boolean = false,    // unlocked via 10-tap easter egg
+    val showReviewPrompt: Boolean = false   // show in-app review prompt after 10 levels
 )
 
 @HiltViewModel
@@ -45,11 +47,15 @@ class HomeViewModel @Inject constructor(
     private val vipDailyRewardUseCase: VipDailyRewardUseCase,
     private val inboxRepository: InboxRepository,
     private val audioManager: WordJourneysAudioManager,
-    private val achievementManager: AchievementManager
+    private val achievementManager: AchievementManager,
+    private val inAppReviewManager: InAppReviewManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    /** Session guard: prevents re-showing the review prompt if flow re-emits after we save. */
+    private var reviewPromptShownThisSession = false
 
     init {
         loadProgress()
@@ -135,6 +141,14 @@ class HomeViewModel @Inject constructor(
                     playerRepository.saveProgress(updated)
                 }
 
+                // Check whether it's time to show the in-app review prompt.
+                // Trigger once per session when the player has completed 10 non-timer
+                // levels and has not already been asked for a review.
+                val triggerReview = !reviewPromptShownThisSession &&
+                    updated.levelsCompletedForReview >= 10 &&
+                    !updated.hasReviewBeenRequested
+                if (triggerReview) reviewPromptShownThisSession = true
+
                 _uiState.update {
                     it.copy(
                         progress = updated,
@@ -144,7 +158,8 @@ class HomeViewModel @Inject constructor(
                         pendingVipDaysMessage = vipDialogMsg,
                         newPlayerBonusMessage = newPlayerMsg,
                         inboxCount = inboxRepository.getUnclaimedCount(),
-                        devModeEnabled = updated.devModeEnabled
+                        devModeEnabled = updated.devModeEnabled,
+                        showReviewPrompt = if (triggerReview) true else it.showReviewPrompt
                     )
                 }
 
@@ -201,6 +216,53 @@ class HomeViewModel @Inject constructor(
     /** Dismiss the VIP daily reward claim dialog (player chose 'Later'). */
     fun dismissVipClaimDialog() {
         _uiState.update { it.copy(showVipClaimDialog = false) }
+    }
+
+    // ── In-App Review ─────────────────────────────────────────────────────────
+
+    /**
+     * Called when the review prompt dialog is dismissed without the player engaging
+     * with the Play Store review flow (they tapped "Maybe Later").
+     * Records that the prompt was shown so it is not repeated.
+     */
+    fun dismissReviewPrompt() {
+        _uiState.update { it.copy(showReviewPrompt = false) }
+        viewModelScope.launch {
+            val current = _uiState.value.progress
+            val updated = current.copy(
+                hasReviewBeenRequested = true,
+                levelsCompletedForReview = 0
+            )
+            playerRepository.saveProgress(updated)
+        }
+    }
+
+    /**
+     * Called when the player taps "Rate Now" or "Leave Feedback" in the review dialog.
+     * Launches the Play In-App Review flow, grants the reward (5 lives + 1000 coins +
+     * 10 diamonds), and marks the review as completed.
+     *
+     * @param activity The currently resumed Activity (required by the Play Review API).
+     */
+    fun completeReviewWithReward(activity: Activity) {
+        _uiState.update { it.copy(showReviewPrompt = false) }
+        viewModelScope.launch {
+            // Launch the in-app review overlay (or fallback to Play Store page)
+            inAppReviewManager.requestReview(activity)
+
+            // Grant reward: 5 lives + 1000 coins + 10 diamonds
+            val current = playerRepository.playerProgressFlow.first()
+            val updated = current.copy(
+                lives    = current.lives + 5,
+                coins    = current.coins + 1000L,
+                diamonds = current.diamonds + 10,
+                hasReviewBeenRequested = true,
+                reviewRewarded = true,
+                levelsCompletedForReview = 0
+            )
+            playerRepository.saveProgress(updated)
+            audioManager.playSfx(SfxSound.COIN_EARN)
+        }
     }
 
     // ── Dev Mode actions ──────────────────────────────────────────────────────

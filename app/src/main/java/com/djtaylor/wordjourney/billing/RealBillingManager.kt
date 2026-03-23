@@ -66,6 +66,16 @@ class RealBillingManager @Inject constructor(
 
     private var isConnected = false
 
+    init {
+        // Pre-warm: connect and fetch product details at startup so the first purchase
+        // attempt does not incur cold-start latency or find an empty cache.
+        scope.launch {
+            if (ensureConnected()) {
+                fetchProductDetails()
+            }
+        }
+    }
+
     /** All one-time product IDs */
     private val inAppProductIds = listOf(
         ProductIds.COINS_500, ProductIds.COINS_1500, ProductIds.COINS_5000,
@@ -99,7 +109,8 @@ class RealBillingManager @Inject constructor(
 
                 override fun onBillingServiceDisconnected() {
                     isConnected = false
-                    Log.w(TAG, "BillingClient disconnected — will reconnect on next purchase")
+                    productDetailsCache.clear() // Force re-fetch on reconnect
+                    Log.w(TAG, "BillingClient disconnected — cache cleared, will reconnect on next purchase")
                 }
             })
         }
@@ -158,13 +169,19 @@ class RealBillingManager @Inject constructor(
             return
         }
 
-        if (productDetailsCache.isEmpty()) {
+        // Fetch product details if this specific product is not yet cached.
+        // This also handles the case where a previous fetch partially succeeded,
+        // or the cache was cleared after a billing client disconnect.
+        if (!productDetailsCache.containsKey(productId)) {
+            Log.d(TAG, "Product $productId not in cache — fetching product details")
             fetchProductDetails()
         }
 
         val productDetails = productDetailsCache[productId]
         if (productDetails == null) {
-            Log.e(TAG, "ProductDetails not found for $productId — is it set up in Play Console?")
+            Log.e(TAG, "ProductDetails not found for $productId after fetch. " +
+                    "Ensure the product is published in Play Console and this " +
+                    "account is a licensed tester or the app is in production.")
             onResult(PurchaseResult(productId, success = false))
             return
         }

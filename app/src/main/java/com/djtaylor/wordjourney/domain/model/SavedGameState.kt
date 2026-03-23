@@ -133,7 +133,14 @@ data class PlayerProgress(
     // Stars earned on last completed regular level (used to grant free definition on next level)
     val lastLevelStars: Int = 0,
     // Date when all 3 daily challenge lengths (4/5/6) were won in the same day (YYYY-MM-DD)
-    val dailyAllThreeCompletedDate: String = ""
+    val dailyAllThreeCompletedDate: String = "",
+    // In-app review prompt tracking
+    // Counts levels completed (non-timer) since last review was requested; resets to 0 after prompt
+    val levelsCompletedForReview: Int = 0,
+    // True once the review prompt has been shown (so we only ask once)
+    val hasReviewBeenRequested: Boolean = false,
+    // True once the review reward (5 lives + 1000 coins + 10 diamonds) has been granted
+    val reviewRewarded: Boolean = false
 )
 
 // ── Seasonal level helpers ────────────────────────────────────────────────────

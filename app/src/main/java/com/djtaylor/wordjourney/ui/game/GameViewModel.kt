@@ -615,12 +615,18 @@ class GameViewModel @Inject constructor(
                 }
             }
 
+            // Increment the review-prompt counter (only until the first review is requested).
+            // Timer Mode uses its own ViewModel so all wins here are non-timer and count.
+            val reviewCount = if (!p.hasReviewBeenRequested) p.levelsCompletedForReview + 1
+                              else p.levelsCompletedForReview
+
             p = p.copy(
                 totalCoinsEarned = p.totalCoinsEarned + coinsEarned,
                 totalLevelsCompleted = p.totalLevelsCompleted + 1,
                 totalWins = p.totalWins + 1,
                 totalGuesses = p.totalGuesses + guessCount,
-                lastLevelStars = stars   // used to grant free definition on next level (2+ stars)
+                lastLevelStars = stars,   // used to grant free definition on next level (2+ stars)
+                levelsCompletedForReview = reviewCount
             )
             playerProgress = p
             playerRepository.saveProgress(p)
