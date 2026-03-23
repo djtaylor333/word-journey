@@ -38,14 +38,12 @@ import sys
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.23.0 - 500 Levels Per Difficulty + 50 Zone Themes
+RELEASE_NOTES = """v2.26.0 - In-App Review Prompt & Billing Fixes
 
-• Easy, Regular and Hard modes each expanded to 500 levels
-• 480 unique words per standard difficulty (with definitions on win screen)
-• 50 new zone themes across 5 worlds spanning all 500 levels
-• Worlds: Beginnings · Wild Frontiers · Ancient Wonders · Elemental Realms · Legendary Endgame
-• Android level select screen now shows full 500-level map
-• All new words include verified definitions displayed on win screen"""
+• Review prompt after 10 levels: two-step dialog asking if you enjoy the game
+• Reward for reviewing: +5 lives, +1,000 coins, +10 diamonds
+• Fixed billing 'Purchase failed': product details now re-fetched at startup and on reconnect
+• Billing cache cleared on disconnect to prevent stale purchase failures"""
 
 
 def build_service(key_path: str):
