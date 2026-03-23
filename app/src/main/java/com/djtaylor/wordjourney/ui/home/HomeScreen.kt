@@ -161,14 +161,14 @@ fun HomeScreen(
             // ── Animated logo ─────────────────────────────────────────────────
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(110.dp)
+                modifier = Modifier.size(88.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(110.dp)
+                        .size(88.dp)
                         .rotate(compassRotation)
                         .clip(CircleShape)
-                        .border(3.dp, themeAccent, CircleShape)
+                        .border(2.dp, themeAccent, CircleShape)
                 )
                 Column(
                     verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -189,12 +189,14 @@ fun HomeScreen(
                 text = "Word Journeys",
                 style = MaterialTheme.typography.headlineLarge,
                 color = themeAccent,
+                fontSize = 24.sp,
                 textAlign = TextAlign.Center
             )
             Text(
                 text = "Conquer the Lexicon",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
 
@@ -339,11 +341,11 @@ fun HomeScreen(
                         modifier = Modifier.padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(activeSeason.season.emoji, fontSize = 48.sp)
-                        Spacer(Modifier.height(8.dp))
+                        Text(activeSeason.season.emoji, fontSize = 36.sp)
+                        Spacer(Modifier.height(6.dp))
                         Text(
                             "${activeSeason.season.displayName} Pack",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = themeAccent,
                             textAlign = TextAlign.Center
@@ -354,10 +356,10 @@ fun HomeScreen(
                         ) {
                             Text(
                                 "🟢 Active Now!",
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                                 color = AccentEasy,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
+                                fontSize = 11.sp
                             )
                         }
                         Spacer(Modifier.height(6.dp))
@@ -378,9 +380,9 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                "▶  Play Now — 100 Levels",
+                                "▶  Play Now",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                                fontSize = 13.sp
                             )
                         }
                     }
@@ -409,18 +411,18 @@ fun HomeScreen(
                                     modifier = Modifier.padding(14.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(status.season.emoji, fontSize = 28.sp)
-                                    Spacer(Modifier.height(4.dp))
+                                    Text(status.season.emoji, fontSize = 22.sp)
+                                    Spacer(Modifier.height(3.dp))
                                     Text(
                                         status.season.displayName,
                                         fontWeight = FontWeight.SemiBold,
-                                        fontSize = 13.sp,
+                                        fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center
                                     )
                                     Text(
                                         "${status.daysUntil} days",
-                                        fontSize = 11.sp,
+                                        fontSize = 10.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                     )
                                 }
@@ -444,18 +446,18 @@ fun HomeScreen(
                             modifier = Modifier.padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("🎁", fontSize = 28.sp)
-                            Spacer(Modifier.height(4.dp))
+                            Text("🎁", fontSize = 22.sp)
+                            Spacer(Modifier.height(3.dp))
                             Text(
                                 "More Coming Soon",
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
+                                fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 textAlign = TextAlign.Center
                             )
                             Text(
                                 "Additional themed packs on the way!",
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                             )
                         }
@@ -473,7 +475,7 @@ fun HomeScreen(
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("🎁  Browse All Themed Packs", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text("🎁  Browse All Themed Packs", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
             }
 
             Spacer(Modifier.height(16.dp))
@@ -605,33 +607,35 @@ private fun DailyChallengeCard(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f).padding(end = 8.dp)
             ) {
-                Text("📅", fontSize = 42.sp)
+                Text("📅", fontSize = 30.sp)
                 Column {
                     Text(
                         "Daily Challenge",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = accent,
-                        fontSize = 22.sp
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                     Text(
-                        "3 new words every day\n4, 5, and 6 letters",
-                        style = MaterialTheme.typography.bodyMedium,
+                        "3 new words every day · 4, 5, 6 letters",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        fontSize = 14.sp
+                        fontSize = 12.sp
                     )
                 }
             }
             if (streak > 0) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("🔥", fontSize = 24.sp)
+                    Text("🔥", fontSize = 20.sp)
                     Text(
                         "$streak",
                         fontWeight = FontWeight.Bold,
                         color = accent,
-                        fontSize = 18.sp
+                        fontSize = 14.sp
                     )
                 }
             } else {
@@ -641,10 +645,10 @@ private fun DailyChallengeCard(
                 ) {
                     Text(
                         "Go!",
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                         color = accent,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
+                        fontSize = 13.sp,
                         maxLines = 1
                     )
                 }
@@ -679,23 +683,24 @@ private fun TimerModeCard(onClick: () -> Unit) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f).padding(end = 8.dp)
             ) {
-                Text("⏱️", fontSize = 42.sp)
+                Text("⏱️", fontSize = 30.sp)
                 Column {
                     Text(
                         "Timer Mode",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = timerColor,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                     Text(
-                        "Race the clock — Easy, Regular, Hard\nNo hearts needed · items usable",
-                        style = MaterialTheme.typography.bodyMedium,
+                        "Race the clock · Easy, Regular, Hard",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        fontSize = 13.sp
+                        fontSize = 11.sp
                     )
                 }
             }
@@ -705,10 +710,10 @@ private fun TimerModeCard(onClick: () -> Unit) {
             ) {
                 Text(
                     "Go!",
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                     color = timerColor,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
+                    fontSize = 13.sp,
                     maxLines = 1
                 )
             }
@@ -737,12 +742,12 @@ private fun QuickNavCard(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(emoji, fontSize = 28.sp)
+            Text(emoji, fontSize = 22.sp)
             Spacer(Modifier.height(4.dp))
             Text(
                 title,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             )
             if (!enabled) {
@@ -761,9 +766,9 @@ private fun LogoTile(color: Color, letter: String) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(36.dp)
-            .shadow(4.dp, RoundedCornerShape(6.dp))
-            .clip(RoundedCornerShape(6.dp))
+            .size(28.dp)
+            .shadow(3.dp, RoundedCornerShape(5.dp))
+            .clip(RoundedCornerShape(5.dp))
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -773,7 +778,7 @@ private fun LogoTile(color: Color, letter: String) {
                 )
             )
     ) {
-        Text(letter, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(letter, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
     }
 }
 
@@ -790,8 +795,8 @@ private fun CurrencyChip(value: String, color: Color, symbol: String) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(symbol, fontSize = 22.sp)
-            Text(value, color = color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(symbol, fontSize = 17.sp)
+            Text(value, color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -917,19 +922,21 @@ private fun DifficultyCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Text(emoji, fontSize = 42.sp)
+                Text(emoji, fontSize = 30.sp)
                 Column {
                     Text(
                         difficulty.displayName,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         color = accent,
-                        fontSize = 24.sp
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                     Text(
                         description,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                        fontSize = 16.sp
+                        fontSize = 12.sp
                     )
                 }
             }
@@ -940,10 +947,10 @@ private fun DifficultyCard(
                 ) {
                     Text(
                         "Lv. $currentLevel",
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                         color = accent,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
+                        fontSize = 14.sp,
                         softWrap = false
                     )
                 }
@@ -989,19 +996,19 @@ private fun VipPackCard(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("👑", fontSize = 42.sp)
+                    Text("👑", fontSize = 30.sp)
                     Column {
                         Text(
                             "VIP Challenge",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             color = if (isVip) accent else Color.Gray,
-                            fontSize = 22.sp
+                            fontSize = 16.sp
                         )
                         Text(
-                            "100 levels • 3-7 letter words\nx2 rewards • Bonus life every 5 levels",
-                            style = MaterialTheme.typography.bodyMedium,
+                            "100 levels • 3-7 letter words",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isVip) 0.7f else 0.4f),
-                            fontSize = 14.sp
+                            fontSize = 12.sp
                         )
                     }
                 }
@@ -1013,10 +1020,10 @@ private fun VipPackCard(
                         ) {
                             Text(
                                 "Lv. $currentLevel",
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                                 color = accent,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
+                                fontSize = 14.sp,
                                 softWrap = false
                             )
                         }
@@ -1027,10 +1034,10 @@ private fun VipPackCard(
                         ) {
                             Text(
                                 "🔒 VIP Only",
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                                 color = Color.Gray,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
+                                fontSize = 12.sp
                             )
                         }
                     }

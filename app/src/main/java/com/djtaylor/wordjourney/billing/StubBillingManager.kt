@@ -64,4 +64,7 @@ class StubBillingManager @Inject constructor() : IBillingManager {
         ProductIds.VIP_YEARLY   -> "$39.99/yr"
         else                    -> "—"
     }
+
+    /** Stub always returns empty — no pending purchases in dev/test mode. */
+    override suspend fun restoreAndGrantPendingPurchases(): List<PurchaseResult> = emptyList()
 }

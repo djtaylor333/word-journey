@@ -36,6 +36,10 @@ import json
 import os
 import sys
 
+# Ensure console output handles Unicode (Windows cp1252 doesn't support emoji)
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
 RELEASE_NOTES = """v2.27.0 - Billing diagnostics, scroll fix & timer balance

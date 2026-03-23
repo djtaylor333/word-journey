@@ -23,6 +23,7 @@ import javax.inject.Inject
 data class StoreUiState(
     val progress: PlayerProgress = PlayerProgress(),
     val isPurchasing: Boolean = false,
+    val isRestoringPurchases: Boolean = false,
     val message: String? = null,
     val isAdReady: Boolean = false,
     val isWatchingAd: Boolean = false,
@@ -94,6 +95,31 @@ class StoreViewModel @Inject constructor(
                                "Ensure the product is ACTIVE in Play Console and you are a Licensed Tester."
                         _uiState.update { it.copy(isPurchasing = false, message = errorMsg) }
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Re-queries Google Play for any purchases that were completed but not yet delivered
+     * (e.g., due to an app crash mid-transaction). Grants each restored purchase to the player.
+     *
+     * This is the implementation behind the "Restore Purchases" button in StoreScreen.
+     */
+    fun restorePurchases() {
+        if (_uiState.value.isRestoringPurchases) return
+        _uiState.update { it.copy(isRestoringPurchases = true) }
+        viewModelScope.launch {
+            val restored = billingManager.restoreAndGrantPendingPurchases()
+            if (restored.isEmpty()) {
+                _uiState.update { it.copy(isRestoringPurchases = false, message = "No purchases to restore.") }
+            } else {
+                for (result in restored) {
+                    applySuccessfulPurchase(result.productId, result)
+                }
+                val summary = restored.joinToString { it.productId }
+                _uiState.update {
+                    it.copy(isRestoringPurchases = false, message = "Restored ${restored.size} purchase(s): $summary")
                 }
             }
         }

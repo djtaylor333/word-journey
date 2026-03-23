@@ -59,6 +59,16 @@ interface IBillingManager {
 
     /** All known in-app product IDs managed by this billing manager. */
     fun getAllProductIds(): Set<String>
+
+    /**
+     * Queries Google Play for purchases that were completed but not yet acknowledged or
+     * consumed by this app (e.g., after a crash or network loss during a previous purchase).
+     *
+     * Returns a list of [PurchaseResult] for each purchase that was successfully processed
+     * and can be granted to the player. Returns an empty list when nothing is pending or
+     * in stub/dev mode.
+     */
+    suspend fun restoreAndGrantPendingPurchases(): List<PurchaseResult>
 }
 
 /**

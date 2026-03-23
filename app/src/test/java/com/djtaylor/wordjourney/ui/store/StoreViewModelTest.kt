@@ -86,6 +86,8 @@ class StoreViewModelTest {
                 ProductIds.STARTER_BUNDLE, ProductIds.ADVENTURER_BUNDLE, ProductIds.CHAMPION_BUNDLE,
                 ProductIds.VIP_MONTHLY, ProductIds.VIP_YEARLY
             )
+            // Restore: no pending purchases by default
+            coEvery { restoreAndGrantPendingPurchases() } returns emptyList()
         }
         adManager = mockk {
             every { isRewardedAdReady } returns true
@@ -929,5 +931,112 @@ class StoreViewModelTest {
         val message = vm.uiState.first().message
         assertNotNull(message)
         assertTrue(message!!.contains("diamonds_10"))
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // §13 — Restore Purchases
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `restorePurchases shows no purchases to restore when billing returns empty`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        coEvery { billingManager.restoreAndGrantPendingPurchases() } returns emptyList()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.restorePurchases()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertNotNull(state.message)
+        assertTrue(state.message!!.contains("No purchases"))
+        assertFalse(state.isRestoringPurchases)
+    }
+
+    @Test
+    fun `restorePurchases grants coins when pending purchase is returned`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 0L, devModeEnabled = false))
+        coEvery { billingManager.restoreAndGrantPendingPurchases() } returns listOf(
+            PurchaseResult(ProductIds.COINS_500, success = true, coinsGranted = 500L)
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.restorePurchases()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.coins == 500L }) }
+        val state = vm.uiState.first()
+        assertFalse(state.isRestoringPurchases)
+        assertNotNull(state.message)
+        assertTrue(state.message!!.contains("Restored 1"))
+    }
+
+    @Test
+    fun `restorePurchases grants multiple reward types from multiple pending purchases`() = runTest {
+        val vm = createViewModel(PlayerProgress(coins = 100L, diamonds = 5, lives = 3, devModeEnabled = false))
+        coEvery { billingManager.restoreAndGrantPendingPurchases() } returns listOf(
+            PurchaseResult(ProductIds.COINS_500, success = true, coinsGranted = 500L),
+            PurchaseResult(ProductIds.DIAMONDS_10, success = true, diamondsGranted = 10),
+            PurchaseResult(ProductIds.LIVES_PACK_5, success = true, livesGranted = 5)
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.restorePurchases()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.coins == 600L }) }
+        coVerify { playerRepository.saveProgress(match { it.diamonds == 15 }) }
+        coVerify { playerRepository.saveProgress(match { it.lives == 8 }) }
+        val state = vm.uiState.first()
+        assertTrue(state.message!!.contains("Restored 3"))
+    }
+
+    @Test
+    fun `restorePurchases sets isRestoringPurchases true then false`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        // Use a suspending mock that we can observe state mid-flight
+        val restoreStarted = mutableListOf<Boolean>()
+        coEvery { billingManager.restoreAndGrantPendingPurchases() } coAnswers {
+            restoreStarted.add(vm.uiState.value.isRestoringPurchases)
+            emptyList()
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.restorePurchases()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Was true during the async call, then reset to false
+        assertTrue(restoreStarted.firstOrNull() == true)
+        assertFalse(vm.uiState.first().isRestoringPurchases)
+    }
+
+    @Test
+    fun `restorePurchases does not double-invoke when already in progress`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        coEvery { billingManager.restoreAndGrantPendingPurchases() } returns emptyList()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Force isRestoringPurchases = true by calling twice without advancing
+        vm.restorePurchases()
+        vm.restorePurchases() // second call should be ignored
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // restoreAndGrantPendingPurchases must only be called once
+        coVerify(exactly = 1) { billingManager.restoreAndGrantPendingPurchases() }
+    }
+
+    @Test
+    fun `restorePurchases shows product IDs in success message`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        coEvery { billingManager.restoreAndGrantPendingPurchases() } returns listOf(
+            PurchaseResult(ProductIds.COINS_500, success = true, coinsGranted = 500L)
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.restorePurchases()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val message = vm.uiState.first().message
+        assertNotNull(message)
+        assertTrue(message!!.contains(ProductIds.COINS_500))
     }
 }

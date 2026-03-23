@@ -88,6 +88,9 @@ class RealBillingManager @Inject constructor(
                     Log.w(TAG, "  4) For subscriptions: each must have an active base plan")
                     Log.w(TAG, "═══════════════════════════════════════════════════════")
                 }
+                // Automatically restore any purchases that were completed but not
+                // consumed/acknowledged before (app crash, network loss, etc.)
+                restoreAndGrantPendingPurchases()
             } else {
                 Log.e(TAG, "Pre-warm failed: could not connect to BillingClient. Is Google Play available?")
             }
@@ -186,6 +189,77 @@ class RealBillingManager @Inject constructor(
 
     override fun getAllProductIds(): Set<String> =
         (inAppProductIds + subsProductIds).toSet()
+
+    /**
+     * Queries Google Play for any purchases that were completed but not yet
+     * consumed or acknowledged by this app (e.g., after a crash during a
+     * previous purchase session). Processes and returns each recoverable
+     * purchase.
+     *
+     * Should be called at app startup and when the user taps "Restore Purchases".
+     */
+    override suspend fun restoreAndGrantPendingPurchases(): List<PurchaseResult> {
+        if (!ensureConnected()) {
+            Log.e(TAG, "restoreAndGrantPendingPurchases: BillingClient not connected")
+            return emptyList()
+        }
+
+        val results = mutableListOf<PurchaseResult>()
+
+        // ── Query one-time products ──────────────────────────────────────────
+        val inAppParams = QueryPurchasesParams.newBuilder()
+            .setProductType(BillingClient.ProductType.INAPP)
+            .build()
+        val inAppPurchasesResult = billingClient.queryPurchasesAsync(inAppParams)
+        if (inAppPurchasesResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            for (purchase in inAppPurchasesResult.purchasesList) {
+                if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                    val productId = purchase.products.firstOrNull() ?: continue
+                    Log.i(TAG, "Restoring unprocessed INAPP purchase: $productId token=${purchase.purchaseToken.take(12)}...")
+                    val result = consumeAndBuildResult(purchase, productId)
+                    if (result.success) results.add(result)
+                }
+            }
+        } else {
+            Log.e(TAG, "restoreAndGrantPendingPurchases INAPP query failed: " +
+                "code=${inAppPurchasesResult.billingResult.responseCode} " +
+                "msg=${inAppPurchasesResult.billingResult.debugMessage}")
+        }
+
+        // ── Query subscriptions ──────────────────────────────────────────────
+        val subsParams = QueryPurchasesParams.newBuilder()
+            .setProductType(BillingClient.ProductType.SUBS)
+            .build()
+        val subsPurchasesResult = billingClient.queryPurchasesAsync(subsParams)
+        if (subsPurchasesResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            for (purchase in subsPurchasesResult.purchasesList) {
+                if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED && !purchase.isAcknowledged) {
+                    val productId = purchase.products.firstOrNull() ?: continue
+                    Log.i(TAG, "Restoring unacknowledged SUBS purchase: $productId")
+                    val ackParams = AcknowledgePurchaseParams.newBuilder()
+                        .setPurchaseToken(purchase.purchaseToken)
+                        .build()
+                    val ackResult = billingClient.acknowledgePurchase(ackParams)
+                    if (ackResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                        results.add(PurchaseResult(productId, success = true))
+                    } else {
+                        Log.e(TAG, "restoreAndGrantPendingPurchases ack failed for $productId: ${ackResult.debugMessage}")
+                    }
+                }
+            }
+        } else {
+            Log.e(TAG, "restoreAndGrantPendingPurchases SUBS query failed: " +
+                "code=${subsPurchasesResult.billingResult.responseCode} " +
+                "msg=${subsPurchasesResult.billingResult.debugMessage}")
+        }
+
+        if (results.isNotEmpty()) {
+            Log.i(TAG, "restoreAndGrantPendingPurchases: restored ${results.size} purchase(s)")
+        } else {
+            Log.d(TAG, "restoreAndGrantPendingPurchases: nothing to restore")
+        }
+        return results
+    }
 
     // ── IBillingManager ───────────────────────────────────────────────────────
 
@@ -309,9 +383,32 @@ class RealBillingManager @Inject constructor(
                 callback(PurchaseResult(productId, success = false))
             }
 
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                // The product was purchased previously but not yet consumed (e.g., app crash).
+                // Re-query pending purchases and try to consume/acknowledge.
+                Log.w(TAG, "ITEM_ALREADY_OWNED for $productId — attempting to restore pending purchase")
+                scope.launch { handleItemAlreadyOwned(productId, callback) }
+            }
+
+            BillingClient.BillingResponseCode.BILLING_UNAVAILABLE -> {
+                Log.e(TAG, "BILLING_UNAVAILABLE for $productId: Google Play Billing service is unavailable")
+                callback(PurchaseResult(productId, success = false,
+                    errorMessage = "Google Play Billing is unavailable on this device. " +
+                        "Ensure Google Play Services are up to date."))
+            }
+
+            BillingClient.BillingResponseCode.DEVELOPER_ERROR -> {
+                Log.e(TAG, "DEVELOPER_ERROR for $productId: ${result.debugMessage}")
+                callback(PurchaseResult(productId, success = false,
+                    errorMessage = "Purchase configuration error (DEVELOPER_ERROR). " +
+                        "Product '$productId' may not be correctly set up in Play Console. " +
+                        "Check that the product is ACTIVE and the package name matches."))
+            }
+
             else -> {
+                val msg = billingResponseMessage(result.responseCode, result.debugMessage, productId)
                 Log.e(TAG, "Purchase failed: code=${result.responseCode} msg=${result.debugMessage}")
-                callback(PurchaseResult(productId, success = false))
+                callback(PurchaseResult(productId, success = false, errorMessage = msg))
             }
         }
     }
@@ -376,4 +473,67 @@ class RealBillingManager @Inject constructor(
             PurchaseResult(productId, true, coinsGranted = 10000L, diamondsGranted = 100, livesGranted = 25)
         else -> PurchaseResult(productId, success = false)
     }
+
+    /**
+     * Handles the ITEM_ALREADY_OWNED response: queries existing unconsumed purchases for
+     * [productId] and re-processes the first matching one, so the player receives their items.
+     */
+    private suspend fun handleItemAlreadyOwned(productId: String, callback: (PurchaseResult) -> Unit) {
+        val params = QueryPurchasesParams.newBuilder()
+            .setProductType(BillingClient.ProductType.INAPP)
+            .build()
+        val queryResult = billingClient.queryPurchasesAsync(params)
+        if (queryResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            val existing = queryResult.purchasesList.firstOrNull { it.products.contains(productId) }
+            if (existing != null) {
+                Log.i(TAG, "handleItemAlreadyOwned: found pending purchase for $productId — re-consuming")
+                handlePurchase(existing, productId, callback)
+                return
+            }
+        }
+        Log.w(TAG, "handleItemAlreadyOwned: no pending purchase found for $productId")
+        callback(PurchaseResult(productId, success = false,
+            errorMessage = "\"$productId\" is marked as already owned but no pending purchase was found. " +
+                "Try restoring purchases or contact support."))
+    }
+
+    /**
+     * Consumes an INAPP purchase and returns the mapped [PurchaseResult].
+     * Used by [restoreAndGrantPendingPurchases] to re-process orphaned purchases.
+     */
+    private suspend fun consumeAndBuildResult(purchase: Purchase, productId: String): PurchaseResult {
+        val consumeParams = ConsumeParams.newBuilder()
+            .setPurchaseToken(purchase.purchaseToken)
+            .build()
+        val (consumeResult, _) = billingClient.consumePurchase(consumeParams)
+        return if (consumeResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            Log.i(TAG, "consumeAndBuildResult: consumed $productId successfully")
+            buildPurchaseResult(productId)
+        } else {
+            Log.e(TAG, "consumeAndBuildResult: consume failed for $productId: ${consumeResult.debugMessage}")
+            PurchaseResult(productId, success = false)
+        }
+    }
+
+    /**
+     * Returns a human-readable error message for a given billing response code.
+     */
+    private fun billingResponseMessage(responseCode: Int, debugMessage: String, productId: String): String =
+        when (responseCode) {
+            BillingClient.BillingResponseCode.SERVICE_UNAVAILABLE ->
+                "Google Play Store is temporarily unavailable. Please check your internet connection and try again."
+            BillingClient.BillingResponseCode.NETWORK_ERROR ->
+                "Network error during purchase. Please check your connection and try again."
+            BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED ->
+                "In-app purchases are not supported on this device."
+            BillingClient.BillingResponseCode.ITEM_UNAVAILABLE ->
+                "\"$productId\" is not available for purchase. " +
+                    "Ensure the product is ACTIVE in Play Console and your account is a Licensed Tester."
+            BillingClient.BillingResponseCode.ITEM_NOT_OWNED ->
+                "Subscription \"$productId\" is not owned by this account."
+            else ->
+                "Purchase failed (code $responseCode): $debugMessage. " +
+                    "If this persists, ensure the product is ACTIVE in Play Console and " +
+                    "your Google account is added as a Licensed Tester."
+        }
 }

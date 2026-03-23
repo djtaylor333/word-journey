@@ -1,9 +1,9 @@
 {
-  "versionName": "2.27.0",
-  "versionCode": 49,
+  "versionName": "2.28.0",
+  "versionCode": 50,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
   "buildDate": "2026-03-24",
-  "releaseNotes": "v2.27.0 — Billing diagnostics, scroll fix, timer balance & UI polish\n• Billing: added setup warning banner when Play Console products are not loaded\n• Billing: richer error messages showing which product failed and why\n• Timer Mode: using the free definition item halves bonus time (+15s instead of +30s)\n• Main menu: fixed Play/Go button text overflow on small screens\n• Game grid: scroll now follows the active guess row (not the last empty slot)"
+  "releaseNotes": "v2.28.0 \u2014 Purchase restore, better billing errors, font scaling\n\u2022 Billing: added Restore Purchases button to recover any undelivered purchases\n\u2022 Billing: ITEM_ALREADY_OWNED now auto-restores the pending purchase\n\u2022 Billing: specific error messages for each failure code (SERVICE_UNAVAILABLE, DEVELOPER_ERROR, etc.)\n\u2022 Billing: startup auto-restore of any unconsumed/unacknowledged purchases\n\u2022 Home menu: all font sizes reduced 25-35% to prevent text cutoff on low-res displays\n\u2022 Tests: 795 passing (added 6 Restore Purchase tests)"
 }
