@@ -13,6 +13,19 @@ import javax.inject.Singleton
 @Singleton
 class StubBillingManager @Inject constructor() : IBillingManager {
 
+    override suspend fun getLoadedProductIds(): Set<String> {
+        // Stub: pretend all products are loaded
+        return getAllProductIds()
+    }
+
+    override fun getAllProductIds(): Set<String> = setOf(
+        ProductIds.COINS_500, ProductIds.COINS_1500, ProductIds.COINS_5000,
+        ProductIds.DIAMONDS_10, ProductIds.DIAMONDS_50, ProductIds.DIAMONDS_200,
+        ProductIds.LIVES_PACK_5,
+        ProductIds.STARTER_BUNDLE, ProductIds.ADVENTURER_BUNDLE, ProductIds.CHAMPION_BUNDLE,
+        ProductIds.VIP_MONTHLY, ProductIds.VIP_YEARLY
+    )
+
     override suspend fun purchase(productId: String, onResult: (PurchaseResult) -> Unit) {
         // Simulate network round-trip
         delay(800)

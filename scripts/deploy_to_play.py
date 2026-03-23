@@ -38,12 +38,13 @@ import sys
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.26.0 - In-App Review Prompt & Billing Fixes
+RELEASE_NOTES = """v2.27.0 - Billing diagnostics, scroll fix & timer balance
 
-• Review prompt after 10 levels: two-step dialog asking if you enjoy the game
-• Reward for reviewing: +5 lives, +1,000 coins, +10 diamonds
-• Fixed billing 'Purchase failed': product details now re-fetched at startup and on reconnect
-• Billing cache cleared on disconnect to prevent stale purchase failures"""
+• Billing: setup warning when Play Console products are not ACTIVE
+• Billing: richer failure messages showing which product and why
+• Timer Mode: using the free definition item now gives +15s (not +30s)
+• Main menu: Go button no longer wraps on small screens
+• Game: scroll follows active guess row, not the last empty slot"""
 
 
 def build_service(key_path: str):

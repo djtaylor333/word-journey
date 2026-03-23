@@ -1,9 +1,9 @@
 {
-  "versionName": "2.26.0",
-  "versionCode": 48,
+  "versionName": "2.27.0",
+  "versionCode": 49,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-03-23",
-  "releaseNotes": "v2.26.0 — In-app review prompt, billing reliability & achievement fixes\n• Added in-app review prompt after completing 10 non-timer levels\n• Two-step dialog: asks if you enjoy the game then asks for a Play Store review\n• Reward for reviewing: +5 lives, +1,000 coins, +10 diamonds\n• Fixed billing retry: product details now re-fetched on reconnect and at startup\n• Billing cache now cleared on disconnect to prevent stale purchase failures\n• Achievements: verified all 31 real Play Console IDs are wired correctly"
+  "buildDate": "2026-03-24",
+  "releaseNotes": "v2.27.0 — Billing diagnostics, scroll fix, timer balance & UI polish\n• Billing: added setup warning banner when Play Console products are not loaded\n• Billing: richer error messages showing which product failed and why\n• Timer Mode: using the free definition item halves bonus time (+15s instead of +30s)\n• Main menu: fixed Play/Go button text overflow on small screens\n• Game grid: scroll now follows the active guess row (not the last empty slot)"
 }

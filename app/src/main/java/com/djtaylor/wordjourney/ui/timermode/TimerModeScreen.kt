@@ -159,9 +159,9 @@ private fun SetupContent(
                         "🟢 Easy — 4-letter words · 3 min",
                         "🟡 Regular — 5-letter words · 4 min",
                         "🔴 Hard — 6-letter words · 5 min",
-                        "⏱️ +30 seconds per correct word",
+                        "⏱️ +30s per correct word (+15s if definition used)",
                         "❤️ Regular: +1 life per 5 words · VIP: +2 lives per 5 words",
-                        "✅ Only 'Define Word' item is free",
+                        "✅ Define Word item is free (halves time bonus)",
                         "🚫 No hearts needed to play"
                     ).forEach { line ->
                         Text(
@@ -250,6 +250,7 @@ private fun RulesDialog(diff: TimerDifficulty, onDismiss: () -> Unit, onBegin: (
                     "• Guess as many ${diff.wordLength}-letter words as you can",
                     "• Starting time: ${diff.startTimeSecs / 60} minutes",
                     "• Correct guess = +30 seconds",
+                    "• Used \"Define Word\" on that word? Only +15 seconds",
                     "• Standard Wordle rules — 6 attempts per word",
                     "• Fail a word? Move on, no time bonus",
                     "",
@@ -258,7 +259,7 @@ private fun RulesDialog(diff: TimerDifficulty, onDismiss: () -> Unit, onBegin: (
                     "  VIP: +2 lives every 5 correct words",
                     "",
                     "🎒 Items:",
-                    "  • Define Word — FREE to use",
+                    "  • Define Word — FREE, but halves time bonus (+15s)",
                     "  • Other items cost from inventory",
                     "  • No coin spending in Timer Mode",
                     "",
@@ -406,7 +407,7 @@ private fun PlayingContent(
     ) { padding ->
         // Word status overlay banner
         val statusBanner: String? = when (uiState.wordStatus) {
-            GameStatus.WON  -> "🎉 Correct! +30s"
+            GameStatus.WON  -> if (uiState.definitionUsedThisWord) "🎉 Correct! +15s (definition used)" else "🎉 Correct! +30s"
             GameStatus.LOST -> "❌ Better luck next time!"
             else            -> null
         }
@@ -726,7 +727,7 @@ private fun RecapContent(
                     RecapRow("✅ Words correct", "${uiState.wordsCorrect}")
                     RecapRow("📝 Words attempted", "${uiState.wordsAttempted}")
                     RecapRow("❤️ Lives earned (inbox)", "${uiState.livesEarned}")
-                    RecapRow("⚡ Bonus time earned", "${uiState.totalBonusSecs}s (${uiState.wordsCorrect} × 30s)")
+                    RecapRow("⚡ Bonus time earned", "${uiState.totalBonusSecs}s (${uiState.wordsCorrect} word(s))")
                     if (diff != null) RecapRow("🎯 Difficulty", "${diff.emoji} ${diff.label}")
                 }
             }

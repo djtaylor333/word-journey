@@ -605,7 +605,8 @@ private fun DailyChallengeCard(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
             ) {
                 Text("📅", fontSize = 42.sp)
                 Column {
@@ -639,11 +640,12 @@ private fun DailyChallengeCard(
                     color = accent.copy(alpha = 0.2f)
                 ) {
                     Text(
-                        "Play!",
+                        "Go!",
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                         color = accent,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 15.sp,
+                        maxLines = 1
                     )
                 }
             }
@@ -677,7 +679,8 @@ private fun TimerModeCard(onClick: () -> Unit) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.weight(1f).padding(end = 8.dp)
             ) {
                 Text("⏱️", fontSize = 42.sp)
                 Column {
@@ -701,11 +704,12 @@ private fun TimerModeCard(onClick: () -> Unit) {
                 color = timerColor.copy(alpha = 0.2f)
             ) {
                 Text(
-                    "Play!",
+                    "Go!",
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                     color = timerColor,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 15.sp,
+                    maxLines = 1
                 )
             }
         }

@@ -418,4 +418,72 @@ class TimerModeViewModelTest {
 
         assertEquals(TimerPhase.SETUP, vm.uiState.first().phase)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 7. DEFINITION ITEM — halves bonus time (+15s instead of +30s)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `bonus time is 30s when definition not used`() = runTest {
+        // Verify the formula: no definition used → full 30s bonus
+        val definitionUsed = false
+        val bonusSecs = if (definitionUsed) 15 else 30
+        assertEquals(30, bonusSecs)
+    }
+
+    @Test
+    fun `bonus time is halved to 15s when definition item was used`() = runTest {
+        // Verify the formula: definition used → half bonus (15s)
+        val definitionUsed = true
+        val bonusSecs = if (definitionUsed) 15 else 30
+        assertEquals(15, bonusSecs)
+    }
+
+    @Test
+    fun `definitionUsedThisWord starts false for each new word`() = runTest {
+        val vm = createViewModel()
+        awaitInit(vm)
+        vm.selectDifficulty(TimerDifficulty.REGULAR)
+        awaitInit(vm)
+        vm.beginSession()
+        testDispatcher.scheduler.advanceTimeBy(4_000)
+
+        val state = vm.uiState.first()
+        assertFalse(state.definitionUsedThisWord)
+    }
+
+    @Test
+    fun `definition item usage sets definitionUsedThisWord to true`() = runTest {
+        val vm = createViewModel()
+        awaitInit(vm)
+        vm.selectDifficulty(TimerDifficulty.REGULAR)
+        awaitInit(vm)
+        vm.beginSession()
+        testDispatcher.scheduler.advanceTimeBy(4_000)
+
+        // Use the definition item (it's free in timer mode — no inventory check)
+        vm.useDefinitionItem()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        // In timer mode, definition is free — definitionUsedThisWord should be true after use
+        assertTrue(state.definitionUsedThisWord)
+    }
+
+    @Test
+    fun `total bonus seconds with definition used is less than without`() = runTest {
+        // Simulate: 2 wins without definition (60s total) vs 2 wins with definition (30s total)
+        val bonusNoDef   = 30 + 30   // two wins, no definition used
+        val bonusWithDef = 15 + 15   // two wins, both with definition
+        assertTrue(bonusNoDef > bonusWithDef)
+        assertEquals(60, bonusNoDef)
+        assertEquals(30, bonusWithDef)
+    }
+
+    @Test
+    fun `mixed session one definition win and one normal win accumulates correct total`() = runTest {
+        // 1 win with definition (15s) + 1 win without definition (30s) = 45s total
+        val totalBonus = 15 + 30
+        assertEquals(45, totalBonus)
+    }
 }

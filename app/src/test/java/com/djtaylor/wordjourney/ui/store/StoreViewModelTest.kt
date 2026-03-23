@@ -71,6 +71,21 @@ class StoreViewModelTest {
                 val callback = secondArg<(PurchaseResult) -> Unit>()
                 callback(PurchaseResult(firstArg(), success = true, coinsGranted = 500L))
             }
+            // New diagnostic interface methods — all products loaded by default
+            coEvery { getLoadedProductIds() } returns setOf(
+                ProductIds.COINS_500, ProductIds.COINS_1500, ProductIds.COINS_5000,
+                ProductIds.DIAMONDS_10, ProductIds.DIAMONDS_50, ProductIds.DIAMONDS_200,
+                ProductIds.LIVES_PACK_5,
+                ProductIds.STARTER_BUNDLE, ProductIds.ADVENTURER_BUNDLE, ProductIds.CHAMPION_BUNDLE,
+                ProductIds.VIP_MONTHLY, ProductIds.VIP_YEARLY
+            )
+            every { getAllProductIds() } returns setOf(
+                ProductIds.COINS_500, ProductIds.COINS_1500, ProductIds.COINS_5000,
+                ProductIds.DIAMONDS_10, ProductIds.DIAMONDS_50, ProductIds.DIAMONDS_200,
+                ProductIds.LIVES_PACK_5,
+                ProductIds.STARTER_BUNDLE, ProductIds.ADVENTURER_BUNDLE, ProductIds.CHAMPION_BUNDLE,
+                ProductIds.VIP_MONTHLY, ProductIds.VIP_YEARLY
+            )
         }
         adManager = mockk {
             every { isRewardedAdReady } returns true
@@ -811,5 +826,108 @@ class StoreViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { billingManager.purchase(eq("coins_500"), any()) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // §12 — Billing diagnostics / setup warning
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `billingSetupWarning is null when all products are loaded`() = runTest {
+        // All products available — no warning should appear
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(vm.uiState.first().billingSetupWarning)
+    }
+
+    @Test
+    fun `billingSetupWarning is set when products are missing from Play Console`() = runTest {
+        // Initialize all mocks via createViewModel first, then override billing mock
+        createViewModel(PlayerProgress(devModeEnabled = false))
+
+        // Set up a fresh progress flow with devMode = false
+        progressFlow = MutableStateFlow(PlayerProgress(devModeEnabled = false))
+        every { playerRepository.playerProgressFlow } returns progressFlow
+        // Simulate Play Console only having loaded 1 of 3 products
+        coEvery { billingManager.getLoadedProductIds() } returns setOf(ProductIds.COINS_500)
+        every { billingManager.getAllProductIds() } returns setOf(
+            ProductIds.COINS_500, ProductIds.DIAMONDS_10, ProductIds.VIP_MONTHLY
+        )
+        val vm = StoreViewModel(
+            playerRepository = playerRepository,
+            billingManager = billingManager,
+            adManager = adManager,
+            audioManager = audioManager,
+            inboxRepository = inboxRepository,
+            vipDailyRewardUseCase = vipDailyRewardUseCase,
+            achievementManager = achievementManager,
+            activityProvider = activityProvider
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val warning = vm.uiState.first().billingSetupWarning
+        assertNotNull(warning)
+        assertTrue(warning!!.contains("unavailable"))
+    }
+
+    @Test
+    fun `billingSetupWarning is null in dev mode even if products missing`() = runTest {
+        // Initialize all mocks via createViewModel first, then override billing mock
+        createViewModel(PlayerProgress(devModeEnabled = true))
+
+        // Dev mode bypasses real billing — no warning should be shown
+        progressFlow = MutableStateFlow(PlayerProgress(devModeEnabled = true))
+        every { playerRepository.playerProgressFlow } returns progressFlow
+        coEvery { billingManager.getLoadedProductIds() } returns emptySet()
+        every { billingManager.getAllProductIds() } returns setOf(ProductIds.COINS_500)
+        val vm = StoreViewModel(
+            playerRepository = playerRepository,
+            billingManager = billingManager,
+            adManager = adManager,
+            audioManager = audioManager,
+            inboxRepository = inboxRepository,
+            vipDailyRewardUseCase = vipDailyRewardUseCase,
+            achievementManager = achievementManager,
+            activityProvider = activityProvider
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(vm.uiState.first().billingSetupWarning)
+    }
+
+    @Test
+    fun `purchase failure shows errorMessage from PurchaseResult when provided`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        val specificError = "Product not found: \"coins_500\". Check Play Console setup."
+        coEvery { billingManager.purchase(ProductIds.COINS_500, any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(ProductIds.COINS_500, success = false, errorMessage = specificError))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val message = vm.uiState.first().message
+        assertNotNull(message)
+        assertEquals(specificError, message)
+    }
+
+    @Test
+    fun `purchase failure shows fallback message when no errorMessage`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        coEvery { billingManager.purchase(ProductIds.DIAMONDS_10, any()) } answers {
+            val callback = secondArg<(PurchaseResult) -> Unit>()
+            callback(PurchaseResult(ProductIds.DIAMONDS_10, success = false, errorMessage = null))
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.DIAMONDS_10)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val message = vm.uiState.first().message
+        assertNotNull(message)
+        assertTrue(message!!.contains("diamonds_10"))
     }
 }

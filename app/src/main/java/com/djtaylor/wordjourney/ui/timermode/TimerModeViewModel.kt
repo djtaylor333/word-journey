@@ -325,7 +325,9 @@ class TimerModeViewModel @Inject constructor(
 
         val newWordsCorrect  = _uiState.value.wordsCorrect + 1
         val newWordsAttempted = _uiState.value.wordsAttempted + 1
-        val bonusSecs = 30
+        // If the player used the definition item on this word, they only get 15s
+        // (half), because the hint gave them a significant advantage.
+        val bonusSecs = if (_uiState.value.definitionUsedThisWord) 15 else 30
         val newRemaining = _uiState.value.remainingMs + bonusSecs * 1_000L
         var newLivesEarned = _uiState.value.livesEarned
 

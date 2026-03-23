@@ -25,7 +25,9 @@ data class StoreUiState(
     val isPurchasing: Boolean = false,
     val message: String? = null,
     val isAdReady: Boolean = false,
-    val isWatchingAd: Boolean = false
+    val isWatchingAd: Boolean = false,
+    /** Non-null when one or more Play Console products couldn't be loaded (not dev mode). */
+    val billingSetupWarning: String? = null
 )
 
 @HiltViewModel
@@ -58,6 +60,21 @@ class StoreViewModel @Inject constructor(
             adManager.loadRewardedAd()
             _uiState.update { it.copy(isAdReady = adManager.isRewardedAdReady) }
         }
+        // Check billing product availability (non dev-mode only)
+        viewModelScope.launch {
+            // Read the current progress directly so we don't race with the collectLatest coroutine
+            val currentProgress = playerRepository.playerProgressFlow.first()
+            if (currentProgress.devModeEnabled) return@launch  // never warn in dev mode
+            val loaded = billingManager.getLoadedProductIds()
+            val all    = billingManager.getAllProductIds()
+            val missing = all - loaded
+            if (missing.isNotEmpty()) {
+                val warning = "⚠️ ${missing.size} product(s) unavailable in Play Console. " +
+                    "Check that all in-app products are ACTIVE, the app is published to a test track, " +
+                    "and your account is a Licensed Tester. Missing: ${missing.joinToString()}"
+                _uiState.update { it.copy(billingSetupWarning = warning) }
+            }
+        }
     }
 
     fun purchase(productId: String) {
@@ -72,7 +89,10 @@ class StoreViewModel @Inject constructor(
                     if (result.success) {
                         viewModelScope.launch { applySuccessfulPurchase(productId, result) }
                     } else {
-                        _uiState.update { it.copy(isPurchasing = false, message = "Purchase failed. Please try again.") }
+                        val errorMsg = result.errorMessage
+                            ?: "Purchase failed for \"$productId\". " +
+                               "Ensure the product is ACTIVE in Play Console and you are a Licensed Tester."
+                        _uiState.update { it.copy(isPurchasing = false, message = errorMsg) }
                     }
                 }
             }

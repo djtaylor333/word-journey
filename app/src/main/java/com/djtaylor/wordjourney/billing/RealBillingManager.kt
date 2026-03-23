@@ -72,6 +72,24 @@ class RealBillingManager @Inject constructor(
         scope.launch {
             if (ensureConnected()) {
                 fetchProductDetails()
+                val loaded = productDetailsCache.keys
+                val missing = (inAppProductIds + subsProductIds).filter { it !in loaded }
+                Log.i(TAG, "Billing ready — loaded ${loaded.size}/${inAppProductIds.size + subsProductIds.size} products: $loaded")
+                if (missing.isNotEmpty()) {
+                    Log.w(TAG, "═══════════════════════════════════════════════════════")
+                    Log.w(TAG, "BILLING SETUP WARNING: ${missing.size} product(s) not found in Play Console:")
+                    missing.forEach { Log.w(TAG, "  ✗ $it") }
+                    Log.w(TAG, "Fix checklist:")
+                    Log.w(TAG, "  1) Products must be set to ACTIVE (not Draft/Inactive) in")
+                    Log.w(TAG, "     Play Console → Monetize → in-app products / subscriptions")
+                    Log.w(TAG, "  2) App must be published to Internal Testing (or higher) track")
+                    Log.w(TAG, "  3) Test account must be added as a Licensed Tester in")
+                    Log.w(TAG, "     Play Console → Setup → License testing")
+                    Log.w(TAG, "  4) For subscriptions: each must have an active base plan")
+                    Log.w(TAG, "═══════════════════════════════════════════════════════")
+                }
+            } else {
+                Log.e(TAG, "Pre-warm failed: could not connect to BillingClient. Is Google Play available?")
             }
         }
     }
@@ -132,6 +150,8 @@ class RealBillingManager @Inject constructor(
         val inAppResult = billingClient.queryProductDetails(inAppParams)
         if (inAppResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
             inAppResult.productDetailsList?.forEach { productDetailsCache[it.productId] = it }
+        } else {
+            Log.e(TAG, "In-app query failed: code=${inAppResult.billingResult.responseCode} msg=${inAppResult.billingResult.debugMessage}")
         }
 
         // Subscriptions
@@ -147,10 +167,25 @@ class RealBillingManager @Inject constructor(
         val subsResult = billingClient.queryProductDetails(subsParams)
         if (subsResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
             subsResult.productDetailsList?.forEach { productDetailsCache[it.productId] = it }
+        } else {
+            Log.e(TAG, "Subs query failed: code=${subsResult.billingResult.responseCode} msg=${subsResult.billingResult.debugMessage}")
         }
 
         Log.d(TAG, "Product details fetched: ${productDetailsCache.keys}")
     }
+
+    // ── Diagnostic helpers ────────────────────────────────────────────────────
+
+    override suspend fun getLoadedProductIds(): Set<String> {
+        if (productDetailsCache.isEmpty()) {
+            ensureConnected()
+            fetchProductDetails()
+        }
+        return productDetailsCache.keys.toSet()
+    }
+
+    override fun getAllProductIds(): Set<String> =
+        (inAppProductIds + subsProductIds).toSet()
 
     // ── IBillingManager ───────────────────────────────────────────────────────
 
@@ -179,10 +214,12 @@ class RealBillingManager @Inject constructor(
 
         val productDetails = productDetailsCache[productId]
         if (productDetails == null) {
-            Log.e(TAG, "ProductDetails not found for $productId after fetch. " +
-                    "Ensure the product is published in Play Console and this " +
-                    "account is a licensed tester or the app is in production.")
-            onResult(PurchaseResult(productId, success = false))
+            Log.e(TAG, "ProductDetails not found for $productId after fetch.")
+            Log.e(TAG, "  → Check Play Console: product '$productId' must be ACTIVE (not Draft)")
+            Log.e(TAG, "  → Ensure app is published (even internally) and account is a Licensed Tester")
+            Log.e(TAG, "  → Loaded products: ${productDetailsCache.keys}")
+            onResult(PurchaseResult(productId, success = false,
+                errorMessage = "Product not found: \"$productId\". Check Play Console setup — product must be ACTIVE and app published to a test track."))
             return
         }
 

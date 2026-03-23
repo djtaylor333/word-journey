@@ -36,7 +36,9 @@ data class PurchaseResult(
     val success: Boolean,
     val coinsGranted: Long = 0L,
     val diamondsGranted: Int = 0,
-    val livesGranted: Int = 0
+    val livesGranted: Int = 0,
+    /** Human-readable reason for failure, suitable for showing in the UI. */
+    val errorMessage: String? = null
 )
 
 interface IBillingManager {
@@ -48,6 +50,15 @@ interface IBillingManager {
 
     /** Returns a human-readable price label for [productId] (mock or real). */
     fun getPriceLabel(productId: String): String
+
+    /**
+     * Returns the set of product IDs whose details are loaded and ready for purchase.
+     * Used by diagnostics and the Store screen to surface setup warnings.
+     */
+    suspend fun getLoadedProductIds(): Set<String>
+
+    /** All known in-app product IDs managed by this billing manager. */
+    fun getAllProductIds(): Set<String>
 }
 
 /**

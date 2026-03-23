@@ -99,13 +99,32 @@ fun StoreScreen(
         } else {
             Box(Modifier.fillMaxSize().padding(padding)) {
                 ThemeBackgroundOverlay(theme = theme)
-                when (selectedTab) {
-                    0 -> ItemsTab(uiState, viewModel)
-                    1 -> BundlesTab(uiState, viewModel)
-                    2 -> LivesTab(uiState, viewModel)
-                    3 -> CoinsTab(uiState, viewModel)
-                    4 -> DiamondsTab(uiState, viewModel)
-                    5 -> VipTab(uiState, viewModel)
+                Column(Modifier.fillMaxSize()) {
+                    // ── Billing setup warning (shown when Play Console products not loaded) ──
+                    uiState.billingSetupWarning?.let { warning ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.errorContainer
+                        ) {
+                            Text(
+                                text = warning,
+                                modifier = Modifier.padding(12.dp),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    Box(Modifier.weight(1f)) {
+                        when (selectedTab) {
+                            0 -> ItemsTab(uiState, viewModel)
+                            1 -> BundlesTab(uiState, viewModel)
+                            2 -> LivesTab(uiState, viewModel)
+                            3 -> CoinsTab(uiState, viewModel)
+                            4 -> DiamondsTab(uiState, viewModel)
+                            5 -> VipTab(uiState, viewModel)
+                        }
+                    }
                 }
             }
         }

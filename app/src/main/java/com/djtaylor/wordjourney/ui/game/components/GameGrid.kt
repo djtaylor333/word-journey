@@ -1,7 +1,10 @@
 package com.djtaylor.wordjourney.ui.game.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
@@ -15,6 +18,7 @@ import com.djtaylor.wordjourney.domain.model.TileState
 import com.djtaylor.wordjourney.ui.game.GameUiState
 import com.djtaylor.wordjourney.ui.theme.LocalTextScale
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GameGrid(
     uiState: GameUiState,
@@ -67,18 +71,18 @@ fun GameGrid(
     val needsScroll = totalRows >= 7
     val scrollState = rememberScrollState()
 
-    // Auto-scroll: start at top on level load; scroll to show active row after each guess
+    // BringIntoViewRequester on the active row so we scroll just enough to reveal it
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val guessCount = uiState.guesses.size
-    var isFirstLoad by remember { mutableStateOf(true) }
     LaunchedEffect(guessCount) {
         if (!needsScroll) return@LaunchedEffect
-        if (isFirstLoad) {
-            // Level just loaded — always start at the top (shows row 0)
-            isFirstLoad = false
+        if (guessCount == 0) {
+            // Level just loaded — sit at the very top
             scrollState.scrollTo(0)
         } else {
-            // A new guess was submitted — scroll forward to show the active input row
-            scrollState.animateScrollTo(scrollState.maxValue)
+            // A guess was submitted — bring the active input row into view
+            // (BringIntoViewRequester scrolls the minimum amount needed)
+            bringIntoViewRequester.bringIntoView()
         }
     }
 
@@ -113,9 +117,12 @@ fun GameGrid(
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.graphicsLayer {
-                    translationX = shakeOffset
-                }
+                modifier = Modifier
+                    // Attach requester so bringIntoView() scrolls to show this row
+                    .bringIntoViewRequester(bringIntoViewRequester)
+                    .graphicsLayer {
+                        translationX = shakeOffset
+                    }
             ) {
                 val nonRevealedCols = (0 until wordLen).filter { !uiState.revealedLetters.containsKey(it) }
                 repeat(wordLen) { col ->
