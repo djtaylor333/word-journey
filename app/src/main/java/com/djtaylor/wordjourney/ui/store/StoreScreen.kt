@@ -32,6 +32,7 @@ fun StoreScreen(
     val activity = LocalContext.current as Activity
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showBillingHelpDialog by remember { mutableStateOf(false) }
     val isLight = !isSystemInDarkTheme()
     val coinColor = adaptiveCoinColor(isLight)
     val diamondColor = adaptiveDiamondColor(isLight)
@@ -103,17 +104,83 @@ fun StoreScreen(
                     // ── Billing setup warning (shown when Play Console products not loaded) ──
                     uiState.billingSetupWarning?.let { warning ->
                         Surface(
+                            onClick = { showBillingHelpDialog = true },
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
                             shape = RoundedCornerShape(10.dp),
                             color = MaterialTheme.colorScheme.errorContainer
                         ) {
-                            Text(
-                                text = warning,
+                            Row(
                                 modifier = Modifier.padding(12.dp),
-                                color = MaterialTheme.colorScheme.onErrorContainer,
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = warning,
+                                    modifier = Modifier.weight(1f),
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    "Fix →",
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
+                    }
+
+                    // ── Play Console setup help dialog ────────────────────────────────────
+                    if (showBillingHelpDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showBillingHelpDialog = false },
+                            icon = { Text("🛒", fontSize = 28.sp) },
+                            title = {
+                                Text(
+                                    "Play Console Setup Required",
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 16.sp
+                                )
+                            },
+                            text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        "In-app purchases are not available yet. Follow these steps:",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    val steps = listOf(
+                                        "Play Console → Monetize → In-app products: set all products to ACTIVE (not Draft)",
+                                        "Each VIP subscription must have an active base plan configured",
+                                        "Publish the app to Internal Testing track (or higher)",
+                                        "Play Console → Setup → License testing: add your Google account as a Licensed Tester",
+                                        "Wait 24 hours after making changes for Google's servers to propagate",
+                                        "Uninstall and reinstall the app after completing the above"
+                                    )
+                                    steps.forEachIndexed { i, step ->
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text(
+                                                "${i + 1}.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Text(
+                                                step,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showBillingHelpDialog = false }) {
+                                    Text("Got it")
+                                }
+                            }
+                        )
                     }
                     // ── Restore Purchases button ──────────────────────────────────────────
                     Row(

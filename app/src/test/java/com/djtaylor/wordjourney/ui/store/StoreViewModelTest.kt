@@ -1039,4 +1039,200 @@ class StoreViewModelTest {
         assertNotNull(message)
         assertTrue(message!!.contains(ProductIds.COINS_500))
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // §14 — VIP Purchase flow
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `purchase VIP_MONTHLY in dev mode sets isVip = true`() = runTest {
+        val vm = createViewModel(PlayerProgress(isVip = false, devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.VIP_MONTHLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.isVip }) }
+    }
+
+    @Test
+    fun `purchase VIP_YEARLY in dev mode sets isVip = true`() = runTest {
+        val vm = createViewModel(PlayerProgress(isVip = false, devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.VIP_YEARLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.isVip }) }
+    }
+
+    @Test
+    fun `purchase VIP_MONTHLY sets vipExpiryTimestamp approximately 30 days ahead`() = runTest {
+        val before = System.currentTimeMillis()
+        val vm = createViewModel(PlayerProgress(isVip = false, devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.VIP_MONTHLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val expectedMin = before + 29L * 24 * 60 * 60 * 1000
+        val expectedMax = before + 31L * 24 * 60 * 60 * 1000
+        coVerify {
+            playerRepository.saveProgress(match { progress ->
+                progress.vipExpiryTimestamp in expectedMin..expectedMax
+            })
+        }
+    }
+
+    @Test
+    fun `purchase VIP_YEARLY sets vipExpiryTimestamp approximately 365 days ahead`() = runTest {
+        val before = System.currentTimeMillis()
+        val vm = createViewModel(PlayerProgress(isVip = false, devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.VIP_YEARLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val expectedMin = before + 364L * 24 * 60 * 60 * 1000
+        val expectedMax = before + 366L * 24 * 60 * 60 * 1000
+        coVerify {
+            playerRepository.saveProgress(match { progress ->
+                progress.vipExpiryTimestamp in expectedMin..expectedMax
+            })
+        }
+    }
+
+    @Test
+    fun `VIP_MONTHLY in dev mode sets vipExpiryTimestamp far in the future`() = runTest {
+        val before = System.currentTimeMillis()
+        val vm = createViewModel(PlayerProgress(isVip = false, devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.purchase(ProductIds.VIP_MONTHLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Should be at least 29 days from now
+        coVerify { playerRepository.saveProgress(match { it.vipExpiryTimestamp > before + 29L * 24 * 60 * 60 * 1000 }) }
+    }
+
+    @Test
+    fun `VIP_YEARLY in dev mode sets vipExpiryTimestamp approximately 365 days ahead`() = runTest {
+        val before = System.currentTimeMillis()
+        val vm = createViewModel(PlayerProgress(isVip = false, devModeEnabled = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.purchase(ProductIds.VIP_YEARLY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Should be at least 364 days from now
+        coVerify { playerRepository.saveProgress(match { it.vipExpiryTimestamp > before + 364L * 24 * 60 * 60 * 1000 }) }
+    }
+
+    @Test
+    fun `purchase STARTER_BUNDLE in dev mode grants bundle items`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true, addGuessItems = 0))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.purchase(ProductIds.STARTER_BUNDLE)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify {
+            playerRepository.saveProgress(match { progress ->
+                progress.addGuessItems >= 5 &&
+                progress.removeLetterItems >= 5 &&
+                progress.definitionItems >= 5 &&
+                progress.showLetterItems >= 5
+            })
+        }
+    }
+
+    @Test
+    fun `purchase ADVENTURER_BUNDLE in dev mode grants 10 add-guess items`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true, addGuessItems = 0))
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.purchase(ProductIds.ADVENTURER_BUNDLE)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { playerRepository.saveProgress(match { it.addGuessItems == 10 }) }
+    }
+
+    @Test
+    fun `purchase CHAMPION_BUNDLE in dev mode grants 25 items of each type`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = true, addGuessItems = 0))
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.purchase(ProductIds.CHAMPION_BUNDLE)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify {
+            playerRepository.saveProgress(match { progress ->
+                progress.addGuessItems == 25 &&
+                progress.removeLetterItems == 25 &&
+                progress.definitionItems == 25 &&
+                progress.showLetterItems == 25
+            })
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // §15 — Billing warning message content
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `billingSetupWarning message contains count of missing products`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        // Only 1 product loaded out of all
+        coEvery { billingManager.getLoadedProductIds() } returns setOf(ProductIds.COINS_500)
+        every { billingManager.getAllProductIds() } returns setOf(
+            ProductIds.COINS_500, ProductIds.COINS_1500, ProductIds.COINS_5000,
+            ProductIds.DIAMONDS_10
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val warning = vm.uiState.first().billingSetupWarning
+        assertNotNull(warning)
+        // Should contain "3" missing (4 total - 1 loaded)
+        assertTrue("Warning should mention 3 missing products",
+            warning!!.contains("3"))
+    }
+
+    @Test
+    fun `billingSetupWarning message mentions ACTIVE in Play Console`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        coEvery { billingManager.getLoadedProductIds() } returns emptySet()
+        every { billingManager.getAllProductIds() } returns setOf(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val warning = vm.uiState.first().billingSetupWarning
+        assertNotNull(warning)
+        assertTrue("Warning should direct user to Play Console",
+            warning!!.contains("ACTIVE", ignoreCase = true) ||
+            warning.contains("Play Console", ignoreCase = true))
+    }
+
+    @Test
+    fun `billingSetupWarning message mentions Licensed Tester`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        coEvery { billingManager.getLoadedProductIds() } returns emptySet()
+        every { billingManager.getAllProductIds() } returns setOf(ProductIds.COINS_500)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val warning = vm.uiState.first().billingSetupWarning
+        assertNotNull(warning)
+        assertTrue("Warning should mention Licensed Tester",
+            warning!!.contains("Licensed Tester", ignoreCase = true) ||
+            warning.contains("tester", ignoreCase = true))
+    }
+
+    @Test
+    fun `billingSetupWarning lists the specific missing product IDs`() = runTest {
+        val vm = createViewModel(PlayerProgress(devModeEnabled = false))
+        coEvery { billingManager.getLoadedProductIds() } returns emptySet()
+        every { billingManager.getAllProductIds() } returns setOf(
+            ProductIds.COINS_500, ProductIds.VIP_MONTHLY
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val warning = vm.uiState.first().billingSetupWarning
+        assertNotNull(warning)
+        assertTrue("Warning should list coins_500", warning!!.contains(ProductIds.COINS_500))
+        assertTrue("Warning should list vip_monthly", warning.contains(ProductIds.VIP_MONTHLY))
+    }
 }

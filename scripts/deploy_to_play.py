@@ -42,13 +42,13 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.27.0 - Billing diagnostics, scroll fix & timer balance
+RELEASE_NOTES = """v2.29.0 - Billing setup guide, comprehensive test coverage
 
-• Billing: setup warning when Play Console products are not ACTIVE
-• Billing: richer failure messages showing which product and why
-• Timer Mode: using the free definition item now gives +15s (not +30s)
-• Main menu: Go button no longer wraps on small screens
-• Game: scroll follows active guess row, not the last empty slot"""
+\u2022 Store: billing warning banner now opens step-by-step Play Console setup guide
+\u2022 Store: 6-step numbered dialog: ACTIVE products, base plans, publish to test track, Licensed Tester
+\u2022 Home: font sizes reduced 25-35% for low-res display support (carried from v2.28.0)
+\u2022 Store: Restore Purchases from prior sessions (carried from v2.28.0)
+\u2022 Tests: 832 passing (37 new: StubBillingManager + VIP purchase + warning content)"""
 
 
 def build_service(key_path: str):
