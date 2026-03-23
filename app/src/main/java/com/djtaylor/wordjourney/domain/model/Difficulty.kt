@@ -12,7 +12,7 @@ enum class Difficulty(
         displayName = "Easy",
         wordLength = 4,
         maxGuesses = 8,
-        bonusAttemptsPerLife = 3,
+        bonusAttemptsPerLife = 10,
         levelBonusThreshold = 10,
         saveKey = "easy"
     ),

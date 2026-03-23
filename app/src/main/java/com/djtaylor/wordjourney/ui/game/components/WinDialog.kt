@@ -48,6 +48,7 @@ fun WinDialog(
     bonusLifeEarned: Boolean,
     starsEarned: Int = 0,
     isDailyChallenge: Boolean = false,
+    bonusMessage: String? = null,
     onNextLevel: () -> Unit,
     onMainMenu: () -> Unit
 ) {
@@ -281,6 +282,25 @@ fun WinDialog(
                                     fontSize = 16.sp
                                 )
                             }
+                        }
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+
+                    // Extra reward message (streak milestones, area complete, seasonal milestone, etc.)
+                    if (bonusMessage != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFA855F7).copy(alpha = 0.14f)
+                        ) {
+                            Text(
+                                bonusMessage,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                color = Color(0xFFA855F7),
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
 

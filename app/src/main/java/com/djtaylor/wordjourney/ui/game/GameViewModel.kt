@@ -20,6 +20,8 @@ import com.djtaylor.wordjourney.domain.model.SeasonalWordPacks
 import com.djtaylor.wordjourney.domain.model.TileState
 import com.djtaylor.wordjourney.domain.model.seasonalLevelFor
 import com.djtaylor.wordjourney.domain.model.withSeasonalLevelAdvanced
+import com.djtaylor.wordjourney.domain.model.seasonalMilestoneFor
+import com.djtaylor.wordjourney.domain.model.withSeasonalMilestone
 import com.djtaylor.wordjourney.domain.usecase.EvaluateGuessUseCase
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
 import com.djtaylor.wordjourney.engine.GameEngine
@@ -65,6 +67,10 @@ class GameViewModel @Inject constructor(
     private var isReplay: Boolean = false
     /** Tracks whether any power-up was used this level (for the no-powerup achievement). */
     private var usedPowerUpThisLevel: Boolean = false
+    /** True once a life has been deducted for the current level attempt. */
+    private var lifeDeductedForCurrentLevel: Boolean = false
+    /** True once the player has successfully submitted at least one valid guess. */
+    private var guessSubmittedThisAttempt: Boolean = false
 
     companion object {
         private const val TAG = "GameViewModel"
@@ -184,6 +190,8 @@ class GameViewModel @Inject constructor(
 
     private suspend fun startFreshLevel(level: Int) {
         usedPowerUpThisLevel = false
+        lifeDeductedForCurrentLevel = false
+        guessSubmittedThisAttempt = false
         // Spend 1 life to start a non-replay, non-daily level
         if (!isReplay && !isDailyChallenge) {
             if (playerProgress.lives <= 0) {
@@ -200,6 +208,7 @@ class GameViewModel @Inject constructor(
             val updated = playerProgress.copy(lives = playerProgress.lives - 1)
             playerProgress = updated
             playerRepository.saveProgress(updated)
+            lifeDeductedForCurrentLevel = true
         }
 
         // For VIP difficulty, word length varies by level
@@ -237,12 +246,17 @@ class GameViewModel @Inject constructor(
         var defHint: String? = null
         var defUsed = false
         var wordHasDefinition = false
+        var grantedFreeDefinition = false
         if (!isDailyChallenge && !isSeasonalLevel) {
             val definition = wordRepository.getDefinition(difficulty, level, defWordLength)
             wordHasDefinition = definition.isNotBlank()
             if (isReplay && wordHasDefinition) {
                 defHint = definition
                 defUsed = true
+            } else if (!isReplay && playerProgress.lastLevelStars >= 2 && wordHasDefinition) {
+                // Grant free definition use as reward for 2+ stars on previous level
+                defHint = definition
+                grantedFreeDefinition = true
             }
         }
 
@@ -274,6 +288,7 @@ class GameViewModel @Inject constructor(
                 definitionHint = defHint,
                 showDefinitionDialog = false,
                 definitionUsedThisLevel = defUsed,
+                grantedFreeDefinition = grantedFreeDefinition,
                 wordHasDefinition = wordHasDefinition,
                 starsEarned = 0
             )
@@ -362,6 +377,7 @@ class GameViewModel @Inject constructor(
 
                 is SubmitResult.Evaluated -> {
                     audioManager.playSfx(SfxSound.TILE_FLIP)
+                    guessSubmittedThisAttempt = true
                     syncEngineToUiState()
 
                     if (result.isWin) {
@@ -391,11 +407,12 @@ class GameViewModel @Inject constructor(
         }
         val guessCount = e.guesses.size
 
-        // Calculate stars: 3★ = 1-2 guesses, 2★ = 3-4 guesses, 1★ = 5+ guesses
+        // Calculate stars: 3★ = 1-2 guesses, 2★ = 3-4 guesses, 1★ = 5+ guesses within default max, 0★ = used bonus guesses
         val stars = when {
             guessCount <= 2 -> 3
             guessCount <= 4 -> 2
-            else -> 1
+            guessCount <= difficulty.maxGuesses -> 1
+            else -> 0  // won only after using bonus guesses beyond maxGuesses
         }
 
         if (isReplay) {
@@ -501,6 +518,16 @@ class GameViewModel @Inject constructor(
             // Apply streak rewards (2x for normal players, 3x for VIP)
             val (rewardedProgress, streakMsg) = applyStreakRewards(p, p.dailyChallengeStreak)
             p = rewardedProgress
+
+            // Gift 3 lives when all 3 daily challenge lengths are completed for the first time today
+            var finalStreakMsg = streakMsg
+            val all3Today = (p.dailyLastDate4 == today && p.dailyLastDate5 == today && p.dailyLastDate6 == today)
+            if (all3Today && p.dailyAllThreeCompletedDate != today) {
+                p = p.copy(lives = p.lives + 3, dailyAllThreeCompletedDate = today)
+                val all3Note = "🎁 All 3 daily challenges done today! +3 ❤️"
+                finalStreakMsg = if (finalStreakMsg != null) "$finalStreakMsg\n$all3Note" else all3Note
+            }
+
             playerProgress = p
             playerRepository.saveProgress(p)
 
@@ -534,7 +561,7 @@ class GameViewModel @Inject constructor(
                     coins = p.coins,
                     diamonds = p.diamonds,
                     isDailyChallenge = true,
-                    streakRewardMessage = streakMsg
+                    streakRewardMessage = finalStreakMsg
                 )
             }
             playerRepository.clearInProgressGame("daily")
@@ -562,11 +589,38 @@ class GameViewModel @Inject constructor(
 
             // Update cumulative stats
             var p = updatedProgress
+
+            // Seasonal pack milestone check (every 10 levels ⟹ 3 of each item; 100 levels ⟹ big reward)
+            var seasonalMilestoneMsg: String? = null
+            if (isSeasonalLevel && seasonalPackKey != null) {
+                val completedLevels = level          // level just won
+                val milestoneTier = completedLevels / 10
+                val currentMilestone = p.seasonalMilestoneFor(seasonalPackKey)
+                if (milestoneTier > currentMilestone && milestoneTier > 0) {
+                    p = p.withSeasonalMilestone(seasonalPackKey, milestoneTier)
+                    if (completedLevels >= 100) {
+                        // 100-level pack completion: coins + diamonds grand prize
+                        p = p.copy(coins = p.coins + 10_000L, diamonds = p.diamonds + 100)
+                        seasonalMilestoneMsg = "🏅 Pack Complete! All 100 levels done!\n+10000 ⬡  +100 💎"
+                    } else {
+                        // Every 10-level milestone: 3 of each power-up item
+                        p = p.copy(
+                            addGuessItems     = p.addGuessItems + 3,
+                            removeLetterItems = p.removeLetterItems + 3,
+                            definitionItems   = p.definitionItems + 3,
+                            showLetterItems   = p.showLetterItems + 3
+                        )
+                        seasonalMilestoneMsg = "🎉 ${completedLevels}-level milestone!\n+3 of each power-up item"
+                    }
+                }
+            }
+
             p = p.copy(
                 totalCoinsEarned = p.totalCoinsEarned + coinsEarned,
                 totalLevelsCompleted = p.totalLevelsCompleted + 1,
                 totalWins = p.totalWins + 1,
-                totalGuesses = p.totalGuesses + guessCount
+                totalGuesses = p.totalGuesses + guessCount,
+                lastLevelStars = stars   // used to grant free definition on next level (2+ stars)
             )
             playerProgress = p
             playerRepository.saveProgress(p)
@@ -598,7 +652,8 @@ class GameViewModel @Inject constructor(
                     lives = p.lives,
                     coins = p.coins,
                     diamonds = p.diamonds,
-                    areaCompleteMessage = if (areaComplete) "🏆 Area Complete! +25 💎" else null
+                    areaCompleteMessage = if (areaComplete) "🏆 Area Complete! +25 💎" else null,
+                    seasonalMilestoneMessage = seasonalMilestoneMsg
                 )
             }
             if (isSeasonalLevel) playerRepository.clearInProgressGame(difficultyKey)
@@ -776,6 +831,64 @@ class GameViewModel @Inject constructor(
         } else {
             _uiState.update { it.copy(showNeedMoreGuessesDialog = true) }
         }
+    }
+
+    /**
+     * Dismisses the NoLivesDialog and starts a background job that resumes the level
+     * as soon as a life regenerates (so the player doesn't get permanently stuck).
+     */
+    fun dismissNoLivesDialog() {
+        _uiState.update { it.copy(showNoLivesDialog = false) }
+        // Poll every 5 s until a life is available, then auto-start the level
+        viewModelScope.launch {
+            while (playerProgress.lives <= 0) {
+                delay(5_000L)
+            }
+            startFreshLevel(_uiState.value.level)
+        }
+    }
+
+    /**
+     * Called when the player leaves the game screen (back button or Main Menu while game
+     * is in progress). Refunds the life spent to start this attempt if the player never
+     * submitted a valid guess — so they are not penalised for accidentally opening a level
+     * or leaving before they begin.
+     */
+    fun onExitLevel() {
+        if (lifeDeductedForCurrentLevel && !guessSubmittedThisAttempt) {
+            val updated = playerProgress.copy(lives = playerProgress.lives + 1)
+            playerProgress = updated
+            viewModelScope.launch { playerRepository.saveProgress(updated) }
+            lifeDeductedForCurrentLevel = false
+        }
+    }
+
+    /**
+     * Spend 200 coins for +1 guess (single-guess option in NeedMoreGuessesDialog).
+     * Does not use or require an inventory item.
+     */
+    fun useCoinsForSingleGuess() {
+        val e = engine ?: return
+        val progress = playerProgress
+        val cost = 200L
+        if (progress.coins < cost) {
+            _uiState.update { it.copy(snackbarMessage = "Need 200 coins for +1 guess") }
+            return
+        }
+        audioManager.playSfx(SfxSound.COIN_EARN)
+        val updated = progress.copy(coins = progress.coins - cost)
+        playerProgress = updated
+        viewModelScope.launch { playerRepository.saveProgress(updated) }
+        e.addBonusGuesses(1)
+        syncEngineToUiState()
+        _uiState.update { s ->
+            s.copy(
+                showNeedMoreGuessesDialog = false,
+                showNoLivesDialog = false,
+                coins = updated.coins
+            )
+        }
+        persistCurrentState()
     }
 
     /**
@@ -978,6 +1091,18 @@ class GameViewModel @Inject constructor(
 
     // ── Definition item ───────────────────────────────────────────────────────
     fun useDefinitionItem() {
+        // If a free definition was granted (2+ stars on previous level), use it for free
+        if (_uiState.value.grantedFreeDefinition && _uiState.value.definitionHint != null) {
+            audioManager.playSfx(SfxSound.BUTTON_CLICK)
+            _uiState.update { s ->
+                s.copy(
+                    showDefinitionDialog = true,
+                    grantedFreeDefinition = false,
+                    definitionUsedThisLevel = true
+                )
+            }
+            return
+        }
         // If definition already used/available this level, just re-show it
         if (_uiState.value.definitionUsedThisLevel && _uiState.value.definitionHint != null) {
             _uiState.update { it.copy(showDefinitionDialog = true) }

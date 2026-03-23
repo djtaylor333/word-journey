@@ -72,6 +72,8 @@ data class GameUiState(
     val definitionHint: String? = null,
     val showDefinitionDialog: Boolean = false,
     val definitionUsedThisLevel: Boolean = false,
+    // Granted free definition use (earned by getting 2+ stars on previous level)
+    val grantedFreeDefinition: Boolean = false,
 
     // Whether the current word has a definition (disables button when false)
     val wordHasDefinition: Boolean = true,
@@ -80,7 +82,10 @@ data class GameUiState(
     val streakRewardMessage: String? = null,
 
     // Area completion reward (every 25 levels) — shown in win dialog
-    val areaCompleteMessage: String? = null
+    val areaCompleteMessage: String? = null,
+
+    // Seasonal pack milestone reward (every 10 levels) — shown in win dialog
+    val seasonalMilestoneMessage: String? = null
 ) {
     val currentRow: Int get() = guesses.size
     val remainingGuesses: Int get() = maxGuesses - guesses.size

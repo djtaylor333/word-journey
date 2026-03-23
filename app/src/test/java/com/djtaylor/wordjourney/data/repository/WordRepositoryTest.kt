@@ -335,10 +335,10 @@ class WordRepositoryTest {
 
     @Test
     fun `VIP word cycling produces correct lengths across 10 levels`() = runTest {
-        // Use a repo with enough words to fill all VIP partitions (4L split=76, 5L split=97)
-        val words4 = makeWords4(200)
-        val words5 = makeWords5(200)
-        val words6 = makeWords6(400)
+        // VIP_POOL_START = 480 for 4/5/6-letter words; provide at 520 to exceed the pool start
+        val words4 = makeWords4(520)
+        val words5 = makeWords5(520)
+        val words6 = makeWords6(520)
         val dao = mockk<WordDao> {
             coEvery { getAllByLength(3) } returns sampleWords3
             coEvery { getAllByLength(4) } returns words4

@@ -135,4 +135,47 @@ class DifficultyTest {
     fun `difficulty values size is 4`() {
         assertEquals(4, Difficulty.values().size)
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 4. BONUS ATTEMPTS PER LIFE
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `EASY difficulty has bonusAttemptsPerLife 10`() {
+        assertEquals(10, Difficulty.EASY.bonusAttemptsPerLife)
+    }
+
+    @Test
+    fun `REGULAR difficulty has bonusAttemptsPerLife 2`() {
+        assertEquals(2, Difficulty.REGULAR.bonusAttemptsPerLife)
+    }
+
+    @Test
+    fun `HARD difficulty has bonusAttemptsPerLife 1`() {
+        assertEquals(1, Difficulty.HARD.bonusAttemptsPerLife)
+    }
+
+    @Test
+    fun `VIP difficulty has bonusAttemptsPerLife 2`() {
+        assertEquals(2, Difficulty.VIP.bonusAttemptsPerLife)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 5. LEVEL BONUS THRESHOLD (life earned every N levels)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `EASY difficulty has levelBonusThreshold 10`() {
+        assertEquals(10, Difficulty.EASY.levelBonusThreshold)
+    }
+
+    @Test
+    fun `REGULAR difficulty has levelBonusThreshold 5`() {
+        assertEquals(5, Difficulty.REGULAR.levelBonusThreshold)
+    }
+
+    @Test
+    fun `HARD difficulty has levelBonusThreshold 3`() {
+        assertEquals(3, Difficulty.HARD.levelBonusThreshold)
+    }
 }

@@ -285,6 +285,14 @@ fun HomeScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // ── STAR LEVELS ───────────────────────────────────────────────────
+            SectionHeader(emoji = "⭐", title = "Star Levels")
+            Spacer(Modifier.height(8.dp))
+
+            StarLevelsCard()
+
+            Spacer(Modifier.height(16.dp))
+
             // ── DAILY CHALLENGE ──────────────────────────────────────────────
             SectionHeader(emoji = "📅", title = "Daily Challenge")
             Spacer(Modifier.height(8.dp))
@@ -863,10 +871,10 @@ private fun DifficultyCard(
         Difficulty.VIP     -> "👑"
     }
     val description = when (difficulty) {
-        Difficulty.EASY    -> "4-letter words • 6 guesses\nEvery 10 levels = +1 life"
-        Difficulty.REGULAR -> "5-letter words • 6 guesses\nEvery 5 levels = +1 life"
-        Difficulty.HARD    -> "6-letter words • 6 guesses\nEvery 3 levels = +1 life"
-        Difficulty.VIP     -> "3-7 letter words • 6 guesses\nx2 rewards • 100 levels"
+        Difficulty.EASY    -> "${difficulty.wordLength}-letter words • ${difficulty.maxGuesses} guesses\nEvery ${difficulty.levelBonusThreshold} levels = +1 life"
+        Difficulty.REGULAR -> "${difficulty.wordLength}-letter words • ${difficulty.maxGuesses} guesses\nEvery ${difficulty.levelBonusThreshold} levels = +1 life"
+        Difficulty.HARD    -> "${difficulty.wordLength}-letter words • ${difficulty.maxGuesses} guesses\nEvery ${difficulty.levelBonusThreshold} levels = +1 life"
+        Difficulty.VIP     -> "3-7 letter words • ${difficulty.maxGuesses} guesses\nx2 rewards • 100 levels"
     }
 
     Surface(
@@ -918,11 +926,12 @@ private fun DifficultyCard(
                     color = accent.copy(alpha = 0.2f)
                 ) {
                     Text(
-                        "Level $currentLevel",
+                        "Lv. $currentLevel",
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                         color = accent,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 18.sp,
+                        softWrap = false
                     )
                 }
             }
@@ -990,11 +999,12 @@ private fun VipPackCard(
                             color = accent.copy(alpha = 0.2f)
                         ) {
                             Text(
-                                "Level $currentLevel",
+                                "Lv. $currentLevel",
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
                                 color = accent,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                fontSize = 16.sp,
+                                softWrap = false
                             )
                         }
                     } else {
@@ -1058,4 +1068,66 @@ private fun formatTimerMs(ms: Long): String {
     val min = totalSec / 60
     val sec = totalSec % 60
     return "%02d:%02d".format(min, sec)
+}
+
+@Composable
+private fun StarLevelsCard() {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 4.dp,
+        tonalElevation = 2.dp,
+        border = BorderStroke(2.dp, Color(0xFFFFD700).copy(alpha = 0.4f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFFFFD700).copy(alpha = 0.07f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("⭐", fontSize = 42.sp)
+                Column {
+                    Text(
+                        "Star Levels",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color(0xFFFFD700),
+                        fontSize = 22.sp
+                    )
+                    Text(
+                        "Unlock by earning stars in Adventure\nSpecial challenge levels — coming soon!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        fontSize = 13.sp
+                    )
+                }
+            }
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Text(
+                    "🔒 Soon",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    color = Color.Gray,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    softWrap = false
+                )
+            }
+        }
+    }
 }

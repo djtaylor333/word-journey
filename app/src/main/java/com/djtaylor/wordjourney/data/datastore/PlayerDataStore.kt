@@ -132,6 +132,23 @@ class PlayerDataStore @Inject constructor(
         val KEY_SEASONAL_HALLOWEEN_LEVEL       = intPreferencesKey("seasonal_halloween_level")
         val KEY_SEASONAL_THANKSGIVING_LEVEL    = intPreferencesKey("seasonal_thanksgiving_level")
         val KEY_SEASONAL_CHRISTMAS_LEVEL       = intPreferencesKey("seasonal_christmas_level")
+        // Seasonal first-open timestamps (epoch ms)
+        val KEY_SEASONAL_FIRST_OPEN_EASTER        = longPreferencesKey("seasonal_first_open_easter")
+        val KEY_SEASONAL_FIRST_OPEN_VALENTINES    = longPreferencesKey("seasonal_first_open_valentines")
+        val KEY_SEASONAL_FIRST_OPEN_SUMMER        = longPreferencesKey("seasonal_first_open_summer")
+        val KEY_SEASONAL_FIRST_OPEN_HALLOWEEN     = longPreferencesKey("seasonal_first_open_halloween")
+        val KEY_SEASONAL_FIRST_OPEN_THANKSGIVING  = longPreferencesKey("seasonal_first_open_thanksgiving")
+        val KEY_SEASONAL_FIRST_OPEN_CHRISTMAS     = longPreferencesKey("seasonal_first_open_christmas")
+        // Seasonal milestone tiers claimed (0=none, 1=10lvl, …, 10=100lvl)
+        val KEY_SEASONAL_MILESTONE_EASTER        = intPreferencesKey("seasonal_milestone_easter")
+        val KEY_SEASONAL_MILESTONE_VALENTINES    = intPreferencesKey("seasonal_milestone_valentines")
+        val KEY_SEASONAL_MILESTONE_SUMMER        = intPreferencesKey("seasonal_milestone_summer")
+        val KEY_SEASONAL_MILESTONE_HALLOWEEN     = intPreferencesKey("seasonal_milestone_halloween")
+        val KEY_SEASONAL_MILESTONE_THANKSGIVING  = intPreferencesKey("seasonal_milestone_thanksgiving")
+        val KEY_SEASONAL_MILESTONE_CHRISTMAS     = intPreferencesKey("seasonal_milestone_christmas")
+        // Last regular-level star rating & daily all-3-complete tracking
+        val KEY_LAST_LEVEL_STARS                 = intPreferencesKey("last_level_stars")
+        val KEY_DAILY_ALL_THREE_COMPLETED_DATE   = stringPreferencesKey("daily_all_three_completed_date")
         // In-progress serialized game states for seasonal packs
         val KEY_GAME_STATE_SEASONAL_EASTER     = stringPreferencesKey("game_state_seasonal_easter")
         val KEY_GAME_STATE_SEASONAL_VALENTINES = stringPreferencesKey("game_state_seasonal_valentines")
@@ -228,7 +245,21 @@ class PlayerDataStore @Inject constructor(
                 seasonalSummerLevel        = prefs[KEY_SEASONAL_SUMMER_LEVEL] ?: 1,
                 seasonalHalloweenLevel     = prefs[KEY_SEASONAL_HALLOWEEN_LEVEL] ?: 1,
                 seasonalThanksgivingLevel  = prefs[KEY_SEASONAL_THANKSGIVING_LEVEL] ?: 1,
-                seasonalChristmasLevel     = prefs[KEY_SEASONAL_CHRISTMAS_LEVEL] ?: 1
+                seasonalChristmasLevel     = prefs[KEY_SEASONAL_CHRISTMAS_LEVEL] ?: 1,
+                seasonalFirstOpenEaster        = prefs[KEY_SEASONAL_FIRST_OPEN_EASTER] ?: 0L,
+                seasonalFirstOpenValentines    = prefs[KEY_SEASONAL_FIRST_OPEN_VALENTINES] ?: 0L,
+                seasonalFirstOpenSummer        = prefs[KEY_SEASONAL_FIRST_OPEN_SUMMER] ?: 0L,
+                seasonalFirstOpenHalloween     = prefs[KEY_SEASONAL_FIRST_OPEN_HALLOWEEN] ?: 0L,
+                seasonalFirstOpenThanksgiving  = prefs[KEY_SEASONAL_FIRST_OPEN_THANKSGIVING] ?: 0L,
+                seasonalFirstOpenChristmas     = prefs[KEY_SEASONAL_FIRST_OPEN_CHRISTMAS] ?: 0L,
+                seasonalMilestoneEaster        = prefs[KEY_SEASONAL_MILESTONE_EASTER] ?: 0,
+                seasonalMilestoneValentines    = prefs[KEY_SEASONAL_MILESTONE_VALENTINES] ?: 0,
+                seasonalMilestoneSummer        = prefs[KEY_SEASONAL_MILESTONE_SUMMER] ?: 0,
+                seasonalMilestoneHalloween     = prefs[KEY_SEASONAL_MILESTONE_HALLOWEEN] ?: 0,
+                seasonalMilestoneThanksgiving  = prefs[KEY_SEASONAL_MILESTONE_THANKSGIVING] ?: 0,
+                seasonalMilestoneChristmas     = prefs[KEY_SEASONAL_MILESTONE_CHRISTMAS] ?: 0,
+                lastLevelStars                 = prefs[KEY_LAST_LEVEL_STARS] ?: 0,
+                dailyAllThreeCompletedDate     = prefs[KEY_DAILY_ALL_THREE_COMPLETED_DATE] ?: ""
             )
         }
 
@@ -322,6 +353,20 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_SEASONAL_HALLOWEEN_LEVEL]     = progress.seasonalHalloweenLevel
             prefs[KEY_SEASONAL_THANKSGIVING_LEVEL]  = progress.seasonalThanksgivingLevel
             prefs[KEY_SEASONAL_CHRISTMAS_LEVEL]     = progress.seasonalChristmasLevel
+            prefs[KEY_SEASONAL_FIRST_OPEN_EASTER]        = progress.seasonalFirstOpenEaster
+            prefs[KEY_SEASONAL_FIRST_OPEN_VALENTINES]    = progress.seasonalFirstOpenValentines
+            prefs[KEY_SEASONAL_FIRST_OPEN_SUMMER]        = progress.seasonalFirstOpenSummer
+            prefs[KEY_SEASONAL_FIRST_OPEN_HALLOWEEN]     = progress.seasonalFirstOpenHalloween
+            prefs[KEY_SEASONAL_FIRST_OPEN_THANKSGIVING]  = progress.seasonalFirstOpenThanksgiving
+            prefs[KEY_SEASONAL_FIRST_OPEN_CHRISTMAS]     = progress.seasonalFirstOpenChristmas
+            prefs[KEY_SEASONAL_MILESTONE_EASTER]        = progress.seasonalMilestoneEaster
+            prefs[KEY_SEASONAL_MILESTONE_VALENTINES]    = progress.seasonalMilestoneValentines
+            prefs[KEY_SEASONAL_MILESTONE_SUMMER]        = progress.seasonalMilestoneSummer
+            prefs[KEY_SEASONAL_MILESTONE_HALLOWEEN]     = progress.seasonalMilestoneHalloween
+            prefs[KEY_SEASONAL_MILESTONE_THANKSGIVING]  = progress.seasonalMilestoneThanksgiving
+            prefs[KEY_SEASONAL_MILESTONE_CHRISTMAS]     = progress.seasonalMilestoneChristmas
+            prefs[KEY_LAST_LEVEL_STARS]                 = progress.lastLevelStars
+            prefs[KEY_DAILY_ALL_THREE_COMPLETED_DATE]   = progress.dailyAllThreeCompletedDate
         }
     }
 

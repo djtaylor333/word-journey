@@ -17,7 +17,7 @@ import com.djtaylor.wordjourney.ui.theme.TilePresent
 
 /**
  * Shown when guesses are exhausted mid-level.
- * The word is NEVER revealed here — player must continue.
+ * The word is NEVER revealed here — player must continue or exit.
  */
 @Composable
 fun NeedMoreGuessesDialog(
@@ -25,10 +25,12 @@ fun NeedMoreGuessesDialog(
     currentLives: Int,
     coins: Long,
     diamonds: Int,
+    addGuessItems: Int,
     onUseLife: () -> Unit,
     onUseAddGuessItem: () -> Unit,
-    onUseCoinsForContinue: () -> Unit,
-    onGoToStore: () -> Unit
+    onUseCoinsForSingleGuess: () -> Unit,
+    onGoToStore: () -> Unit,
+    onMainMenu: () -> Unit
 ) {
     Dialog(onDismissRequest = { /* cannot dismiss — must choose */ }) {
         Surface(
@@ -49,7 +51,7 @@ fun NeedMoreGuessesDialog(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    "Keep trying — you can still guess the word! Use a life to get more attempts.",
+                    "Keep trying — you can still guess the word!",
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
@@ -57,7 +59,7 @@ fun NeedMoreGuessesDialog(
 
                 HorizontalDivider()
 
-                // Use a life button
+                // Option 1: Use a life for full bonus attempts
                 Button(
                     onClick = onUseLife,
                     enabled = currentLives > 0,
@@ -70,30 +72,45 @@ fun NeedMoreGuessesDialog(
                     )
                 }
 
-                // Use 1000 coins for the same bonus guesses — always visible
+                // Option 2: Use 200 coins for +1 guess
                 Button(
-                    onClick = onUseCoinsForContinue,
-                    enabled = coins >= 1000L,
+                    onClick = onUseCoinsForSingleGuess,
+                    enabled = coins >= 200L,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = TilePresent)
                 ) {
                     Text(
-                        "⬡ Use 1000 Coins (+${difficulty.bonusAttemptsPerLife} guesses)   [$coins coins]",
+                        "⬡ Use 200 Coins (+1 guess)   [$coins coins]",
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                // Add a Guess item (costs 200 coins)
+                // Option 3: Use Add Guess item from inventory
                 OutlinedButton(
                     onClick = onUseAddGuessItem,
+                    enabled = addGuessItems > 0,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("➕ Add 1 Guess (200 coins)   [${coins} coins]")
+                    val label = if (addGuessItems > 0)
+                        "➕ Use Guess Item (+1 guess)   [$addGuessItems in bag]"
+                    else
+                        "➕ No Guess Items in bag"
+                    Text(label)
                 }
 
-                // Go to store for more lives/coins
-                TextButton(onClick = onGoToStore) {
+                // Go to store
+                TextButton(onClick = onGoToStore, modifier = Modifier.fillMaxWidth()) {
                     Text("Go to Store for more lives / coins")
+                }
+
+                HorizontalDivider()
+
+                // Main menu / exit level
+                TextButton(onClick = onMainMenu, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "🏠 Exit to Main Menu",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    )
                 }
             }
         }

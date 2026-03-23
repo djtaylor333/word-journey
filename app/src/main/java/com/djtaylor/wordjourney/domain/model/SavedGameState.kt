@@ -115,7 +115,25 @@ data class PlayerProgress(
     val seasonalSummerLevel: Int = 1,
     val seasonalHalloweenLevel: Int = 1,
     val seasonalThanksgivingLevel: Int = 1,
-    val seasonalChristmasLevel: Int = 1
+    val seasonalChristmasLevel: Int = 1,
+    // Seasonal pack first-open timestamps (epoch ms, 0 = never opened)
+    val seasonalFirstOpenEaster: Long = 0L,
+    val seasonalFirstOpenValentines: Long = 0L,
+    val seasonalFirstOpenSummer: Long = 0L,
+    val seasonalFirstOpenHalloween: Long = 0L,
+    val seasonalFirstOpenThanksgiving: Long = 0L,
+    val seasonalFirstOpenChristmas: Long = 0L,
+    // Seasonal pack milestone tiers claimed (0 = none, 1 = claimed 10-level reward, 2 = 20, …, 10 = 100)
+    val seasonalMilestoneEaster: Int = 0,
+    val seasonalMilestoneValentines: Int = 0,
+    val seasonalMilestoneSummer: Int = 0,
+    val seasonalMilestoneHalloween: Int = 0,
+    val seasonalMilestoneThanksgiving: Int = 0,
+    val seasonalMilestoneChristmas: Int = 0,
+    // Stars earned on last completed regular level (used to grant free definition on next level)
+    val lastLevelStars: Int = 0,
+    // Date when all 3 daily challenge lengths (4/5/6) were won in the same day (YYYY-MM-DD)
+    val dailyAllThreeCompletedDate: String = ""
 )
 
 // ── Seasonal level helpers ────────────────────────────────────────────────────
@@ -139,5 +157,49 @@ fun PlayerProgress.withSeasonalLevelAdvanced(seasonKey: String, newLevel: Int): 
     "halloween"    -> copy(seasonalHalloweenLevel    = newLevel)
     "thanksgiving" -> copy(seasonalThanksgivingLevel = newLevel)
     "christmas"    -> copy(seasonalChristmasLevel    = newLevel)
+    else           -> this
+}
+
+/** Returns the last milestone tier claimed for the given season pack (0 = none). */
+fun PlayerProgress.seasonalMilestoneFor(seasonKey: String): Int = when (seasonKey) {
+    "easter"       -> seasonalMilestoneEaster
+    "valentines"   -> seasonalMilestoneValentines
+    "summer"       -> seasonalMilestoneSummer
+    "halloween"    -> seasonalMilestoneHalloween
+    "thanksgiving" -> seasonalMilestoneThanksgiving
+    "christmas"    -> seasonalMilestoneChristmas
+    else           -> 0
+}
+
+/** Returns a copy with the named season's milestone tier updated. */
+fun PlayerProgress.withSeasonalMilestone(seasonKey: String, tier: Int): PlayerProgress = when (seasonKey) {
+    "easter"       -> copy(seasonalMilestoneEaster       = tier)
+    "valentines"   -> copy(seasonalMilestoneValentines   = tier)
+    "summer"       -> copy(seasonalMilestoneSummer       = tier)
+    "halloween"    -> copy(seasonalMilestoneHalloween    = tier)
+    "thanksgiving" -> copy(seasonalMilestoneThanksgiving = tier)
+    "christmas"    -> copy(seasonalMilestoneChristmas    = tier)
+    else           -> this
+}
+
+/** Returns the epoch-ms timestamp when the pack was first opened (0 = never). */
+fun PlayerProgress.seasonalFirstOpenFor(seasonKey: String): Long = when (seasonKey) {
+    "easter"       -> seasonalFirstOpenEaster
+    "valentines"   -> seasonalFirstOpenValentines
+    "summer"       -> seasonalFirstOpenSummer
+    "halloween"    -> seasonalFirstOpenHalloween
+    "thanksgiving" -> seasonalFirstOpenThanksgiving
+    "christmas"    -> seasonalFirstOpenChristmas
+    else           -> 0L
+}
+
+/** Returns a copy with the named season's first-open timestamp recorded. */
+fun PlayerProgress.withSeasonalFirstOpen(seasonKey: String, timestampMs: Long): PlayerProgress = when (seasonKey) {
+    "easter"       -> copy(seasonalFirstOpenEaster       = timestampMs)
+    "valentines"   -> copy(seasonalFirstOpenValentines   = timestampMs)
+    "summer"       -> copy(seasonalFirstOpenSummer       = timestampMs)
+    "halloween"    -> copy(seasonalFirstOpenHalloween    = timestampMs)
+    "thanksgiving" -> copy(seasonalFirstOpenThanksgiving = timestampMs)
+    "christmas"    -> copy(seasonalFirstOpenChristmas    = timestampMs)
     else           -> this
 }

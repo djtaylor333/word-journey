@@ -2,6 +2,7 @@ package com.djtaylor.wordjourney.ui.game
 
 import android.app.Activity
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +52,9 @@ fun GameScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val isLightTheme = !isSystemInDarkTheme()
     val textScale = LocalTextScale.current
+
+    // Wraps home navigation: refunds life if player exited before submitting any guess
+    val exitGame: () -> Unit = { viewModel.onExitLevel(); onNavigateHome() }
 
     // Track play session time (only when screen is on and level is active)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -134,7 +138,7 @@ fun GameScreen(
             GameTopBar(
                 uiState = uiState,
                 textScale = textScale,
-                onBack = onNavigateHome,
+                onBack = exitGame,
                 onStore = onNavigateToStore,
                 onSettings = onNavigateToSettings
             )
@@ -164,8 +168,8 @@ fun GameScreen(
 
                 // ── GAME GRID ─────────────────────────────────────────────────
                 Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier.weight(1f).clipToBounds(),
+                    contentAlignment = Alignment.TopCenter
                 ) {
                     GameGrid(
                         uiState = uiState,
@@ -220,12 +224,15 @@ fun GameScreen(
             bonusLifeEarned = uiState.bonusLifeEarned,
             starsEarned = uiState.starsEarned,
             isDailyChallenge = uiState.isDailyChallenge,
+            bonusMessage = uiState.seasonalMilestoneMessage
+                ?: uiState.areaCompleteMessage
+                ?: uiState.streakRewardMessage,
             onNextLevel = {
                 val (diff, lvl) = viewModel.getNextLevelRoute()
                 viewModel.nextLevel()
                 onNavigateToNextLevel(diff, lvl)
             },
-            onMainMenu = onNavigateHome
+            onMainMenu = exitGame
         )
     }
 
@@ -235,10 +242,12 @@ fun GameScreen(
             currentLives = uiState.lives,
             coins = uiState.coins,
             diamonds = uiState.diamonds,
+            addGuessItems = uiState.addGuessItems,
             onUseLife = { viewModel.useLifeForMoreGuesses() },
             onUseAddGuessItem = { viewModel.useAddGuessItem() },
-            onUseCoinsForContinue = { viewModel.useCoinsForContinue() },
-            onGoToStore = onNavigateToStore
+            onUseCoinsForSingleGuess = { viewModel.useCoinsForSingleGuess() },
+            onGoToStore = onNavigateToStore,
+            onMainMenu = exitGame
         )
     }
 
@@ -250,7 +259,8 @@ fun GameScreen(
             onTradeCoins = { viewModel.tradeCoinsForLife() },
             onTradeDiamonds = { viewModel.tradeDiamondsForLife() },
             onGoToStore = onNavigateToStore,
-            onWait = { /* close dialog but stay on screen */ }
+            onWait = { viewModel.dismissNoLivesDialog() },
+            onMainMenu = exitGame
         )
     }
 
@@ -306,7 +316,7 @@ fun GameScreen(
                 }
             },
             confirmButton = {
-                Button(onClick = onNavigateHome) {
+                Button(onClick = exitGame) {
                     Text("Back to Challenges")
                 }
             }

@@ -1,9 +1,9 @@
 {
-  "versionName": "2.23.0",
-  "versionCode": 45,
+  "versionName": "2.25.0",
+  "versionCode": 47,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
   "buildDate": "2026-03-23",
-  "releaseNotes": "v2.23.0 — 500 levels per difficulty with 50 unique zone themes\n• Easy, Regular and Hard modes each expanded to 500 levels\n• 480 unique words per standard difficulty before any cycling\n• 50 new zone themes across 5 worlds (500 levels total)\n• Zone themes: Beginnings, Wild Frontiers, Ancient Wonders, Elemental Realms, Legendary Endgame\n• Android level select now shows up to 500 levels (was 100)\n• All new words include verified definitions shown on win screen"
+  "releaseNotes": "v2.25.0 — Gameplay polish and Star Levels preview\n• Fixed scroll position: grid now starts at top (or active row for resumed levels)\n• Main menu now shows accurate guess counts per difficulty\n• Added Star Levels section (Coming Soon — unlock with stars in Adventure)\n• Life now only deducted if you submit at least one guess on a level\n• Fixed 'Level N' badge splitting mid-word — now shows as 'Lv. N'\n• Added tests for onExitLevel life refund behavior and difficulty parameters"
 }

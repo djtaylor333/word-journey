@@ -21,13 +21,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.djtaylor.wordjourney.domain.model.SeasonalThemeManager
 import com.djtaylor.wordjourney.domain.model.SeasonalWordPacks
+import com.djtaylor.wordjourney.domain.model.seasonalFirstOpenFor
 import com.djtaylor.wordjourney.domain.model.seasonalLevelFor
+import com.djtaylor.wordjourney.domain.model.seasonalMilestoneFor
 import com.djtaylor.wordjourney.ui.theme.AccentEasy
+import java.util.concurrent.TimeUnit
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ThemedPacksScreen — browse and play all 6 seasonal word packs
 // Each pack has 100 levels and is always playable regardless of the date.
 // ─────────────────────────────────────────────────────────────────────────────
+
+private const val EXPIRY_DAYS = 30L   // challenge window from first open
 
 /** Season-specific theme colours for the pack cards. */
 private data class PackColors(val bg: Color, val accent: Color, val badge: Color)
@@ -52,6 +57,31 @@ fun ThemedPacksScreen(
     val scrollState = rememberScrollState()
     val seasonStatuses = remember { SeasonalThemeManager.getAllSeasonStatuses() }
     val playerProgress = uiState.progress
+
+    // Pending navigation after intro dialog
+    var pendingNavigationKey by remember { mutableStateOf<String?>(null) }
+
+    // Intro dialog for a specific season
+    val introKey = uiState.introPackKey
+    if (introKey != null) {
+        val introSeason = seasonStatuses.find { it.season.name.lowercase() == introKey }?.season
+        SeasonIntroDialog(
+            season = introSeason,
+            colors = introSeason?.let { seasonColors(it) }
+                ?: PackColors(Color(0xFF1C1C1E), Color(0xFF60A5FA), Color(0xFF3B82F6)),
+            onPlay = {
+                viewModel.dismissIntroDialog()
+                pendingNavigationKey?.let { key ->
+                    onNavigateToLevelSelect(key)
+                    pendingNavigationKey = null
+                }
+            },
+            onDismiss = {
+                viewModel.dismissIntroDialog()
+                pendingNavigationKey = null
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -81,7 +111,7 @@ fun ThemedPacksScreen(
             Spacer(Modifier.height(4.dp))
 
             Text(
-                "100 themed levels per pack. All packs are always available to play!",
+                "100 themed levels per pack. Complete milestones every 10 levels for item rewards!",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center,
@@ -99,6 +129,16 @@ fun ThemedPacksScreen(
                 val levelsCompleted = (currentLevel - 1).coerceAtLeast(0)
                 val progress = levelsCompleted.toFloat() / totalLevels.toFloat()
                 val colors = seasonColors(season)
+                val firstOpenMs = playerProgress.seasonalFirstOpenFor(seasonKey)
+                val milestoneClaimed = playerProgress.seasonalMilestoneFor(seasonKey)
+                val nextMilestoneLevels = (milestoneClaimed + 1) * 10
+
+                // Expiry countdown
+                val daysRemaining: Long? = if (firstOpenMs > 0L) {
+                    val elapsed = System.currentTimeMillis() - firstOpenMs
+                    val remaining = TimeUnit.DAYS.convert(EXPIRY_DAYS * 24 * 3600 * 1000L - elapsed, TimeUnit.MILLISECONDS)
+                    remaining.coerceAtLeast(0L)
+                } else null
 
                 SeasonPackCard(
                     season = season,
@@ -109,8 +149,17 @@ fun ThemedPacksScreen(
                     totalLevels = totalLevels,
                     progress = progress,
                     colors = colors,
+                    daysRemaining = daysRemaining,
+                    nextMilestoneLevels = if (levelsCompleted < totalLevels) nextMilestoneLevels else null,
                     onClick = {
-                        onNavigateToLevelSelect(difficultyKey)
+                        val diffKey = "seasonal_$seasonKey"
+                        val isFirstOpen = viewModel.onPackOpened(seasonKey)
+                        if (isFirstOpen) {
+                            // Intro dialog will be shown; navigate after dismissal
+                            pendingNavigationKey = diffKey
+                        } else {
+                            onNavigateToLevelSelect(diffKey)
+                        }
                     }
                 )
             }
@@ -118,6 +167,51 @@ fun ThemedPacksScreen(
             Spacer(Modifier.height(16.dp))
         }
     }
+}
+
+// ── Intro dialog shown the first time a player opens a seasonal pack ──────────
+@Composable
+private fun SeasonIntroDialog(
+    season: SeasonalThemeManager.Season?,
+    colors: PackColors,
+    onPlay: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "${season?.emoji ?: "🎁"} ${season?.displayName ?: "Themed Pack"}",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    season?.description ?: "A special themed word pack awaits!",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                HorizontalDivider()
+                Text("🏆 How it works:", fontWeight = FontWeight.SemiBold)
+                Text("• 100 themed levels to complete", style = MaterialTheme.typography.bodyMedium)
+                Text("• Every 10 levels: reward of 3 of each power-up item", style = MaterialTheme.typography.bodyMedium)
+                Text("• Complete all 100 levels: grand prize of 10,000 coins + 100 diamonds!", style = MaterialTheme.typography.bodyMedium)
+                Text("• 30-day challenge window starts now — try to finish in time!", style = MaterialTheme.typography.bodyMedium)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onPlay,
+                colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
+            ) {
+                Text("▶ Start Pack!", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Later") }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,6 +225,8 @@ private fun SeasonPackCard(
     totalLevels: Int,
     progress: Float,
     colors: PackColors,
+    daysRemaining: Long?,
+    nextMilestoneLevels: Int?,
     onClick: () -> Unit
 ) {
     Surface(
@@ -216,6 +312,39 @@ private fun SeasonPackCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
+                }
+            }
+
+            // Expiry countdown + next milestone hints
+            val showExtra = daysRemaining != null || nextMilestoneLevels != null
+            if (showExtra) {
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (daysRemaining != null) {
+                        val expiryColor = when {
+                            daysRemaining <= 3  -> Color(0xFFEF4444)
+                            daysRemaining <= 7  -> Color(0xFFF59E0B)
+                            else                -> colors.accent.copy(alpha = 0.8f)
+                        }
+                        Text(
+                            "⏰ ${daysRemaining}d left",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = expiryColor
+                        )
+                    }
+                    if (nextMilestoneLevels != null && levelsCompleted < totalLevels) {
+                        val levelsToGo = nextMilestoneLevels - levelsCompleted
+                        Text(
+                            "🎁 Reward in ${levelsToGo} lvl${if (levelsToGo != 1) "s" else ""}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.accent.copy(alpha = 0.8f)
+                        )
+                    }
                 }
             }
         }

@@ -32,7 +32,8 @@ fun NoLivesDialog(
     onTradeCoins: () -> Unit,
     onTradeDiamonds: () -> Unit,
     onGoToStore: () -> Unit,
-    onWait: () -> Unit
+    onWait: () -> Unit,
+    onMainMenu: () -> Unit
 ) {
     Dialog(onDismissRequest = onWait) {
         val isLt = !isSystemInDarkTheme()
@@ -108,9 +109,19 @@ fun NoLivesDialog(
                     Text("Go to Store")
                 }
 
-                // Wait
-                TextButton(onClick = onWait) {
-                    Text("Wait for a free life")
+                // Wait for regen
+                TextButton(onClick = onWait, modifier = Modifier.fillMaxWidth()) {
+                    Text("⏳ Wait for a free life")
+                }
+
+                HorizontalDivider()
+
+                // Main menu
+                OutlinedButton(
+                    onClick = onMainMenu,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("🏠 Go to Main Menu")
                 }
             }
         }

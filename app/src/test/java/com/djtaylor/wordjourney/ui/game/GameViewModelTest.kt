@@ -520,8 +520,8 @@ class GameViewModelTest {
 
         val state = vm.uiState.first()
         assertEquals(GameStatus.IN_PROGRESS, state.status)
-        // Easy difficulty grants 3 bonus guesses
-        assertEquals(11, state.maxGuesses) // 8 + 3
+        // Easy difficulty grants 10 bonus guesses
+        assertEquals(18, state.maxGuesses) // 8 + 10
     }
 
     @Test
@@ -664,7 +664,7 @@ class GameViewModelTest {
         assertEquals(1000L, state.coins)          // 2000 - 1000
         assertEquals(5, state.lives)              // unchanged
         assertEquals(GameStatus.IN_PROGRESS, state.status)
-        assertEquals(11, state.maxGuesses)        // 8 + 3 bonus
+        assertEquals(18, state.maxGuesses)        // 8 + 10 bonus (EASY bonusAttemptsPerLife = 10)
         assertFalse(state.showNeedMoreGuessesDialog)
     }
 
@@ -994,7 +994,7 @@ class GameViewModelTest {
 
         state = vm.uiState.first()
         assertEquals(GameStatus.IN_PROGRESS, state.status)
-        assertEquals(11, state.maxGuesses) // 8 + 3
+        assertEquals(18, state.maxGuesses) // 8 + 10 bonus (EASY bonusAttemptsPerLife = 10)
 
         // Now win
         "ABLE".forEach { vm.onKeyPressed(it) }
@@ -2393,6 +2393,176 @@ class GameViewModelTest {
         val vm = createViewModel(difficulty = "daily_5", word = "CRANE", progress = progress)
         awaitInit(vm)
         assertTrue(vm.uiState.first().isVip)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // v2.25.0 — LIFE REFUND ON EXIT WITHOUT GUESS (onExitLevel)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Creates a ViewModel where saveProgress() reactively updates the progressFlow,
+     * matching real DataStore behaviour. Required for tests that check life refund logic
+     * because the collectLatest subscriber syncs playerProgress from the flow.
+     */
+    private fun createViewModelReactive(
+        difficulty: String = "easy",
+        level: Int = 1,
+        word: String? = "ABLE",
+        progress: PlayerProgress = PlayerProgress()
+    ): GameViewModel {
+        progressFlow = MutableStateFlow(progress)
+
+        wordRepository = mockk {
+            coEvery { getWordForLevel(any(), any(), any()) } returns word
+            coEvery { getWordForLevel(any(), any(), isNull()) } returns word
+            coEvery { isValidWord(any(), any()) } returns true
+            coEvery { getDefinition(any(), any(), any()) } returns "A test definition"
+            coEvery { getDefinition(any(), any(), isNull()) } returns "A test definition"
+            coEvery { findAbsentLetter(any(), any(), any()) } returns 'X'
+        }
+
+        playerRepository = mockk {
+            every { playerProgressFlow } returns progressFlow
+            every { isFirstLaunch } returns MutableStateFlow(false)
+            // Reactively update the flow so collectLatest keeps playerProgress in sync
+            coEvery { saveProgress(any()) } coAnswers {
+                progressFlow.value = firstArg()
+            }
+            coEvery { loadInProgressGame(any<Difficulty>()) } returns null
+            coEvery { loadInProgressGame(any<String>()) } returns null
+            coEvery { saveInProgressGame(any()) } just Runs
+            coEvery { clearInProgressGame(any<Difficulty>()) } just Runs
+            coEvery { clearInProgressGame(any<String>()) } just Runs
+        }
+
+        audioManager = mockk(relaxed = true)
+
+        starRatingDao = mockk {
+            coEvery { upsert(any()) } just Runs
+            coEvery { get(any(), any()) } returns null
+            coEvery { getAllForDifficulty(any()) } returns emptyList()
+            coEvery { totalStarsForDifficulty(any()) } returns 0
+            coEvery { totalStars() } returns 0
+            coEvery { countPerfectLevels() } returns 0
+        }
+
+        dailyChallengeRepository = mockk {
+            coEvery { getDailyWord(any(), any()) } returns (word ?: "QUIZ")
+            coEvery { getDailyWord(any()) } returns (word ?: "QUIZ")
+            coEvery { hasPlayedToday(any()) } returns false
+            coEvery { saveResult(any(), any(), any(), any(), any(), any()) } just Runs
+            coEvery { saveResult(any(), any(), any(), any(), any()) } just Runs
+            coEvery { getResultsForToday() } returns emptyList()
+            coEvery { totalWins() } returns 0
+            coEvery { totalPlayed() } returns 0
+            coEvery { todayDateString() } returns "2026-02-21"
+            every { getDefinitionForDailyWord(any()) } returns null
+        }
+
+        return GameViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("difficulty" to difficulty, "level" to level)),
+            wordRepository = wordRepository,
+            playerRepository = playerRepository,
+            evaluateGuess = EvaluateGuessUseCase(),
+            lifeRegenUseCase = LifeRegenUseCase(),
+            audioManager = audioManager,
+            starRatingDao = starRatingDao,
+            dailyChallengeRepository = dailyChallengeRepository,
+            achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true)
+        )
+    }
+
+    @Test
+    fun `onExitLevel refunds life when player exits without submitting any guess`() = runTest {
+        val progress = PlayerProgress(lives = 5, easyLevel = 1)
+        val vm = createViewModelReactive(difficulty = "easy", level = 1, word = "ABLE", progress = progress)
+        awaitInit(vm)
+
+        // Life deducted on init: 5 → 4
+        coVerify { playerRepository.saveProgress(match { it.lives == 4 }) }
+
+        // Exit without submitting any guess — life should be refunded
+        vm.onExitLevel()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.lives == 5 }) }
+    }
+
+    @Test
+    fun `onExitLevel does NOT refund life when player has submitted at least one guess`() = runTest {
+        val progress = PlayerProgress(lives = 5, easyLevel = 1)
+        val vm = createViewModelReactive(difficulty = "easy", level = 1, word = "ABLE", progress = progress)
+        awaitInit(vm)
+
+        // Submit one wrong guess
+        "DARK".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // Capture the current call count to saveProgress before exit
+        val callsBefore = mutableListOf<PlayerProgress>()
+        coVerify(atLeast = 0) { playerRepository.saveProgress(capture(callsBefore)) }
+        val livesAfterGuess = callsBefore.lastOrNull()?.lives ?: 4
+
+        // Exit after a guess — no refund
+        vm.onExitLevel()
+        awaitInit(vm)
+
+        // saveProgress should NOT be called with lives = livesAfterGuess + 1 (the refund amount)
+        coVerify(exactly = 0) { playerRepository.saveProgress(match { it.lives == livesAfterGuess + 1 }) }
+    }
+
+    @Test
+    fun `onExitLevel is a no-op for replay (no life was deducted on start)`() = runTest {
+        // easyLevel = 5 means level 1 is a replay
+        val progress = PlayerProgress(lives = 5, easyLevel = 5)
+        val vm = createViewModel(difficulty = "easy", level = 1, word = "ABLE", progress = progress)
+        awaitInit(vm)
+
+        // Replay: no life deducted → no saveProgress at all yet
+        coVerify(exactly = 0) { playerRepository.saveProgress(any()) }
+
+        vm.onExitLevel()
+        awaitInit(vm)
+
+        // Still no saveProgress calls
+        coVerify(exactly = 0) { playerRepository.saveProgress(any()) }
+    }
+
+    @Test
+    fun `onExitLevel is a no-op for daily challenge (no life deducted)`() = runTest {
+        val progress = PlayerProgress(lives = 5)
+        val vm = createViewModel(difficulty = "daily_4", word = "QUIZ", progress = progress)
+        awaitInit(vm)
+
+        // Daily challenge does not deduct life
+        coVerify(exactly = 0) { playerRepository.saveProgress(match { it.lives == 4 }) }
+
+        vm.onExitLevel()
+        awaitInit(vm)
+
+        // No refund attempt (lives was never deducted, flag is false)
+        coVerify(exactly = 0) { playerRepository.saveProgress(match { it.lives == 6 }) }
+    }
+
+    @Test
+    fun `calling onExitLevel twice does not refund life twice`() = runTest {
+        val progress = PlayerProgress(lives = 5, easyLevel = 1)
+        val vm = createViewModelReactive(difficulty = "easy", level = 1, word = "ABLE", progress = progress)
+        awaitInit(vm)
+
+        // First exit refunds life: lives goes 5→4→5
+        vm.onExitLevel()
+        awaitInit(vm)
+
+        // Second exit should be a no-op (lifeDeductedForCurrentLevel = false after first refund)
+        vm.onExitLevel()
+        awaitInit(vm)
+
+        // saveProgress should be called with lives = 5 exactly once
+        coVerify(exactly = 1) { playerRepository.saveProgress(match { it.lives == 5 }) }
     }
 
     /** Helper that creates a ViewModel with a specific definition return value. */

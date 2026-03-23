@@ -62,15 +62,22 @@ fun GameGrid(
         label = "shakeOffset"
     )
 
-    // Enable scrolling when 8+ total rows
+    // Enable scrolling when 7+ total rows (covers EASY default 8, plus bonus rows)
     val totalRows = uiState.maxGuesses
-    val needsScroll = totalRows > 8
+    val needsScroll = totalRows >= 7
     val scrollState = rememberScrollState()
 
-    // Auto-scroll to bottom when new guess is added
+    // Auto-scroll: start at top on level load; scroll to show active row after each guess
     val guessCount = uiState.guesses.size
+    var isFirstLoad by remember { mutableStateOf(true) }
     LaunchedEffect(guessCount) {
-        if (needsScroll) {
+        if (!needsScroll) return@LaunchedEffect
+        if (isFirstLoad) {
+            // Level just loaded — always start at the top (shows row 0)
+            isFirstLoad = false
+            scrollState.scrollTo(0)
+        } else {
+            // A new guess was submitted — scroll forward to show the active input row
             scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
