@@ -42,13 +42,13 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.29.0 - Billing setup guide, comprehensive test coverage
+RELEASE_NOTES = """v2.30.0 - Play Games achievements published, Play Licensing key
 
-\u2022 Store: billing warning banner now opens step-by-step Play Console setup guide
-\u2022 Store: 6-step numbered dialog: ACTIVE products, base plans, publish to test track, Licensed Tester
-\u2022 Home: font sizes reduced 25-35% for low-res display support (carried from v2.28.0)
-\u2022 Store: Restore Purchases from prior sessions (carried from v2.28.0)
-\u2022 Tests: 832 passing (37 new: StubBillingManager + VIP purchase + warning content)"""
+\u2022 Play Games: all 31 achievements now published and live for all users
+\u2022 Security: Play Store RSA licensing public key stored in code
+\u2022 Store: billing setup guide dialog (carried from v2.29.0)
+\u2022 Home: font scaling for low-res devices (carried from v2.28.0)
+\u2022 Store: Restore Purchases button (carried from v2.28.0)"""
 
 
 def build_service(key_path: str):

@@ -1,9 +1,9 @@
 {
-  "versionName": "2.29.0",
-  "versionCode": 51,
+  "versionName": "2.30.0",
+  "versionCode": 52,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-03-24",
-  "releaseNotes": "v2.29.0 \u2014 Billing diagnostics dialog, comprehensive tests\n\u2022 Store: billing warning banner is now tappable \u2014 shows numbered Play Console setup steps\n\u2022 Store: 6-step help dialog (Make products ACTIVE, publish app, add Licensed Tester, etc.)\n\u2022 Tests: 37 new billing tests (StubBillingManagerTest + \u00a714 VIP + \u00a715 warning content)\n\u2022 Home menu font scaling carried forward from v2.28.0\n\u2022 Restore Purchases button carried forward from v2.28.0"
+  "buildDate": "2026-05-29",
+  "releaseNotes": "v2.30.0 \u2014 Play Games achievements published, Play Licensing key\n\u2022 Play Games: all 31 achievements published (icons via Play Console)\n\u2022 Security: Play Store RSA licensing public key stored in LicensingConstants\n\u2022 Billing diagnostics dialog carried forward from v2.29.0\n\u2022 Restore Purchases button carried forward from v2.28.0"
 }
