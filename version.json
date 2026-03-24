@@ -1,9 +1,9 @@
 {
-  "versionName": "2.30.3",
-  "versionCode": 55,
+  "versionName": "2.30.4",
+  "versionCode": 56,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
   "buildDate": "2026-03-24",
-  "releaseNotes": "v2.30.3 \u2014 UI fixes & VIP improvements\n\u2022 Fix: level number no longer flashes \u20181\u2019 before showing correct level\n\u2022 Fix: future themed packs are now locked until their season begins\n\u2022 VIP: 2\u00d7 rewards on themed pack milestones (every 10 levels)\n\u2022 VIP: 2\u00d7 grand prize when completing all 100 levels of a themed pack\n\u2022 VIP: 2\u00d7 diamonds for completing every 10-level stage\n\u2022 About: version number updated to 2.30.3"
+  "releaseNotes": "v2.30.4 \u2014 Remove billing warning banner\n\u2022 Store: removed the in-app billing setup warning message (products are active in Play Console)"
 }
