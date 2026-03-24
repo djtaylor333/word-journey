@@ -33,43 +33,10 @@ resp = svc.monetization().onetimeproducts().list(packageName=PKG).execute()
 existing = {p["productId"]: p for p in resp.get("oneTimeProducts", [])}
 print(f"  Found {len(existing)} products: {sorted(existing.keys())}")
 
-# ── 2. Create missing coins_500 ───────────────────────────────────────────────
-if "coins_500" not in existing:
-    print("\n=== Creating missing coins_500 ===")
-    try:
-        create_body = {
-            "requests": [
-                {
-                    "oneTimeProduct": {
-                        "packageName": PKG,
-                        "productId": "coins_500",
-                        "listings": [
-                            {
-                                "languageCode": "en-US",
-                                "title": "500 Coins",
-                                "description": "Add 500 coins to your wallet."
-                            }
-                        ],
-                    },
-                    "regionsVersion": {"version": "2025/03"},
-                    "updateMask": "listings",
-                    "allowMissing": True,
-                    "latencyTolerance": "PRODUCT_UPDATE_LATENCY_TOLERANCE_LATENCY_TOLERANT"
-                }
-            ]
-        }
-        r = svc.monetization().onetimeproducts().batchUpdate(
-            packageName=PKG, body=create_body
-        ).execute()
-        print(f"  coins_500 created: {json.dumps(r, indent=2)[:300]}")
-    except Exception as e:
-        print(f"  coins_500 create failed: {e}")
-else:
-    print("\n=== coins_500 already exists ===")
-
-# ── 3. Activate purchase options for ALL products ────────────────────────────
+# ── 2. Activate purchase options for ALL products ────────────────────────────
 EXPECTED_PRODUCTS = [
-    "coins_500", "coins_1500", "coins_5000",
+    "coin_pack_500",   # ProductIds.COINS_500 — Play Console ID
+    "coins_1500", "coins_5000",
     "diamonds_10", "diamonds_50", "diamonds_200",
     "lives_pack_5",
     "bundle_starter", "bundle_adventurer", "bundle_champion",
@@ -79,7 +46,6 @@ print("\n=== Activating purchase options ===")
 ok = 0
 fail = 0
 
-# Re-fetch after potential creation
 resp2 = svc.monetization().onetimeproducts().list(packageName=PKG).execute()
 current_products = {p["productId"]: p for p in resp2.get("oneTimeProducts", [])}
 
