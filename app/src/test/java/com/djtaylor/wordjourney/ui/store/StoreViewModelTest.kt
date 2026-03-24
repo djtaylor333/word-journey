@@ -819,7 +819,7 @@ class StoreViewModelTest {
     }
 
     @Test
-    fun `purchase uses ProductIds_COINS_500 = coins_500`() = runTest {
+    fun `purchase uses ProductIds_COINS_500 = coin_pack_500`() = runTest {
         // Verifies the constant used when calling billingManager matches Play Console
         val vm = createViewModel(PlayerProgress(devModeEnabled = false))
         testDispatcher.scheduler.advanceUntilIdle()
@@ -827,7 +827,7 @@ class StoreViewModelTest {
         vm.purchase(ProductIds.COINS_500)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify { billingManager.purchase(eq("coins_500"), any()) }
+        coVerify { billingManager.purchase(eq("coin_pack_500"), any()) }
     }
 
     // ══════════════════════════════════════════════════════════════════════════

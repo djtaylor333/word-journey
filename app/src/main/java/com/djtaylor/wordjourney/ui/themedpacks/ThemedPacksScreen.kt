@@ -140,9 +140,14 @@ fun ThemedPacksScreen(
                     remaining.coerceAtLeast(0L)
                 } else null
 
+                // A seasonal pack is locked (not yet playable) if its season hasn't started
+                // and the player hasn't already made progress in it.
+                val isLocked = status.daysUntil > 0 && levelsCompleted == 0
+
                 SeasonPackCard(
                     season = season,
                     isActive = status.isActive,
+                    isLocked = isLocked,
                     daysUntil = status.daysUntil,
                     currentLevel = currentLevel,
                     levelsCompleted = levelsCompleted,
@@ -219,6 +224,7 @@ private fun SeasonIntroDialog(
 private fun SeasonPackCard(
     season: SeasonalThemeManager.Season,
     isActive: Boolean,
+    isLocked: Boolean = false,
     daysUntil: Long,
     currentLevel: Int,
     levelsCompleted: Int,
@@ -231,14 +237,19 @@ private fun SeasonPackCard(
 ) {
     Surface(
         onClick = onClick,
+        enabled = !isLocked,
         shape = RoundedCornerShape(18.dp),
-        color = colors.bg,
+        color = if (isLocked) colors.bg.copy(alpha = 0.5f) else colors.bg,
         border = BorderStroke(
             width = if (isActive) 2.dp else 1.dp,
-            color = if (isActive) colors.accent else colors.accent.copy(alpha = 0.3f)
+            color = when {
+                isLocked -> Color.Gray.copy(alpha = 0.2f)
+                isActive -> colors.accent
+                else     -> colors.accent.copy(alpha = 0.3f)
+            }
         ),
         tonalElevation = 4.dp,
-        shadowElevation = if (isActive) 8.dp else 4.dp,
+        shadowElevation = if (isActive && !isLocked) 8.dp else 4.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
@@ -264,12 +275,24 @@ private fun SeasonPackCard(
                 // Status badge
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isActive) AccentEasy.copy(alpha = 0.25f) else colors.accent.copy(alpha = 0.15f)
+                    color = when {
+                        isLocked -> Color.Gray.copy(alpha = 0.15f)
+                        isActive -> AccentEasy.copy(alpha = 0.25f)
+                        else     -> colors.accent.copy(alpha = 0.15f)
+                    }
                 ) {
                     Text(
-                        if (isActive) "🟢 Active" else "⏳ ${daysUntil}d",
+                        when {
+                            isLocked -> "🔒 ${daysUntil}d"
+                            isActive -> "🟢 Active"
+                            else     -> "⏳ ${daysUntil}d"
+                        },
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        color = if (isActive) AccentEasy else colors.accent,
+                        color = when {
+                            isLocked -> Color.Gray
+                            isActive -> AccentEasy
+                            else     -> colors.accent
+                        },
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 11.sp
                     )

@@ -86,7 +86,8 @@ class GameViewModel @Inject constructor(
     }
 
     private val _uiState = MutableStateFlow(
-        GameUiState(difficulty = difficulty, isLoading = true)
+        // Initialise with the correct level immediately so the top bar never flashes "Level 1"
+        GameUiState(difficulty = difficulty, level = levelArg, isLoading = true)
     )
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
@@ -590,27 +591,34 @@ class GameViewModel @Inject constructor(
             // Update cumulative stats
             var p = updatedProgress
 
-            // Seasonal pack milestone check (every 10 levels ⟹ 3 of each item; 100 levels ⟹ big reward)
+            // Seasonal pack milestone check (every 10 levels ⟹ items; 100 levels ⟹ big reward)
+            // VIP subscribers receive 2× all milestone rewards.
             var seasonalMilestoneMsg: String? = null
             if (isSeasonalLevel && seasonalPackKey != null) {
                 val completedLevels = level          // level just won
                 val milestoneTier = completedLevels / 10
                 val currentMilestone = p.seasonalMilestoneFor(seasonalPackKey)
                 if (milestoneTier > currentMilestone && milestoneTier > 0) {
+                    val vipBonus = p.isVip
                     p = p.withSeasonalMilestone(seasonalPackKey, milestoneTier)
                     if (completedLevels >= 100) {
-                        // 100-level pack completion: coins + diamonds grand prize
-                        p = p.copy(coins = p.coins + 10_000L, diamonds = p.diamonds + 100)
-                        seasonalMilestoneMsg = "🏅 Pack Complete! All 100 levels done!\n+10000 ⬡  +100 💎"
+                        // 100-level pack completion: grand prize (2x for VIP)
+                        val packCoins = if (vipBonus) 20_000L else 10_000L
+                        val packDiamonds = if (vipBonus) 200 else 100
+                        p = p.copy(coins = p.coins + packCoins, diamonds = p.diamonds + packDiamonds)
+                        val vipNote = if (vipBonus) " (VIP 2× bonus!)" else ""
+                        seasonalMilestoneMsg = "🏅 Pack Complete! All 100 levels done!\n+${packCoins} ⬡  +${packDiamonds} 💎$vipNote"
                     } else {
-                        // Every 10-level milestone: 3 of each power-up item
+                        // Every 10-level milestone: 3 of each power-up (6 for VIP)
+                        val itemCount = if (vipBonus) 6 else 3
                         p = p.copy(
-                            addGuessItems     = p.addGuessItems + 3,
-                            removeLetterItems = p.removeLetterItems + 3,
-                            definitionItems   = p.definitionItems + 3,
-                            showLetterItems   = p.showLetterItems + 3
+                            addGuessItems     = p.addGuessItems + itemCount,
+                            removeLetterItems = p.removeLetterItems + itemCount,
+                            definitionItems   = p.definitionItems + itemCount,
+                            showLetterItems   = p.showLetterItems + itemCount
                         )
-                        seasonalMilestoneMsg = "🎉 ${completedLevels}-level milestone!\n+3 of each power-up item"
+                        val vipNote = if (vipBonus) " (VIP 2×!)" else ""
+                        seasonalMilestoneMsg = "🎉 ${completedLevels}-level milestone!\n+${itemCount} of each power-up item$vipNote"
                     }
                 }
             }
@@ -1199,8 +1207,9 @@ class GameViewModel @Inject constructor(
         val completedLevel = _uiState.value.level
         val newLevel = completedLevel + 1
 
-        // VIP gets x2 coin rewards
-        val effectiveCoins = if (difficulty == Difficulty.VIP) coinsEarned * 2 else coinsEarned
+        // VIP difficulty or VIP subscribers get 2x coin rewards
+        val isVipBonus = difficulty == Difficulty.VIP || p.isVip
+        val effectiveCoins = if (isVipBonus) coinsEarned * 2 else coinsEarned
 
         if (isSeasonalLevel) {
             // Advance seasonal level progress independently of normal difficulty levels
@@ -1216,10 +1225,11 @@ class GameViewModel @Inject constructor(
 
         p = p.copy(coins = p.coins + effectiveCoins)
 
-        // Award 25 diamonds for completing each major area (every 25 levels)
+        // Award diamonds for completing each major area (every 25 levels); 2x for VIP
         val areaComplete = completedLevel % 25 == 0 && completedLevel > 0
         if (areaComplete) {
-            p = p.copy(diamonds = p.diamonds + 25)
+            val areaDiamonds = if (isVipBonus) 50 else 25
+            p = p.copy(diamonds = p.diamonds + areaDiamonds)
         }
 
         val counter = when (difficulty) {

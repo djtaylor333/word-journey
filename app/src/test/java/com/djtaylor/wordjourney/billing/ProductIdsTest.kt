@@ -16,7 +16,8 @@ class ProductIdsTest {
 
     @Test
     fun `COINS_500 matches Play Console product ID`() {
-        assertEquals("coins_500", ProductIds.COINS_500)
+        // coin_pack_500 is the authoritative Play Console product ID (not coins_500)
+        assertEquals("coin_pack_500", ProductIds.COINS_500)
     }
 
     @Test
@@ -80,10 +81,11 @@ class ProductIdsTest {
 
     // ── No product ID starts with "coin_pack" (old legacy prefix removed) ────
 
+    // COINS_500 is intentionally "coin_pack_500" (the Play Console product ID);
+    // the remaining products should not use the legacy "coin_pack_" prefix.
     @Test
     fun `no product ID uses legacy coin_pack prefix`() {
         val allProductIds = listOf(
-            ProductIds.COINS_500,
             ProductIds.COINS_1500,
             ProductIds.COINS_5000,
             ProductIds.DIAMONDS_10,

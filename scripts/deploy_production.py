@@ -26,10 +26,12 @@ vc = bundle.get('versionCode')
 print(f'Uploaded AAB versionCode: {vc}')
 
 # Assign to production track
-release_notes = ('v2.30.2 \u2014 Website & AdMob verification\n'
-                 '\u2022 App-ads.txt published at domain root for AdMob revenue verification\n'
-                 '\u2022 GitHub Pages site live at https://djtaylor333.github.io/\n'
-                 '\u2022 Store: all products and subscriptions active with 173-region pricing')
+release_notes = ('v2.30.3 \u2014 UI fixes & VIP improvements\n'
+                 '\u2022 Fix: level number no longer flashes \u20181\u2019 before showing correct level\n'
+                 '\u2022 Fix: future themed packs are now locked until their season begins\n'
+                 '\u2022 VIP: 2\u00d7 rewards on themed pack milestones (every 10 levels)\n'
+                 '\u2022 VIP: 2\u00d7 grand prize when completing all 100 levels of a themed pack\n'
+                 '\u2022 VIP: 2\u00d7 diamonds for completing every 10-level stage')
 
 track_body = {
     'releases': [{
