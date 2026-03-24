@@ -3,6 +3,7 @@ package com.djtaylor.wordjourney.ui.home
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.auth.AchievementManager
+import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
@@ -69,6 +70,7 @@ class HomeViewModelTest {
             inboxRepository = inboxRepository,
             audioManager = audioManager,
             achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true),
             inAppReviewManager = mockk {
                 coEvery { requestReview(any()) } returns true
             }

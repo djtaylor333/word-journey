@@ -1,9 +1,9 @@
 {
-  "versionName": "2.30.4",
-  "versionCode": 56,
+  "versionName": "2.30.5",
+  "versionCode": 57,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-03-24",
-  "releaseNotes": "v2.30.4 \u2014 Remove billing warning banner\n\u2022 Store: removed the in-app billing setup warning message (products are active in Play Console)"
+  "buildDate": "2026-03-25",
+  "releaseNotes": "v2.30.5 — Achievement fixes\n• Fixed FIRST_WIN not unlocking for returning players\n• Fixed streak achievements showing locked with no progress — now shows e.g. '4/7 days'\n• Fixed login streak achievements only firing on puzzle wins — now also triggers on each new login day\n• 863 unit tests green"
 }

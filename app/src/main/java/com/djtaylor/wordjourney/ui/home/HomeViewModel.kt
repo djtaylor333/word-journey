@@ -8,6 +8,7 @@ import android.content.Intent
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.auth.AchievementManager
+import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.data.repository.InboxRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
@@ -48,6 +49,7 @@ class HomeViewModel @Inject constructor(
     private val inboxRepository: InboxRepository,
     private val audioManager: WordJourneysAudioManager,
     private val achievementManager: AchievementManager,
+    private val activityProvider: ActivityProvider,
     private val inAppReviewManager: InAppReviewManager
 ) : ViewModel() {
 
@@ -139,6 +141,10 @@ class HomeViewModel @Inject constructor(
                         loginBestStreak = maxOf(updated.loginBestStreak, newLoginStreak)
                     )
                     playerRepository.saveProgress(updated)
+                    // Trigger login-streak achievements on each new calendar day
+                    activityProvider.currentActivity?.let { activity ->
+                        achievementManager.onLoginStreakUpdated(activity, newLoginStreak)
+                    }
                 }
 
                 // Check whether it's time to show the in-app review prompt.

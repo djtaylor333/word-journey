@@ -113,7 +113,9 @@ class AchievementManager @Inject constructor(
         isSeasonal: Boolean = false
     ) {
         // ── First win ────────────────────────────────────────────────────────
-        if (totalWins == 1) unlock(activity, AchievementIds.FIRST_WIN)
+        // Always call unlock (idempotent) — fires even for players who won before
+        // achievements were deployed (their totalWins already exceeded 1 at launch).
+        if (totalWins >= 1) unlock(activity, AchievementIds.FIRST_WIN)
 
         // ── Win count milestones (incremental) ───────────────────────────────
         setSteps(activity, AchievementIds.WIN_10,  totalWins)
@@ -145,15 +147,39 @@ class AchievementManager @Inject constructor(
             setSteps(activity, AchievementIds.DAILY_100, totalDailyWins)
         }
 
-        // ── Daily challenge streak ────────────────────────────────────────────
-        if (dailyStreak >= 3)  unlock(activity, AchievementIds.STREAK_3)
-        if (dailyStreak >= 7)  unlock(activity, AchievementIds.STREAK_7)
-        if (dailyStreak >= 14) unlock(activity, AchievementIds.STREAK_14)
-        if (dailyStreak >= 30) unlock(activity, AchievementIds.STREAK_30)
+        // ── Daily challenge streak (incremental — shows progress e.g. "4/7") ──────
+        // setSteps auto-unlocks when steps reach the achievement's configured max.
+        // Guard: only call setSteps when streak > 0 (API requires steps >= 1).
+        if (dailyStreak > 0) {
+            setSteps(activity, AchievementIds.STREAK_3,  dailyStreak)
+            setSteps(activity, AchievementIds.STREAK_7,  dailyStreak)
+            setSteps(activity, AchievementIds.STREAK_14, dailyStreak)
+            setSteps(activity, AchievementIds.STREAK_30, dailyStreak)
+        }
 
-        // ── Login streak ─────────────────────────────────────────────────────
-        if (loginStreak >= 7)  unlock(activity, AchievementIds.LOGIN_STREAK_7)
-        if (loginStreak >= 30) unlock(activity, AchievementIds.LOGIN_STREAK_30)
+        // ── Login streak (incremental — shows progress e.g. "5/7") ────────────
+        if (loginStreak > 0) {
+            setSteps(activity, AchievementIds.LOGIN_STREAK_7,  loginStreak)
+            setSteps(activity, AchievementIds.LOGIN_STREAK_30, loginStreak)
+        }
+    }
+
+    // ── Login streak trigger — call from HomeViewModel on each new login day ───
+
+    /**
+     * Evaluate login-streak achievements.
+     * Call this from HomeViewModel whenever [loginStreak] is updated (i.e. on each
+     * new calendar day the player opens the app), so progress is reflected even
+     * on days when the player does not complete a puzzle.
+     *
+     * @param activity     Current foreground activity.
+     * @param loginStreak  Updated consecutive login streak count (already incremented).
+     */
+    fun onLoginStreakUpdated(activity: Activity, loginStreak: Int) {
+        if (loginStreak > 0) {
+            setSteps(activity, AchievementIds.LOGIN_STREAK_7,  loginStreak)
+            setSteps(activity, AchievementIds.LOGIN_STREAK_30, loginStreak)
+        }
     }
 
     // ── Item usage trigger — call after any power-up item is used ─────────────
