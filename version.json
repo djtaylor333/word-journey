@@ -1,9 +1,9 @@
 {
-  "versionName": "2.30.5",
-  "versionCode": 57,
+  "versionName": "2.30.6",
+  "versionCode": 58,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
   "buildDate": "2026-03-25",
-  "releaseNotes": "v2.30.5 — Achievement fixes\n• Fixed FIRST_WIN not unlocking for returning players\n• Fixed streak achievements showing locked with no progress — now shows e.g. '4/7 days'\n• Fixed login streak achievements only firing on puzzle wins — now also triggers on each new login day\n• 863 unit tests green"
+  "releaseNotes": "v2.30.6 \u2014 Achievement type fix\n\u2022 Streak achievements (STREAK_3/7/14/30, LOGIN_STREAK_7/30) reverted to unlock() \u2014 achievementType is immutable once published in Play Games, setSteps() on STANDARD achievements silently fails\n\u2022 All streaks now unlock retroactively on next win (if streak >= threshold)"
 }

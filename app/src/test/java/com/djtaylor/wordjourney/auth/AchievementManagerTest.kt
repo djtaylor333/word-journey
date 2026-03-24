@@ -16,11 +16,11 @@ import org.junit.Test
  * Each test then verifies the correct primitive was called with the correct achievement ID.
  *
  * Key invariants tested:
- *  - FIRST_WIN: fires via unlock() on every win (idempotent — already-unlocked is a no-op in SDK)
- *  - Streak achievements (daily + login): use setSteps() so progress is shown (e.g. "4/7 days")
- *    rather than simply "Locked" until threshold is reached.
- *  - setSteps() is NOT called when streak == 0 (API requires steps >= 1).
- *  - onLoginStreakUpdated(): standalone method called from HomeViewModel on each new login day.
+ *  - FIRST_WIN: fires via unlock() on every win >= 1 (idempotent in SDK).
+ *  - Streak achievements (daily + login): use unlock() with threshold checks.
+ *    achievementType is immutable once published; these are STANDARD type so setSteps()
+ *    would silently fail. unlock() fires correctly whenever streak >= threshold.
+ *  - onLoginStreakUpdated(): standalone method called from HomeViewModel each new login day.
  */
 class AchievementManagerTest {
 
@@ -302,193 +302,187 @@ class AchievementManagerTest {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // 8. onPuzzleWon — daily streak (FIXED: setSteps shows progress, not unlock)
+    // 8. onPuzzleWon — daily streak (STANDARD type: unlock() at threshold)
     //
-    // BEFORE FIX: used unlock() which only fired at exact thresholds.
-    //             Players saw "Locked" with no progress indicator.
-    // AFTER FIX:  uses setSteps(dailyStreak) so players see e.g. "4/7 days"
-    //             and the achievement auto-unlocks when steps reach the max.
+    // achievementType is IMMUTABLE once published in Play Games Services.
+    // These achievements were published as STANDARD, so we use unlock() with
+    // threshold checks. unlock() fires whenever streak >= threshold, so a player
+    // whose streak already exceeds the threshold will unlock on their next daily win.
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `onPuzzleWon streak=1 calls setSteps for all streak achievements — shows progress`() {
-        manager.onPuzzleWon(activity = activity, totalWins = 1, guessCount = 3, dailyStreak = 1)
-        verify { manager.setSteps(activity, AchievementIds.STREAK_3,  1) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_7,  1) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_14, 1) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_30, 1) }
-    }
-
-    @Test
-    fun `onPuzzleWon streak=2 calls setSteps showing 2-of-3 progress on STREAK_3`() {
-        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 2)
-        verify { manager.setSteps(activity, AchievementIds.STREAK_3,  2) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_7,  2) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_14, 2) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_30, 2) }
-        // Must NOT use the old unlock() path for streak achievements
-        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_3) }
-    }
-
-    @Test
-    fun `onPuzzleWon streak=3 calls setSteps with 3 — SDK auto-unlocks STREAK_3`() {
+    fun `onPuzzleWon streak=3 unlocks STREAK_3 only`() {
         manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 3)
-        verify { manager.setSteps(activity, AchievementIds.STREAK_3,  3) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_7,  3) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_14, 3) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_30, 3) }
-        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_3) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_3) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_14) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_30) }
     }
 
     @Test
-    fun `onPuzzleWon streak=4 shows partial progress between STREAK_3 and STREAK_7`() {
-        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 4)
-        verify { manager.setSteps(activity, AchievementIds.STREAK_3,  4) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_7,  4) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_14, 4) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_30, 4) }
+    fun `onPuzzleWon streak=4 unlocks STREAK_3 (already past threshold - retroactive)`() {
+        // Player had streak=4; STREAK_3 should unlock immediately since 4 >= 3
+        manager.onPuzzleWon(activity = activity, totalWins = 10, guessCount = 3, dailyStreak = 4)
+        verify { manager.unlock(activity, AchievementIds.STREAK_3) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_7) }
     }
 
     @Test
-    fun `onPuzzleWon streak=7 calls setSteps with 7 — SDK auto-unlocks STREAK_7`() {
+    fun `onPuzzleWon streak=7 unlocks STREAK_3 and STREAK_7`() {
         manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 7)
-        verify { manager.setSteps(activity, AchievementIds.STREAK_3,  7) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_7,  7) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_14, 7) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_30, 7) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_3) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_14) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_30) }
     }
 
     @Test
-    fun `onPuzzleWon streak=14 calls setSteps with 14 — SDK auto-unlocks STREAK_14`() {
+    fun `onPuzzleWon streak=14 unlocks STREAK_3, STREAK_7, and STREAK_14`() {
         manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 14)
-        verify { manager.setSteps(activity, AchievementIds.STREAK_14, 14) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_30, 14) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_3) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_7) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_14) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_30) }
     }
 
     @Test
-    fun `onPuzzleWon streak=30 calls setSteps with 30 — SDK auto-unlocks STREAK_30`() {
+    fun `onPuzzleWon streak=30 unlocks all four streak achievements`() {
         manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 30)
-        verify { manager.setSteps(activity, AchievementIds.STREAK_30, 30) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_3) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_7) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_14) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_30) }
     }
 
     @Test
-    fun `onPuzzleWon streak=0 does NOT call setSteps for any streak achievement`() {
-        // Guard: setSteps requires >= 1 step; skip when streak is 0
-        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 0)
-        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_3,  any()) }
-        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_7,  any()) }
-        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_14, any()) }
-        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_30, any()) }
+    fun `onPuzzleWon streak=31 unlocks all four streak achievements (past max threshold)`() {
+        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 31)
+        verify { manager.unlock(activity, AchievementIds.STREAK_3) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_7) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_14) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_30) }
     }
 
     @Test
-    fun `streak achievements never use unlock() — only setSteps()`() {
-        // Confirms the old unlock() bug is fully removed from the daily streak path
-        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 30)
+    fun `onPuzzleWon streak=2 does not unlock any streak achievement`() {
+        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 2)
         verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_3) }
         verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_7) }
         verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_14) }
         verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_30) }
     }
 
+    @Test
+    fun `onPuzzleWon streak=0 does not unlock any streak achievement`() {
+        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 0)
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_3) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_7) }
+    }
+
+    @Test
+    fun `streak achievements use unlock() not setSteps()`() {
+        // Confirms setSteps() is NOT called — these are STANDARD type, setSteps would silently fail
+        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, dailyStreak = 30)
+        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_3,  any()) }
+        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_7,  any()) }
+        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_14, any()) }
+        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_30, any()) }
+    }
+
     // ════════════════════════════════════════════════════════════════════════
-    // 9. onPuzzleWon — login streak (FIXED: setSteps shows progress)
+    // 9. onPuzzleWon — login streak (STANDARD type: unlock() at threshold)
     //
-    // BEFORE FIX: used unlock() — showed "Locked" with no progress indicator.
-    // AFTER FIX:  uses setSteps(loginStreak) so players see e.g. "5/7 days".
+    // Same reasoning as daily streaks above. achievementType is immutable once
+    // published; unlock() fires whenever streak >= threshold.
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `onPuzzleWon loginStreak=1 calls setSteps showing early progress`() {
-        manager.onPuzzleWon(activity = activity, totalWins = 1, guessCount = 3, loginStreak = 1)
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  1) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 1) }
-    }
-
-    @Test
-    fun `onPuzzleWon loginStreak=5 shows 5-of-7 partial progress`() {
-        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, loginStreak = 5)
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  5) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 5) }
-        // Must NOT use old unlock() path
-        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
-    }
-
-    @Test
-    fun `onPuzzleWon loginStreak=7 calls setSteps with 7 — SDK auto-unlocks LOGIN_STREAK_7`() {
+    fun `onPuzzleWon loginStreak=7 unlocks LOGIN_STREAK_7 only`() {
         manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, loginStreak = 7)
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  7) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 7) }
-        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
     }
 
     @Test
-    fun `onPuzzleWon loginStreak=30 calls setSteps with 30 — SDK auto-unlocks both login achievements`() {
+    fun `onPuzzleWon loginStreak=10 unlocks LOGIN_STREAK_7 (past threshold — retroactive)`() {
+        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, loginStreak = 10)
+        verify { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
+    }
+
+    @Test
+    fun `onPuzzleWon loginStreak=30 unlocks both login-streak achievements`() {
         manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, loginStreak = 30)
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  30) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 30) }
+        verify { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
     }
 
     @Test
-    fun `onPuzzleWon loginStreak=0 does NOT call setSteps for login streak achievements`() {
+    fun `onPuzzleWon loginStreak=6 does not unlock any login-streak achievement`() {
+        manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, loginStreak = 6)
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
+    }
+
+    @Test
+    fun `onPuzzleWon loginStreak=0 does not unlock any login-streak achievement`() {
         manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, loginStreak = 0)
-        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  any()) }
-        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, any()) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
     }
 
     @Test
-    fun `login streak achievements never use unlock() — only setSteps()`() {
+    fun `login streak achievements use unlock() not setSteps()`() {
         manager.onPuzzleWon(activity = activity, totalWins = 5, guessCount = 3, loginStreak = 30)
-        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
-        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
-    }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // 10. onLoginStreakUpdated — standalone trigger called from HomeViewModel
-    //     (NEW) Called each calendar day the player opens the app, so login
-    //     streak progress is reflected even without winning a puzzle.
-    // ════════════════════════════════════════════════════════════════════════
-
-    @Test
-    fun `onLoginStreakUpdated streak=1 calls setSteps for both login achievements`() {
-        manager.onLoginStreakUpdated(activity, loginStreak = 1)
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  1) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 1) }
-    }
-
-    @Test
-    fun `onLoginStreakUpdated streak=5 shows 5-of-7 progress`() {
-        manager.onLoginStreakUpdated(activity, loginStreak = 5)
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  5) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 5) }
-    }
-
-    @Test
-    fun `onLoginStreakUpdated streak=7 auto-unlocks LOGIN_STREAK_7 via SDK`() {
-        manager.onLoginStreakUpdated(activity, loginStreak = 7)
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  7) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 7) }
-    }
-
-    @Test
-    fun `onLoginStreakUpdated streak=30 auto-unlocks both login achievements`() {
-        manager.onLoginStreakUpdated(activity, loginStreak = 30)
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  30) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 30) }
-    }
-
-    @Test
-    fun `onLoginStreakUpdated streak=0 does NOT call setSteps`() {
-        manager.onLoginStreakUpdated(activity, loginStreak = 0)
         verify(exactly = 0) { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  any()) }
         verify(exactly = 0) { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, any()) }
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // 10. onLoginStreakUpdated — standalone trigger from HomeViewModel
+    //     (NEW) Called each calendar day the player opens the app, so login
+    //     streak achievements fire independent of winning a puzzle.
+    // ════════════════════════════════════════════════════════════════════════
+
     @Test
-    fun `onLoginStreakUpdated does not use unlock() — setSteps only`() {
+    fun `onLoginStreakUpdated streak=7 unlocks LOGIN_STREAK_7`() {
+        manager.onLoginStreakUpdated(activity, loginStreak = 7)
+        verify { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
+    }
+
+    @Test
+    fun `onLoginStreakUpdated streak=10 unlocks LOGIN_STREAK_7 (past threshold)`() {
+        manager.onLoginStreakUpdated(activity, loginStreak = 10)
+        verify { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
+    }
+
+    @Test
+    fun `onLoginStreakUpdated streak=30 unlocks both login achievements`() {
         manager.onLoginStreakUpdated(activity, loginStreak = 30)
+        verify { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
+    }
+
+    @Test
+    fun `onLoginStreakUpdated streak=6 does not unlock any login achievement`() {
+        manager.onLoginStreakUpdated(activity, loginStreak = 6)
         verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
         verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
+    }
+
+    @Test
+    fun `onLoginStreakUpdated streak=0 does not call unlock`() {
+        manager.onLoginStreakUpdated(activity, loginStreak = 0)
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
+    }
+
+    @Test
+    fun `onLoginStreakUpdated uses unlock() not setSteps()`() {
+        manager.onLoginStreakUpdated(activity, loginStreak = 30)
+        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  any()) }
+        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, any()) }
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -652,7 +646,7 @@ class AchievementManagerTest {
     // ════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `first daily win fires FIRST_WIN, FIRST_DAILY, daily steps, and STREAK_1 progress`() {
+    fun `first daily win fires FIRST_WIN, FIRST_DAILY, and daily steps`() {
         manager.onPuzzleWon(
             activity          = activity,
             totalWins         = 1,
@@ -671,10 +665,10 @@ class AchievementManagerTest {
         verify { manager.unlock(activity, AchievementIds.NO_POWERUP_WIN) }
         verify { manager.setSteps(activity, AchievementIds.WIN_10,  1) }
         verify { manager.setSteps(activity, AchievementIds.DAILY_10, 1) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_3,  1) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_7,  1) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  1) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 1) }
+        // dailyStreak=1 is below all streak thresholds — no streak unlocks
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_3) }
+        // loginStreak=1 is below all login thresholds — no login unlocks
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
         // Level achievements should NOT fire (currentLevel = 0)
         verify(exactly = 0) { manager.unlock(activity, AchievementIds.REACH_LEVEL_10) }
         // Seasonal should NOT fire
@@ -682,7 +676,7 @@ class AchievementManagerTest {
     }
 
     @Test
-    fun `7-day daily streak win unlocks STREAK_7 and shows full progress on all streaks`() {
+    fun `7-day daily streak win unlocks all streaks up to STREAK_7`() {
         manager.onPuzzleWon(
             activity      = activity,
             totalWins     = 20,
@@ -692,13 +686,15 @@ class AchievementManagerTest {
             isDaily       = true,
             totalDailyWins = 7
         )
-        verify { manager.setSteps(activity, AchievementIds.STREAK_3,  7) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_7,  7) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_14, 7) }
-        verify { manager.setSteps(activity, AchievementIds.STREAK_30, 7) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7,  7) }
-        verify { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_30, 7) }
-        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_3) }
-        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_7) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_3) }
+        verify { manager.unlock(activity, AchievementIds.STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_14) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.STREAK_30) }
+        verify { manager.unlock(activity, AchievementIds.LOGIN_STREAK_7) }
+        verify(exactly = 0) { manager.unlock(activity, AchievementIds.LOGIN_STREAK_30) }
+        // Must NOT use setSteps for STANDARD achievements
+        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_3,  any()) }
+        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.STREAK_7,  any()) }
+        verify(exactly = 0) { manager.setSteps(activity, AchievementIds.LOGIN_STREAK_7, any()) }
     }
 }
