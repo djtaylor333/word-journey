@@ -1,9 +1,9 @@
 {
-  "versionName": "2.30.0",
-  "versionCode": 52,
+  "versionName": "2.30.1",
+  "versionCode": 53,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-05-29",
-  "releaseNotes": "v2.30.0 \u2014 Play Games achievements published, Play Licensing key\n\u2022 Play Games: all 31 achievements published (icons via Play Console)\n\u2022 Security: Play Store RSA licensing public key stored in LicensingConstants\n\u2022 Billing diagnostics dialog carried forward from v2.29.0\n\u2022 Restore Purchases button carried forward from v2.28.0"
+  "buildDate": "2026-03-24",
+  "releaseNotes": "v2.30.1 \u2014 Fix store purchases\n\u2022 Store: coins_500 product ID aligned with Play Console (coin_pack_500)\n\u2022 Store: all 9 one-time products now ACTIVE in Play Console\n\u2022 VIP: vip_monthly and vip_yearly subscriptions now ACTIVE"
 }

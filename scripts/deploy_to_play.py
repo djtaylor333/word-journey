@@ -42,13 +42,12 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.30.0 - Play Games achievements published, Play Licensing key
+RELEASE_NOTES = """v2.30.1 - Fix store purchases
 
-\u2022 Play Games: all 31 achievements now published and live for all users
-\u2022 Security: Play Store RSA licensing public key stored in code
-\u2022 Store: billing setup guide dialog (carried from v2.29.0)
-\u2022 Home: font scaling for low-res devices (carried from v2.28.0)
-\u2022 Store: Restore Purchases button (carried from v2.28.0)"""
+\u2022 Store: 500 Coins product ID aligned with Play Console (coin_pack_500)
+\u2022 Store: all 9 one-time products now ACTIVE in Play Console
+\u2022 VIP: vip_monthly and vip_yearly subscription base plans now ACTIVE
+\u2022 Play Games achievements published (from v2.30.0)"""
 
 
 def build_service(key_path: str):
