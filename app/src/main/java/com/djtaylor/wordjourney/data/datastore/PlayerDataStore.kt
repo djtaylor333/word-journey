@@ -149,6 +149,8 @@ class PlayerDataStore @Inject constructor(
         // Last regular-level star rating & daily all-3-complete tracking
         val KEY_LAST_LEVEL_STARS                 = intPreferencesKey("last_level_stars")
         val KEY_DAILY_ALL_THREE_COMPLETED_DATE   = stringPreferencesKey("daily_all_three_completed_date")
+        // Total stars earned across all levels (used for stage unlocking)
+        val KEY_TOTAL_STARS_EARNED               = intPreferencesKey("total_stars_earned")
         // In-progress serialized game states for seasonal packs
         val KEY_GAME_STATE_SEASONAL_EASTER     = stringPreferencesKey("game_state_seasonal_easter")
         val KEY_GAME_STATE_SEASONAL_VALENTINES = stringPreferencesKey("game_state_seasonal_valentines")
@@ -259,7 +261,8 @@ class PlayerDataStore @Inject constructor(
                 seasonalMilestoneThanksgiving  = prefs[KEY_SEASONAL_MILESTONE_THANKSGIVING] ?: 0,
                 seasonalMilestoneChristmas     = prefs[KEY_SEASONAL_MILESTONE_CHRISTMAS] ?: 0,
                 lastLevelStars                 = prefs[KEY_LAST_LEVEL_STARS] ?: 0,
-                dailyAllThreeCompletedDate     = prefs[KEY_DAILY_ALL_THREE_COMPLETED_DATE] ?: ""
+                dailyAllThreeCompletedDate     = prefs[KEY_DAILY_ALL_THREE_COMPLETED_DATE] ?: "",
+                totalStarsEarned               = prefs[KEY_TOTAL_STARS_EARNED] ?: 0
             )
         }
 
@@ -367,6 +370,7 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_SEASONAL_MILESTONE_CHRISTMAS]     = progress.seasonalMilestoneChristmas
             prefs[KEY_LAST_LEVEL_STARS]                 = progress.lastLevelStars
             prefs[KEY_DAILY_ALL_THREE_COMPLETED_DATE]   = progress.dailyAllThreeCompletedDate
+            prefs[KEY_TOTAL_STARS_EARNED]               = progress.totalStarsEarned
         }
     }
 

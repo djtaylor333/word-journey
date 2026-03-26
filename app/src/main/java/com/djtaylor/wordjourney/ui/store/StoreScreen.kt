@@ -420,18 +420,16 @@ private fun BundlesTab(uiState: StoreUiState, viewModel: StoreViewModel) {
                     Text("⚔️", fontSize = 32.sp)
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Adventurer Bundle", fontWeight = FontWeight.Bold, fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.onSurface)
-                            Spacer(Modifier.width(8.dp))
-                            Surface(shape = RoundedCornerShape(6.dp), color = AccentRegular.copy(alpha = 0.2f)) {
-                                Text("Popular", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AccentRegular)
-                            }
-                        }
+                        Text("Adventurer Bundle", fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface)
                         Text("Best for regular players",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(4.dp))
+                        Surface(shape = RoundedCornerShape(6.dp), color = AccentRegular.copy(alpha = 0.2f)) {
+                            Text("Popular", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AccentRegular)
+                        }
                     }
                     Button(
                         onClick = { viewModel.purchase(ProductIds.ADVENTURER_BUNDLE) },
@@ -459,18 +457,16 @@ private fun BundlesTab(uiState: StoreUiState, viewModel: StoreViewModel) {
                     Text("🏆", fontSize = 32.sp)
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Champion Bundle", fontWeight = FontWeight.Bold, fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.onSurface)
-                            Spacer(Modifier.width(8.dp))
-                            Surface(shape = RoundedCornerShape(6.dp), color = Primary.copy(alpha = 0.2f)) {
-                                Text("Best Value", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Primary)
-                            }
-                        }
+                        Text("Champion Bundle", fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface)
                         Text("Ultimate power-up package",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(4.dp))
+                        Surface(shape = RoundedCornerShape(6.dp), color = Primary.copy(alpha = 0.2f)) {
+                            Text("Best Value", modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Primary)
+                        }
                     }
                     Button(
                         onClick = { viewModel.purchase(ProductIds.CHAMPION_BUNDLE) },

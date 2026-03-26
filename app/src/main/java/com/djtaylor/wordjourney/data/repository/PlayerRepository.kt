@@ -115,7 +115,8 @@ class PlayerRepository @Inject constructor(
                 hardTimePlayedMs = 0L,
                 vipTimePlayedMs = 0L,
                 dailyTimePlayedMs = 0L,
-                timerTimePlayedMs = 0L
+                timerTimePlayedMs = 0L,
+                totalStarsEarned = 0
             )
         )
     }

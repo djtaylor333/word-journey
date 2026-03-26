@@ -140,7 +140,9 @@ data class PlayerProgress(
     // True once the review prompt has been shown (so we only ask once)
     val hasReviewBeenRequested: Boolean = false,
     // True once the review reward (5 lives + 1000 coins + 10 diamonds) has been granted
-    val reviewRewarded: Boolean = false
+    val reviewRewarded: Boolean = false,
+    // Total stars earned across all levels (all modes) — used for stage unlocking in the future
+    val totalStarsEarned: Int = 0
 )
 
 // ── Seasonal level helpers ────────────────────────────────────────────────────

@@ -2438,6 +2438,83 @@ class GameViewModelTest {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
+    // v2.30.7 — TOTAL STARS EARNED TRACKING
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `fresh regular win increments totalStarsEarned by stars awarded`() = runTest {
+        // starRatingDao.get returns null (fresh level), 1 guess = 3 stars, delta = 3
+        val vm = createViewModel(difficulty = "easy", word = "ABLE")
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.totalStarsEarned == 3 }) }
+    }
+
+    @Test
+    fun `second win on same level only adds improvement delta to totalStarsEarned`() = runTest {
+        // Player already has 5 total stars; existing star for this level = 1
+        val progress = PlayerProgress(easyLevel = 5, totalStarsEarned = 5)
+        val vm = createViewModel(difficulty = "easy", level = 3, progress = progress, word = "ABLE")
+        coEvery { starRatingDao.get("easy", 3) } returns StarRatingEntity(
+            id = 10, difficultyKey = "easy", level = 3, stars = 1, guessCount = 5
+        )
+        awaitInit(vm)
+
+        // Win on first guess → 3 stars; delta = 3 - 1 = 2; total becomes 5 + 2 = 7
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.totalStarsEarned == 7 }) }
+    }
+
+    @Test
+    fun `replay with no star improvement does not increase totalStarsEarned`() = runTest {
+        // Existing entry already has 3 stars (best possible) — delta = 0
+        val progress = PlayerProgress(easyLevel = 5, totalStarsEarned = 10)
+        val vm = createViewModel(difficulty = "easy", level = 3, progress = progress, word = "ABLE")
+        coEvery { starRatingDao.get("easy", 3) } returns StarRatingEntity(
+            id = 5, difficultyKey = "easy", level = 3, stars = 3, guessCount = 1
+        )
+        awaitInit(vm)
+
+        "ABLE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        // newStarsGained = 0 → saveProgress for star update is NOT called from replay path
+        coVerify(exactly = 0) { playerRepository.saveProgress(match { it.totalStarsEarned > 10 }) }
+    }
+
+    @Test
+    fun `daily challenge win increments totalStarsEarned by stars awarded`() = runTest {
+        // Existing 2 total stars; win daily on first guess = 3 stars; total becomes 5
+        val progress = PlayerProgress(totalStarsEarned = 2)
+        val vm = createViewModel(difficulty = "daily", word = "CRANE", progress = progress)
+        awaitInit(vm)
+
+        "CRANE".forEach { vm.onKeyPressed(it) }
+        awaitInit(vm)
+        vm.onSubmit()
+        awaitInit(vm)
+
+        coVerify { playerRepository.saveProgress(match { it.totalStarsEarned == 5 }) }
+    }
+
+    @Test
+    fun `PlayerProgress totalStarsEarned defaults to zero`() {
+        val fresh = PlayerProgress()
+        assertEquals(0, fresh.totalStarsEarned)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
     // v2.25.0 — LIFE REFUND ON EXIT WITHOUT GUESS (onExitLevel)
     // ══════════════════════════════════════════════════════════════════════════
 

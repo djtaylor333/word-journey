@@ -1,9 +1,9 @@
 {
-  "versionName": "2.30.6",
-  "versionCode": 58,
+  "versionName": "2.30.7",
+  "versionCode": 59,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-03-25",
-  "releaseNotes": "v2.30.6 \u2014 Achievement type fix\n\u2022 Streak achievements (STREAK_3/7/14/30, LOGIN_STREAK_7/30) reverted to unlock() \u2014 achievementType is immutable once published in Play Games, setSteps() on STANDARD achievements silently fails\n\u2022 All streaks now unlock retroactively on next win (if streak >= threshold)"
+  "buildDate": "2026-03-26",
+  "releaseNotes": "v2.30.7 — Bundle UI fix & total stars tracking\n• Bundle tags (Popular, Best Value) moved below description on store screen — no more squished layout on low-res devices\n• Added totalStarsEarned tracking across all modes (regular, seasonal, daily, replay) — stored in PlayerProgress and DataStore for future stage unlocking"
 }

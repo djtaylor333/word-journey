@@ -430,8 +430,9 @@ class GameViewModel @Inject constructor(
                     starsEarned = stars
                 )
             }
-            // Still save star rating if better
+            // Still save star rating if better; track total stars earned
             val existing = starRatingDao.get(difficultyKey, level)
+            val newStarsGained = maxOf(0, stars - (existing?.stars ?: 0))
             if (existing == null || stars > existing.stars) {
                 starRatingDao.upsert(
                     StarRatingEntity(
@@ -442,6 +443,11 @@ class GameViewModel @Inject constructor(
                         guessCount = guessCount
                     )
                 )
+            }
+            if (newStarsGained > 0) {
+                val updatedP = playerProgress.copy(totalStarsEarned = playerProgress.totalStarsEarned + newStarsGained)
+                playerProgress = updatedP
+                playerRepository.saveProgress(updatedP)
             }
         } else if (isDailyChallenge) {
             val coinsEarned = 150L + (e.remainingGuesses * 15L)
@@ -514,7 +520,8 @@ class GameViewModel @Inject constructor(
                 dailyBestStreak6 = maxOf(p.dailyBestStreak6, newStreak6),
                 dailyLastDate6 = if (wordLen == 6) today else p.dailyLastDate6,
                 dailyWins6 = if (wordLen == 6) p.dailyWins6 + 1 else p.dailyWins6,
-                totalDailyChallengesPlayed = p.totalDailyChallengesPlayed + 1
+                totalDailyChallengesPlayed = p.totalDailyChallengesPlayed + 1,
+                totalStarsEarned = p.totalStarsEarned + stars
             )
             // Apply streak rewards (2x for normal players, 3x for VIP)
             val (rewardedProgress, streakMsg) = applyStreakRewards(p, p.dailyChallengeStreak)
@@ -574,8 +581,9 @@ class GameViewModel @Inject constructor(
             audioManager.playSfx(SfxSound.WIN)
             audioManager.playSfx(SfxSound.COIN_EARN)
 
-            // Save star rating
+            // Save star rating; track total stars earned
             val existing = starRatingDao.get(difficultyKey, level)
+            val newStarsGained = maxOf(0, stars - (existing?.stars ?: 0))
             if (existing == null || stars > existing.stars) {
                 starRatingDao.upsert(
                     StarRatingEntity(
@@ -634,7 +642,8 @@ class GameViewModel @Inject constructor(
                 totalWins = p.totalWins + 1,
                 totalGuesses = p.totalGuesses + guessCount,
                 lastLevelStars = stars,   // used to grant free definition on next level (2+ stars)
-                levelsCompletedForReview = reviewCount
+                levelsCompletedForReview = reviewCount,
+                totalStarsEarned = p.totalStarsEarned + newStarsGained
             )
             playerProgress = p
             playerRepository.saveProgress(p)
