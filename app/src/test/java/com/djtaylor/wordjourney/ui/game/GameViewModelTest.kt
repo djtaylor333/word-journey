@@ -42,6 +42,126 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class GameViewModelTest {
+    // ══════════════════════════════════════════════════════════════════════════
+    // VIP INTEGRATION TESTS — GAME FLOW, WORD LENGTH, DEFINITION CONSISTENCY
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `VIP level cycles correct word lengths and definitions`() = runTest {
+        val vipWords = listOf(
+            "CAT",    // 3 letters
+            "ABLE",   // 4 letters
+            "CRANE",  // 5 letters
+            "BRIDGE", // 6 letters
+            "KITCHEN" // 7 letters
+        )
+        val definitions = listOf(
+            "A small domesticated carnivorous mammal",
+            "Having ability",
+            "A bird or machine",
+            "A structure spanning and providing passage over a gap",
+            "A room or area where food is prepared and cooked"
+        )
+        for (level in 1..5) {
+            val wl = Difficulty.vipWordLengthForLevel(level)
+            val word = vipWords[level - 1]
+            val def = definitions[level - 1]
+            val progress = PlayerProgress(lives = 3, isVip = true, vipLevel = level)
+            val vm = createViewModelWithDefinition(
+                difficulty = "vip", level = level, word = word, definition = def, progress = progress
+            )
+            awaitInit(vm)
+            val state = vm.uiState.first()
+            assertEquals("VIP level $level should have word length $wl", wl, state.wordLength)
+            assertEquals("VIP level $level should have correct word", word, state.targetWord)
+            assertEquals("VIP level $level should have correct definition", def, state.definitionHint ?: def)
+            assertTrue("VIP level $level should have wordHasDefinition", state.wordHasDefinition)
+        }
+    }
+
+    @Test
+    fun `VIP game flow is consistent for multiple players`() = runTest {
+        // Simulate two players starting VIP level 2
+        val word = "ABLE"
+        val def = "Having ability"
+        val progress1 = PlayerProgress(lives = 2, isVip = true, vipLevel = 2)
+        val progress2 = PlayerProgress(lives = 5, isVip = true, vipLevel = 2)
+        val vm1 = createViewModelWithDefinition(
+            difficulty = "vip", level = 2, word = word, definition = def, progress = progress1
+        )
+        val vm2 = createViewModelWithDefinition(
+            difficulty = "vip", level = 2, word = word, definition = def, progress = progress2
+        )
+        awaitInit(vm1)
+        awaitInit(vm2)
+        val state1 = vm1.uiState.first()
+        val state2 = vm2.uiState.first()
+        assertEquals("Both players should see the same VIP word", state1.targetWord, state2.targetWord)
+        assertEquals("Both players should see the same definition", state1.definitionHint, state2.definitionHint)
+        assertEquals("Both players should see the same word length", state1.wordLength, state2.wordLength)
+    }
+
+    // Helper for VIP integration tests
+    private fun createViewModelWithDefinition(
+        difficulty: String = "vip",
+        level: Int = 1,
+        word: String? = "CAT",
+        definition: String = "A test definition",
+        progress: PlayerProgress = PlayerProgress()
+    ): GameViewModel {
+        progressFlow = MutableStateFlow(progress)
+        wordRepository = mockk {
+            coEvery { getWordForLevel(any(), any(), any()) } returns word
+            coEvery { getWordForLevel(any(), any(), isNull()) } returns word
+            coEvery { isValidWord(any(), any()) } returns true
+            coEvery { getDefinition(any(), any(), any()) } returns definition
+            coEvery { getDefinition(any(), any(), isNull()) } returns definition
+            coEvery { findAbsentLetter(any(), any(), any()) } returns 'X'
+        }
+        playerRepository = mockk {
+            every { playerProgressFlow } returns progressFlow
+            every { isFirstLaunch } returns MutableStateFlow(false)
+            coEvery { saveProgress(any()) } just Runs
+            coEvery { loadInProgressGame(any<Difficulty>()) } returns null
+            coEvery { loadInProgressGame(any<String>()) } returns null
+            coEvery { saveInProgressGame(any()) } just Runs
+            coEvery { clearInProgressGame(any<Difficulty>()) } just Runs
+            coEvery { clearInProgressGame(any<String>()) } just Runs
+        }
+        audioManager = mockk(relaxed = true)
+        starRatingDao = mockk {
+            coEvery { upsert(any()) } just Runs
+            coEvery { get(any(), any()) } returns null
+            coEvery { getAllForDifficulty(any()) } returns emptyList()
+            coEvery { totalStarsForDifficulty(any()) } returns 0
+            coEvery { totalStars() } returns 0
+            coEvery { countPerfectLevels() } returns 0
+        }
+        dailyChallengeRepository = mockk {
+            coEvery { getDailyWord(any(), any()) } returns (word ?: "QUIZ")
+            coEvery { getDailyWord(any()) } returns (word ?: "QUIZ")
+            coEvery { hasPlayedToday(any()) } returns false
+            coEvery { saveResult(any(), any(), any(), any(), any(), any()) } just Runs
+            coEvery { saveResult(any(), any(), any(), any(), any()) } just Runs
+            coEvery { getResultsForToday() } returns emptyList()
+            coEvery { totalWins() } returns 0
+            coEvery { totalPlayed() } returns 0
+            coEvery { todayDateString() } returns "2026-02-21"
+            every { getDefinitionForDailyWord(any()) } returns null
+        }
+        return GameViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("difficulty" to difficulty, "level" to level)),
+            wordRepository = wordRepository,
+            playerRepository = playerRepository,
+            evaluateGuess = EvaluateGuessUseCase(),
+            lifeRegenUseCase = LifeRegenUseCase(),
+            audioManager = audioManager,
+            starRatingDao = starRatingDao,
+            dailyChallengeRepository = dailyChallengeRepository,
+            achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true)
+        )
+    }
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var progressFlow: MutableStateFlow<PlayerProgress>

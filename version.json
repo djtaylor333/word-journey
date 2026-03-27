@@ -1,9 +1,9 @@
 {
-  "versionName": "2.30.7",
-  "versionCode": 59,
+  "versionName": "2.31.0",
+  "versionCode": 60,
   "minSdk": 29,
   "targetSdk": 35,
   "compileSdk": 35,
-  "buildDate": "2026-03-26",
-  "releaseNotes": "v2.30.7 — Bundle UI fix & total stars tracking\n• Bundle tags (Popular, Best Value) moved below description on store screen — no more squished layout on low-res devices\n• Added totalStarsEarned tracking across all modes (regular, seasonal, daily, replay) — stored in PlayerProgress and DataStore for future stage unlocking"
+  "buildDate": "2026-03-27",
+  "releaseNotes": "v2.31.0 — VIP level consistency & tests\n• VIP levels: deterministic, consistent word/definition selection for all players\n• Robust integration tests for VIP game flow, word length, and definition correctness\n• Bundle UI and star tracking improvements from v2.30.7 included"
 }
