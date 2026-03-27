@@ -1,9 +1,9 @@
 {
-  "versionName": "2.31.0",
-  "versionCode": 60,
-  "minSdk": 29,
-  "targetSdk": 35,
-  "compileSdk": 35,
-  "buildDate": "2026-03-27",
-  "releaseNotes": "v2.31.0 — VIP level consistency & tests\n• VIP levels: deterministic, consistent word/definition selection for all players\n• Robust integration tests for VIP game flow, word length, and definition correctness\n• Bundle UI and star tracking improvements from v2.30.7 included"
+    "versionName":  "2.31.1",
+    "versionCode":  61,
+    "minSdk":  29,
+    "targetSdk":  35,
+    "compileSdk":  35,
+    "buildDate":  "2026-03-27",
+    "releaseNotes":  "v2.31.0 — VIP level consistency \u0026 tests\n• VIP levels: deterministic, consistent word/definition selection for all players\n• Robust integration tests for VIP game flow, word length, and definition correctness\n• Bundle UI and star tracking improvements from v2.30.7 included"
 }
