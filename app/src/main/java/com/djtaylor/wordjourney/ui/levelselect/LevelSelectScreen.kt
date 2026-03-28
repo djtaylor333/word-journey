@@ -263,12 +263,27 @@ fun LevelSelectScreen(
         }
     }
 
-    // Scroll to current level row on load
+    // Scroll to current level row on load — density-aware, accounts for zone banners every 10 levels
     val scrollState = rememberScrollState()
+    val density = androidx.compose.ui.platform.LocalDensity.current
     LaunchedEffect(state.currentLevel, state.isLoading) {
-        if (!state.isLoading && state.currentLevel > 3) {
-            val rowPx = (state.currentLevel - 1) * 320 // approx 120dp * density
-            scrollState.animateScrollTo(rowPx.coerceAtLeast(0))
+        if (!state.isLoading) {
+            val levelIdx    = (state.currentLevel - 1).coerceAtLeast(0)
+            val zoneIdx     = levelIdx / 10
+            val levelInZone = levelIdx % 10
+            // Heights measured from layout:
+            //   ZoneSection padding:  8dp top + 8dp bottom = 16dp per zone
+            //   ZoneBanner height:   ~96dp  (outer padding 24dp + inner padding 24dp + content ~48dp)
+            //   Each level row:       120dp
+            val zoneHeaderDp = 16f + 96f           // banner + zone padding
+            val levelRowDp   = 120f
+            val zoneHeightDp = zoneHeaderDp + 10f * levelRowDp
+            // Position of the current level node relative to list top, then pull back 200dp so it
+            // sits roughly in the upper-third of the screen rather than at the very top edge.
+            val rawDp   = zoneIdx * zoneHeightDp + zoneHeaderDp + levelInZone * levelRowDp
+            val targetDp = (rawDp - 200f).coerceAtLeast(0f)
+            val targetPx = with(density) { targetDp.dp.roundToPx() }
+            scrollState.animateScrollTo(targetPx)
         }
     }
 
@@ -532,7 +547,7 @@ private fun Pathway(
 
                 val vipLabel: String? = if (difficultyKey == "vip") {
                     val wl = Difficulty.vipWordLengthForLevel(level)
-                    "${wl}L"
+                    "$wl letters"
                 } else null
                 LevelNode(level, completed, current, locked, zone, accent, starRatings[level] ?: 0, wordLengthLabel = vipLabel, onLevelClick = { onLevelClick(level) })
 
@@ -640,21 +655,21 @@ private fun LevelNode(
                 Text("▲", fontSize = 12.sp, color = accent)
             }
         }
-        // VIP word length label
+        // VIP word length label — shown above node for all accessible levels
         if (wordLengthLabel != null && !locked) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .offset(y = (-14).dp)
+                    .offset(y = (-18).dp)
                     .background(
-                        color = if (current) accent else zone.glow.copy(alpha = 0.8f),
-                        shape = RoundedCornerShape(4.dp)
+                        color = if (current) accent else zone.glow.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(6.dp)
                     )
-                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
                     text = wordLengthLabel,
-                    fontSize = 9.sp,
+                    fontSize = 8.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )

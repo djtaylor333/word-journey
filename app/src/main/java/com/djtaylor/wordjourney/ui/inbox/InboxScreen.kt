@@ -186,19 +186,25 @@ private fun InboxItemCard(
                 val chips = buildRewardChips(item)
                 if (chips.isNotEmpty()) {
                     Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        chips.forEach { chip ->
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = TileCorrect.copy(alpha = if (isClaimed) 0.15f else 0.22f)
-                            ) {
-                                Text(
-                                    chip,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    fontSize = 12.sp,
-                                    color = TileCorrect.copy(alpha = cardAlpha),
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                    // Wrap chips into rows of 3 so they never squish on narrow screens
+                    val chunkedChips = chips.chunked(3)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        chunkedChips.forEach { rowChips ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                rowChips.forEach { chip ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = TileCorrect.copy(alpha = if (isClaimed) 0.15f else 0.22f)
+                                    ) {
+                                        Text(
+                                            chip,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            fontSize = 12.sp,
+                                            color = TileCorrect.copy(alpha = cardAlpha),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

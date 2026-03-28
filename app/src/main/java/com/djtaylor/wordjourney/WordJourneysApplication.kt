@@ -5,7 +5,6 @@ import androidx.work.Configuration
 import androidx.hilt.work.HiltWorkerFactory
 import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.notifications.NotificationChannels
-import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.games.PlayGamesSdk
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -33,8 +32,7 @@ class WordJourneysApplication : Application(), Configuration.Provider {
         super.onCreate()
         // Register before anything else so activity references are available immediately
         registerActivityLifecycleCallbacks(activityProvider)
-        // Initialize AdMob SDK once at app start (required before any ad is loaded)
-        MobileAds.initialize(this)
+        // AdMob SDK removed — placeholder for future ad partner integration
         // Initialize Play Games SDK
         PlayGamesSdk.initialize(this)
         // Create notification channels on app start (safe to call multiple times)

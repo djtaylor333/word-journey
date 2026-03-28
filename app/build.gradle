@@ -24,8 +24,8 @@ android {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 35
-        versionCode 61
-        versionName "2.31.1"
+        versionCode 63
+        versionName "2.32.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -164,8 +164,10 @@ dependencies {
     // ── Google Play Games (cloud saves) ─────────────────────────────────────
     implementation 'com.google.android.gms:play-services-games-v2:20.1.2'
 
-    // ── AdMob (rewarded ads) ─────────────────────────────────────────────────
-    implementation 'com.google.android.gms:play-services-ads:23.6.0'
+    // ── Ad partner placeholder ────────────────────────────────────────────────
+    // AdMob removed — awaiting new ad partner approval.
+    // Re-add SDK + RealAdManager implementation once a partner is chosen.
+    // implementation 'com.google.android.gms:play-services-ads:23.6.0'
 
     // ── Google Play Billing (stubbed) ────────────────────────────────────────
     implementation 'com.android.billingclient:billing-ktx:7.1.1'
@@ -185,4 +187,5 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
 }
+
 

@@ -297,7 +297,7 @@ class GameViewModel @Inject constructor(
         if (!isReplay) persistCurrentState()
     }
 
-    private fun restoreFromSave(saved: SavedGameState) {
+    private suspend fun restoreFromSave(saved: SavedGameState) {
         val restoredGuesses = saved.completedGuesses.map { row ->
             row.map { (ch, state) ->
                 Pair(ch.first(), TileState.valueOf(state))
@@ -320,6 +320,28 @@ class GameViewModel @Inject constructor(
             }.toMap()
         engine!!.restore(restoredGuesses, restoredInput, saved.maxGuesses, restoredPrefilled)
 
+        // For VIP the word length comes from the saved word itself (targetWord.length)
+        val savedWordLength = saved.targetWord.length
+        val vipWordLenOverride = if (difficulty == Difficulty.VIP) savedWordLength else null
+
+        // Fetch definition so the definition button works correctly after restore
+        var wordHasDefinition = false
+        var defHint: String? = null
+        var defUsed = false
+        var grantedFreeDefinition = false
+        if (!isDailyChallenge && !isSeasonalLevel) {
+            val definition = wordRepository.getDefinition(difficulty, saved.level, vipWordLenOverride)
+            wordHasDefinition = definition.isNotBlank()
+            val isRestoredReplay = isReplay
+            if (isRestoredReplay && wordHasDefinition) {
+                defHint = definition
+                defUsed = true
+            } else if (!isRestoredReplay && playerProgress.lastLevelStars >= 2 && wordHasDefinition) {
+                defHint = definition
+                grantedFreeDefinition = true
+            }
+        }
+
         syncEngineToUiState()
         _uiState.update { s ->
             s.copy(
@@ -332,9 +354,13 @@ class GameViewModel @Inject constructor(
                 definitionItems = playerProgress.definitionItems,
                 showLetterItems = playerProgress.showLetterItems,
                 isLoading = false,
-                wordLength = saved.targetWord.length,
+                wordLength = savedWordLength,
                 isDailyChallenge = isDailyChallenge,
-                isVip = playerProgress.isVip
+                isVip = playerProgress.isVip,
+                wordHasDefinition = wordHasDefinition,
+                definitionHint = defHint,
+                definitionUsedThisLevel = defUsed,
+                grantedFreeDefinition = grantedFreeDefinition
             )
         }
     }

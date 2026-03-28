@@ -2864,4 +2864,196 @@ class GameViewModelTest {
             activityProvider = mockk(relaxed = true)
         )
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // v2.32.0 — RESTORE FROM SAVE: wordHasDefinition & VIP word length
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** Helper that creates a ViewModel with a pre-loaded SavedGameState. */
+    private fun createViewModelWithSave(
+        difficulty: String = "easy",
+        level: Int = 1,
+        word: String? = "ABLE",
+        definition: String = "A test definition",
+        progress: PlayerProgress = PlayerProgress(),
+        savedGame: SavedGameState? = null
+    ): GameViewModel {
+        progressFlow = MutableStateFlow(progress)
+        wordRepository = mockk {
+            coEvery { getWordForLevel(any(), any(), any()) } returns word
+            coEvery { getWordForLevel(any(), any(), isNull()) } returns word
+            coEvery { isValidWord(any(), any()) } returns true
+            coEvery { getDefinition(any(), any(), any()) } returns definition
+            coEvery { getDefinition(any(), any(), isNull()) } returns definition
+            coEvery { findAbsentLetter(any(), any(), any()) } returns 'X'
+        }
+        playerRepository = mockk {
+            every { playerProgressFlow } returns progressFlow
+            every { isFirstLaunch } returns MutableStateFlow(false)
+            coEvery { saveProgress(any()) } just Runs
+            coEvery { loadInProgressGame(any<Difficulty>()) } returns savedGame
+            coEvery { loadInProgressGame(any<String>()) } returns savedGame
+            coEvery { saveInProgressGame(any()) } just Runs
+            coEvery { clearInProgressGame(any<Difficulty>()) } just Runs
+            coEvery { clearInProgressGame(any<String>()) } just Runs
+        }
+        audioManager = mockk(relaxed = true)
+        starRatingDao = mockk {
+            coEvery { upsert(any()) } just Runs
+            coEvery { get(any(), any()) } returns null
+            coEvery { getAllForDifficulty(any()) } returns emptyList()
+            coEvery { totalStarsForDifficulty(any()) } returns 0
+            coEvery { totalStars() } returns 0
+            coEvery { countPerfectLevels() } returns 0
+        }
+        dailyChallengeRepository = mockk {
+            coEvery { getDailyWord(any(), any()) } returns (word ?: "QUIZ")
+            coEvery { getDailyWord(any()) } returns (word ?: "QUIZ")
+            coEvery { hasPlayedToday(any()) } returns false
+            coEvery { saveResult(any(), any(), any(), any(), any(), any()) } just Runs
+            coEvery { saveResult(any(), any(), any(), any(), any()) } just Runs
+            coEvery { getResultsForToday() } returns emptyList()
+            coEvery { totalWins() } returns 0
+            coEvery { totalPlayed() } returns 0
+            coEvery { todayDateString() } returns "2026-02-21"
+            every { getDefinitionForDailyWord(any()) } returns null
+        }
+        return GameViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("difficulty" to difficulty, "level" to level)),
+            wordRepository = wordRepository,
+            playerRepository = playerRepository,
+            evaluateGuess = EvaluateGuessUseCase(),
+            lifeRegenUseCase = LifeRegenUseCase(),
+            audioManager = audioManager,
+            starRatingDao = starRatingDao,
+            dailyChallengeRepository = dailyChallengeRepository,
+            achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true)
+        )
+    }
+
+    @Test
+    fun `restoreFromSave sets wordLength from saved targetWord for VIP 3-letter game`() = runTest {
+        val saved = SavedGameState(
+            difficultyKey = "vip",
+            level = 1,
+            targetWord = "CAT",   // 3-letter VIP word
+            completedGuesses = emptyList(),
+            currentInput = emptyList(),
+            maxGuesses = 6
+        )
+        val vm = createViewModelWithSave(
+            difficulty = "vip", level = 1, word = "CAT", savedGame = saved
+        )
+        awaitInit(vm)
+        val state = vm.uiState.first()
+        assertEquals("restoreFromSave should use saved word length (3)", 3, state.wordLength)
+    }
+
+    @Test
+    fun `restoreFromSave sets wordLength from saved targetWord for VIP 7-letter game`() = runTest {
+        val saved = SavedGameState(
+            difficultyKey = "vip",
+            level = 5,
+            targetWord = "KITCHEN",   // 7-letter VIP word
+            completedGuesses = emptyList(),
+            currentInput = emptyList(),
+            maxGuesses = 6
+        )
+        val vm = createViewModelWithSave(
+            difficulty = "vip", level = 5, word = "KITCHEN", savedGame = saved
+        )
+        awaitInit(vm)
+        val state = vm.uiState.first()
+        assertEquals("restoreFromSave should use saved word length (7)", 7, state.wordLength)
+    }
+
+    @Test
+    fun `restoreFromSave sets wordHasDefinition true when definition is non-blank`() = runTest {
+        val saved = SavedGameState(
+            difficultyKey = "easy",
+            level = 1,
+            targetWord = "ABLE",
+            completedGuesses = emptyList(),
+            currentInput = emptyList(),
+            maxGuesses = 8
+        )
+        val vm = createViewModelWithSave(
+            difficulty = "easy", level = 1, word = "ABLE",
+            definition = "Having the ability to do something",
+            savedGame = saved
+        )
+        awaitInit(vm)
+        assertTrue("restoreFromSave should set wordHasDefinition=true",
+            vm.uiState.first().wordHasDefinition)
+    }
+
+    @Test
+    fun `restoreFromSave sets wordHasDefinition false when definition is blank`() = runTest {
+        val saved = SavedGameState(
+            difficultyKey = "easy",
+            level = 1,
+            targetWord = "ABLE",
+            completedGuesses = emptyList(),
+            currentInput = emptyList(),
+            maxGuesses = 8
+        )
+        val vm = createViewModelWithSave(
+            difficulty = "easy", level = 1, word = "ABLE",
+            definition = "",   // no definition
+            savedGame = saved
+        )
+        awaitInit(vm)
+        assertFalse("restoreFromSave should set wordHasDefinition=false when definition blank",
+            vm.uiState.first().wordHasDefinition)
+    }
+
+    @Test
+    fun `restoreFromSave pre-loads definitionHint in replay mode`() = runTest {
+        // level 1 is a replay since easyLevel = 5
+        val progress = PlayerProgress(easyLevel = 5)
+        val saved = SavedGameState(
+            difficultyKey = "easy",
+            level = 1,
+            targetWord = "ABLE",
+            completedGuesses = emptyList(),
+            currentInput = emptyList(),
+            maxGuesses = 8
+        )
+        val vm = createViewModelWithSave(
+            difficulty = "easy", level = 1, word = "ABLE",
+            definition = "Having the ability to do something",
+            progress = progress,
+            savedGame = saved
+        )
+        awaitInit(vm)
+        val state = vm.uiState.first()
+        assertTrue("Replay should auto-set definitionUsedThisLevel", state.definitionUsedThisLevel)
+        assertEquals("Replay should pre-load definition hint",
+            "Having the ability to do something", state.definitionHint)
+    }
+
+    @Test
+    fun `restoreFromSave grants free definition for non-replay with 2+ previous stars`() = runTest {
+        // lastLevelStars=3 triggers the free definition grant
+        val progress = PlayerProgress(easyLevel = 1, lastLevelStars = 3)
+        val saved = SavedGameState(
+            difficultyKey = "easy",
+            level = 1,
+            targetWord = "ABLE",
+            completedGuesses = emptyList(),
+            currentInput = emptyList(),
+            maxGuesses = 8
+        )
+        val vm = createViewModelWithSave(
+            difficulty = "easy", level = 1, word = "ABLE",
+            definition = "Having the ability to do something",
+            progress = progress,
+            savedGame = saved
+        )
+        awaitInit(vm)
+        val state = vm.uiState.first()
+        assertTrue("Should grant free definition preview for 2+ stars", state.grantedFreeDefinition)
+        assertEquals("Having the ability to do something", state.definitionHint)
+    }
 }

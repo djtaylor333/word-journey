@@ -42,12 +42,13 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.30.1 - Fix store purchases
+RELEASE_NOTES = """v2.32.0 - VIP fixes, inbox layout & AdMob removed
 
-\u2022 Store: 500 Coins product ID aligned with Play Console (coin_pack_500)
-\u2022 Store: all 9 one-time products now ACTIVE in Play Console
-\u2022 VIP: vip_monthly and vip_yearly subscription base plans now ACTIVE
-\u2022 Play Games achievements published (from v2.30.0)"""
+\u2022 Map: level select now auto-scrolls to the current level (density-aware, works on all screen sizes)
+\u2022 VIP Journey: word-length badge on map now shows "3 letters", "4 letters" etc. for clarity
+\u2022 VIP Journey: definition button now works correctly after restoring a saved game mid-level
+\u2022 Inbox: reward-item chips wrap into rows of 3 on low-resolution screens (no more squishing)
+\u2022 Ads: AdMob removed while a new ad partner is evaluated; all existing ad flows preserved via stub"""
 
 
 def build_service(key_path: str):
