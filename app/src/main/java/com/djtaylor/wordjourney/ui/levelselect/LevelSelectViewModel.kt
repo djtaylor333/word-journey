@@ -1,10 +1,13 @@
 package com.djtaylor.wordjourney.ui.levelselect
 
+import android.app.Activity
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.SfxSound
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.billing.ActivityProvider
+import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.data.db.StarRatingDao
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
@@ -16,6 +19,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 data class LevelSelectUiState(
@@ -33,7 +38,11 @@ data class LevelSelectUiState(
     val starRatings: Map<Int, Int> = emptyMap(), // level -> stars (1-3)
     val totalStars: Int = 0,
     val journeyTitle: String = "",       // display title: e.g. "Easter Journey 🐣"
-    val seasonalPackKey: String? = null  // non-null for seasonal pack screens
+    val seasonalPackKey: String? = null, // non-null for seasonal pack screens
+    val adIsReady: Boolean = false,      // whether a rewarded ad is loaded and ready
+    val adLifeGrantedMessage: String? = null,  // shown briefly after watching an ad for a life
+    val seasonalDaysLeft: Int? = null,   // days remaining in the current seasonal event (null if not seasonal)
+    val showSeasonInfoDialog: Boolean = false  // show rules/dates info dialog
 )
 
 @HiltViewModel
@@ -42,7 +51,9 @@ class LevelSelectViewModel @Inject constructor(
     private val playerRepository: PlayerRepository,
     private val lifeRegenUseCase: LifeRegenUseCase,
     private val audioManager: WordJourneysAudioManager,
-    private val starRatingDao: StarRatingDao
+    private val starRatingDao: StarRatingDao,
+    private val adManager: IAdManager,
+    private val activityProvider: ActivityProvider
 ) : ViewModel() {
 
     private val difficultyKey: String = checkNotNull(savedStateHandle["difficulty"])
@@ -74,6 +85,41 @@ class LevelSelectViewModel @Inject constructor(
         loadProgress()
         loadStarRatings()
         startTimerTick()
+        startAdReadyPoll()
+        if (seasonalPackKey != null) {
+            _uiState.update { it.copy(seasonalDaysLeft = daysLeftForSeason(seasonalPackKey)) }
+        }
+    }
+
+    /**
+     * Returns the number of calendar days until a seasonal event ends, based on
+     * the current year. If the end date has passed this year, reports the end date
+     * for next year (so the pack is never shown as "expired").
+     */
+    private fun daysLeftForSeason(key: String): Int? {
+        val (endMonth, endDay) = when (key) {
+            "easter"       -> 4 to 20
+            "valentines"   -> 2 to 14
+            "summer"       -> 8 to 31
+            "halloween"    -> 10 to 31
+            "thanksgiving" -> 11 to 28
+            "christmas"    -> 12 to 31
+            else           -> return null
+        }
+        val today = LocalDate.now()
+        var end = today.withMonth(endMonth).withDayOfMonth(endDay)
+        if (end.isBefore(today)) end = end.plusYears(1)
+        return ChronoUnit.DAYS.between(today, end).toInt().coerceAtLeast(0)
+    }
+
+    /** Poll ad readiness every 2 seconds so the "Watch Ad" button appears as soon as an ad loads. */
+    private fun startAdReadyPoll() {
+        viewModelScope.launch {
+            while (true) {
+                _uiState.update { it.copy(adIsReady = adManager.isRewardedAdReady) }
+                delay(2_000L)
+            }
+        }
     }
 
     private fun loadStarRatings() {
@@ -184,6 +230,44 @@ class LevelSelectViewModel @Inject constructor(
 
     fun dismissNoLivesDialog() {
         _uiState.update { it.copy(showNoLivesDialog = false) }
+    }
+
+    fun showSeasonInfo() {
+        _uiState.update { it.copy(showSeasonInfoDialog = true) }
+    }
+
+    fun dismissSeasonInfo() {
+        _uiState.update { it.copy(showSeasonInfoDialog = false) }
+    }
+
+    /**
+     * Watch a rewarded ad to earn 1 bonus life.
+     * Uses the current activity from [activityProvider].
+     */
+    fun watchAdForLife() {
+        val activity = activityProvider.currentActivity ?: return
+        viewModelScope.launch {
+            val result = adManager.showRewardedAd(activity)
+            if (result.watched) {
+                val updated = playerProgress.copy(lives = playerProgress.lives + 1)
+                playerProgress = updated
+                playerRepository.saveProgress(updated)
+                _uiState.update {
+                    it.copy(
+                        lives = minOf(updated.lives, 10),
+                        bonusLives = maxOf(updated.lives - 10, 0),
+                        showNoLivesDialog = false,
+                        adLifeGrantedMessage = "You earned a free life! ❤️"
+                    )
+                }
+                // Pre-load next ad
+                adManager.loadRewardedAd()
+            }
+        }
+    }
+
+    fun dismissAdLifeMessage() {
+        _uiState.update { it.copy(adLifeGrantedMessage = null) }
     }
 
     fun resetLifeAnimation() {

@@ -20,10 +20,13 @@ import com.djtaylor.wordjourney.notifications.DailyChallengeReminderWorker
 import com.djtaylor.wordjourney.review.InAppReviewManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
@@ -36,6 +39,7 @@ data class HomeUiState(
     val pendingVipDaysMessage: String? = null, // dialog body text
     val newPlayerBonusMessage: String? = null,
     val inboxCount: Int = 0,                // unclaimed inbox items badge
+    val nextVipRewardMs: Long = 0L,         // ms until next VIP daily reward available
     val devModeEnabled: Boolean = false,    // unlocked via 10-tap easter egg
     val showReviewPrompt: Boolean = false   // show in-app review prompt after 10 levels
 )
@@ -66,6 +70,14 @@ class HomeViewModel @Inject constructor(
 
     private fun loadProgress() {
         viewModelScope.launch {
+            // Sync from Play Games cloud save once per session (best-effort, non-blocking).
+            // This ensures progress is restored after a reinstall or new device setup.
+            try {
+                playerRepository.syncFromCloud()
+            } catch (_: Exception) {
+                // Cloud sync is best-effort — continue with local progress on failure
+            }
+
             // Apply any passive life regen since last open
             playerRepository.playerProgressFlow.collectLatest { progress ->
                 val regen = lifeRegenUseCase(
@@ -106,21 +118,24 @@ class HomeViewModel @Inject constructor(
                 if (updated.isVip) {
                     val reward = vipDailyRewardUseCase.calculateRewards(updated.lastVipRewardDate)
                     if (reward != null) {
-                        // Update last-reward date first to prevent double-insertion on recompose
+                        // Use NonCancellable to prevent collectLatest from skipping the inbox
+                        // add after saveProgress triggers a new DataStore emission.
                         updated = updated.copy(lastVipRewardDate = reward.updatedLastRewardDate)
-                        playerRepository.saveProgress(updated)
-                        inboxRepository.addVipDailyRewardIfNeeded(
-                            livesGranted = reward.livesGranted,
-                            coinsGranted = reward.coinsGranted,
-                            addGuessItems = reward.addGuessItemsGranted,
-                            removeLetterItems = reward.removeLetterItemsGranted,
-                            definitionItems = reward.definitionItemsGranted,
-                            showLetterItems = reward.showLetterItemsGranted,
-                            daysAccumulated = reward.daysAccumulated
-                        )
+                        withContext(NonCancellable) {
+                            playerRepository.saveProgress(updated)
+                            inboxRepository.addVipDailyRewardIfNeeded(
+                                livesGranted = reward.livesGranted,
+                                coinsGranted = reward.coinsGranted,
+                                addGuessItems = reward.addGuessItemsGranted,
+                                removeLetterItems = reward.removeLetterItemsGranted,
+                                definitionItems = reward.definitionItemsGranted,
+                                showLetterItems = reward.showLetterItemsGranted,
+                                daysAccumulated = reward.daysAccumulated
+                            )
+                        }
                         showVipDialog = true
                         vipDialogMsg = if (reward.daysAccumulated > 1)
-                            "You\'ve accumulated ${reward.daysAccumulated} days of VIP rewards! Claim ${reward.livesGranted} lives & ${reward.coinsGranted} coins now."
+                            "You've accumulated ${reward.daysAccumulated} days of VIP rewards! Claim ${reward.livesGranted} lives & ${reward.coinsGranted} coins now."
                         else
                             "Your daily VIP reward is ready — claim ${reward.livesGranted} lives & ${reward.coinsGranted} coins!"
                     }
@@ -155,6 +170,13 @@ class HomeViewModel @Inject constructor(
                     !updated.hasReviewBeenRequested
                 if (triggerReview) reviewPromptShownThisSession = true
 
+                val nextVipRewardMs = if (updated.isVip && updated.lastVipRewardDate.isNotBlank()) {
+                    val nextMidnight = LocalDate.now().plusDays(1)
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant().toEpochMilli()
+                    (nextMidnight - System.currentTimeMillis()).coerceAtLeast(0L)
+                } else 0L
+
                 _uiState.update {
                     it.copy(
                         progress = updated,
@@ -165,7 +187,8 @@ class HomeViewModel @Inject constructor(
                         newPlayerBonusMessage = newPlayerMsg,
                         inboxCount = inboxRepository.getUnclaimedCount(),
                         devModeEnabled = updated.devModeEnabled,
-                        showReviewPrompt = if (triggerReview) true else it.showReviewPrompt
+                        showReviewPrompt = if (triggerReview) true else it.showReviewPrompt,
+                        nextVipRewardMs = nextVipRewardMs
                     )
                 }
 
@@ -187,20 +210,23 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Ticks every second to update the life countdown display. */
+    /** Ticks every second to update the life countdown and VIP reward countdown displays. */
     private fun startTimerTick() {
         viewModelScope.launch {
             while (true) {
                 delay(1_000L)
                 val progress = _uiState.value.progress
-                if (progress.lives < LifeRegenUseCase.TIME_REGEN_CAP) {
-                    val ms = lifeRegenUseCase.nextLifeAtMs(
-                        progress.lastLifeRegenTimestamp
-                    ) - System.currentTimeMillis()
-                    _uiState.update { it.copy(timerDisplayMs = ms.coerceAtLeast(0L)) }
-                } else {
-                    _uiState.update { it.copy(timerDisplayMs = 0L) }
-                }
+                val lifeMs = if (progress.lives < LifeRegenUseCase.TIME_REGEN_CAP) {
+                    (lifeRegenUseCase.nextLifeAtMs(progress.lastLifeRegenTimestamp)
+                        - System.currentTimeMillis()).coerceAtLeast(0L)
+                } else 0L
+                val vipMs = if (progress.isVip && progress.lastVipRewardDate.isNotBlank()) {
+                    val nextMidnight = LocalDate.now().plusDays(1)
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant().toEpochMilli()
+                    (nextMidnight - System.currentTimeMillis()).coerceAtLeast(0L)
+                } else 0L
+                _uiState.update { it.copy(timerDisplayMs = lifeMs, nextVipRewardMs = vipMs) }
             }
         }
     }

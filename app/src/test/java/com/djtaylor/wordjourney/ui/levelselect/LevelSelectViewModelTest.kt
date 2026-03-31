@@ -3,6 +3,9 @@ package com.djtaylor.wordjourney.ui.levelselect
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.billing.ActivityProvider
+import com.djtaylor.wordjourney.billing.AdRewardResult
+import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.data.db.StarRatingDao
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.Difficulty
@@ -34,6 +37,8 @@ class LevelSelectViewModelTest {
     private lateinit var playerRepository: PlayerRepository
     private lateinit var audioManager: WordJourneysAudioManager
     private lateinit var starRatingDao: StarRatingDao
+    private lateinit var adManager: IAdManager
+    private lateinit var activityProvider: ActivityProvider
 
     @Before
     fun setUp() {
@@ -63,12 +68,23 @@ class LevelSelectViewModelTest {
             coEvery { countPerfectLevels() } returns 0
         }
 
+        adManager = mockk {
+            every { isRewardedAdReady } returns false
+            coEvery { loadRewardedAd() } just Runs
+            coEvery { showRewardedAd(any()) } returns AdRewardResult(watched = false)
+        }
+        activityProvider = mockk {
+            every { currentActivity } returns null
+        }
+
         return LevelSelectViewModel(
             savedStateHandle = SavedStateHandle(mapOf("difficulty" to difficulty)),
             playerRepository = playerRepository,
             lifeRegenUseCase = LifeRegenUseCase(),
             audioManager = audioManager,
-            starRatingDao = starRatingDao
+            starRatingDao = starRatingDao,
+            adManager = adManager,
+            activityProvider = activityProvider
         )
     }
 
@@ -249,13 +265,21 @@ class LevelSelectViewModelTest {
             coEvery { getAllForDifficulty("easy") } returns ratings
             coEvery { totalStars() } returns 6
         }
+        adManager = mockk {
+            every { isRewardedAdReady } returns false
+            coEvery { loadRewardedAd() } just Runs
+            coEvery { showRewardedAd(any()) } returns AdRewardResult(watched = false)
+        }
+        activityProvider = mockk { every { currentActivity } returns null }
 
         val vm = LevelSelectViewModel(
             savedStateHandle = SavedStateHandle(mapOf("difficulty" to "easy")),
             playerRepository = playerRepository,
             lifeRegenUseCase = LifeRegenUseCase(),
             audioManager = audioManager,
-            starRatingDao = starRatingDao
+            starRatingDao = starRatingDao,
+            adManager = adManager,
+            activityProvider = activityProvider
         )
         testDispatcher.scheduler.runCurrent()
 
@@ -426,5 +450,107 @@ class LevelSelectViewModelTest {
     fun `seasonal canStartLevel returns false when 0 lives for current level`() =
         testWithVm("seasonal_summer", PlayerProgress(seasonalSummerLevel = 3, lives = 0)) { vm ->
             assertFalse(vm.canStartLevel(3))
+        }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // SEASONAL COUNTDOWN & INFO DIALOG (v2.33.0)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `seasonal pack has non-null daysLeft in ui state`() =
+        testWithVm("seasonal_halloween") { vm ->
+            val daysLeft = vm.uiState.first().seasonalDaysLeft
+            assertNotNull("Expected non-null seasonalDaysLeft for seasonal pack", daysLeft)
+            assertTrue("Expected daysLeft >= 0", daysLeft!! >= 0)
+        }
+
+    @Test
+    fun `regular pack has null seasonalDaysLeft`() =
+        testWithVm("regular") { vm ->
+            assertNull(vm.uiState.first().seasonalDaysLeft)
+        }
+
+    @Test
+    fun `showSeasonInfo sets showSeasonInfoDialog to true`() =
+        testWithVm("seasonal_christmas") { vm ->
+            vm.showSeasonInfo()
+            testDispatcher.scheduler.runCurrent()
+            assertTrue(vm.uiState.first().showSeasonInfoDialog)
+        }
+
+    @Test
+    fun `dismissSeasonInfo sets showSeasonInfoDialog to false`() =
+        testWithVm("seasonal_christmas") { vm ->
+            vm.showSeasonInfo()
+            testDispatcher.scheduler.runCurrent()
+            vm.dismissSeasonInfo()
+            testDispatcher.scheduler.runCurrent()
+            assertFalse(vm.uiState.first().showSeasonInfoDialog)
+        }
+
+    @Test
+    fun `watchAdForLife grants 1 life when ad is watched`() = runTest {
+        val progress = PlayerProgress(lives = 0)
+        progressFlow = MutableStateFlow(progress)
+        playerRepository = mockk {
+            every { playerProgressFlow } returns progressFlow
+            coEvery { saveProgress(any()) } coAnswers {
+                val updated = firstArg<PlayerProgress>()
+                progressFlow.value = updated
+            }
+        }
+        audioManager = mockk(relaxed = true)
+        starRatingDao = mockk {
+            coEvery { getAllForDifficulty(any()) } returns emptyList()
+            coEvery { totalStars() } returns 0
+            coEvery { totalStarsForDifficulty(any()) } returns 0
+            coEvery { countPerfectLevels() } returns 0
+        }
+        adManager = mockk {
+            every { isRewardedAdReady } returns true
+            coEvery { loadRewardedAd() } just Runs
+            coEvery { showRewardedAd(any()) } returns AdRewardResult(watched = true, rewardType = "life", rewardAmount = 1)
+        }
+        val mockActivity = mockk<android.app.Activity>(relaxed = true)
+        activityProvider = mockk {
+            every { currentActivity } returns mockActivity
+        }
+
+        val vm = LevelSelectViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("difficulty" to "easy")),
+            playerRepository = playerRepository,
+            lifeRegenUseCase = LifeRegenUseCase(),
+            audioManager = audioManager,
+            starRatingDao = starRatingDao,
+            adManager = adManager,
+            activityProvider = activityProvider
+        )
+        testDispatcher.scheduler.runCurrent()
+        vm.watchAdForLife()
+        testDispatcher.scheduler.runCurrent()
+
+        val state = vm.uiState.first()
+        assertEquals(1, state.lives)  // 0 + 1 from ad reward
+        assertFalse(state.showNoLivesDialog)
+        assertNotNull(state.adLifeGrantedMessage)
+        vm.viewModelScope.cancel()
+    }
+
+    @Test
+    fun `watchAdForLife does nothing when activityProvider has no activity`() =
+        testWithVm("easy", PlayerProgress(lives = 0)) { vm ->
+            every { activityProvider.currentActivity } returns null
+            vm.watchAdForLife()
+            testDispatcher.scheduler.runCurrent()
+            assertEquals(0, vm.uiState.first().lives)
+        }
+
+    @Test
+    fun `dismissAdLifeMessage clears adLifeGrantedMessage`() =
+        testWithVm("easy") { vm ->
+            // Force-set the message via a round-trip through the ViewModel internal state by watching an ad
+            vm.dismissAdLifeMessage()
+            testDispatcher.scheduler.runCurrent()
+            assertNull(vm.uiState.first().adLifeGrantedMessage)
         }
 }

@@ -42,13 +42,13 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.32.0 - VIP fixes, inbox layout & AdMob removed
+RELEASE_NOTES = """v2.32.1 - VIP fixes, inbox & ads
 
-\u2022 Map: level select now auto-scrolls to the current level (density-aware, works on all screen sizes)
-\u2022 VIP Journey: word-length badge on map now shows "3 letters", "4 letters" etc. for clarity
-\u2022 VIP Journey: definition button now works correctly after restoring a saved game mid-level
-\u2022 Inbox: reward-item chips wrap into rows of 3 on low-resolution screens (no more squishing)
-\u2022 Ads: AdMob removed while a new ad partner is evaluated; all existing ad flows preserved via stub"""
+\u2022 Map: level select scrolls to current level on all screen sizes
+\u2022 VIP Journey: word-length badges now show "3 letters", "7 letters" etc.
+\u2022 VIP Journey: definition button works correctly after restoring a saved game
+\u2022 Inbox: reward chips wrap into rows of 3 on narrow screens
+\u2022 AdMob removed while a new ad partner is evaluated"""
 
 
 def build_service(key_path: str):

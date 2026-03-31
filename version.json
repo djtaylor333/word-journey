@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.32.1",
-    "versionCode":  63,
+    "versionName":  "2.33.0",
+    "versionCode":  64,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
-    "buildDate":  "2026-03-28",
-    "releaseNotes":  "v2.32.0 — VIP fixes, inbox layout \u0026 AdMob removed\n• Map: level select auto-scrolls to current level (density-aware)\n• VIP Journey: word-length badge shows \u00273 letters\u0027, \u00274 letters\u0027 etc.\n• VIP Journey: definition button works correctly after restoring a saved game\n• Inbox: reward chips wrap into rows of 3 on low-res screens\n• AdMob removed while new ad partner is evaluated"
+    "buildDate":  "2026-04-01",
+    "releaseNotes":  "v2.33.0 — items display, VIP gift fix, battery, Unity Ads, seasonal countdown, cloud restore\n• Items bar: shows '4 left' only, no more duplicate x4 badge\n• VIP daily gift: fixed race condition ensuring inbox item is always added (NonCancellable)\n• Inbox: VIP 'next reward' countdown timer (HH:MM:SS until midnight)\n• Battery: WorkManager notification jobs skip when battery is critically low\n• Ads: Unity Ads 4.x integrated (RealAdManager); 'Watch Ad → 1 Free Life' in no-lives dialog\n• Seasonal packs: days-left countdown chip + info ℹ️ button showing rules and end date\n• Cloud saves: syncFromCloud() now called on startup to restore progress after reinstall\n• Cloud saves: mergeProgress now covers all fields (VIP, items, seasonal levels, milestones, stars)"
 }

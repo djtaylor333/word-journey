@@ -6,6 +6,7 @@ import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import com.djtaylor.wordjourney.domain.model.SavedGameState
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,13 +18,15 @@ class PlayerRepository @Inject constructor(
     val playerProgressFlow: Flow<PlayerProgress> = dataStore.playerProgressFlow
     val isFirstLaunch: Flow<Boolean> = dataStore.isFirstLaunch
 
-    /** Load from cloud and merge (highest level wins), then persist locally. */
+    /** Load from cloud and merge (highest wins), then persist locally.
+     *
+     * Fixed: uses `first()` instead of `collect {}` so the function actually returns.
+     * Should be called once per session from HomeViewModel before the main progress loop.
+     */
     suspend fun syncFromCloud(): PlayerProgress? {
         val cloud = cloudSave.loadSave() ?: return null
-        val localFlow = dataStore.playerProgressFlow
-        var local: PlayerProgress? = null
-        localFlow.collect { local = it }
-        val merged = mergeProgress(local ?: return cloud, cloud)
+        val local = dataStore.playerProgressFlow.first()
+        val merged = mergeProgress(local, cloud)
         dataStore.savePlayerProgress(merged)
         return merged
     }
@@ -144,15 +147,51 @@ class PlayerRepository @Inject constructor(
         )
     }
 
+    /**
+     * Merge local and cloud progress, taking the best of each field.
+     * Rule: currency/lives/items/levels all take the maximum.
+     * VIP status is OR'd (either source having VIP grants it in merged).
+     * Flags like hasReceivedNewPlayerBonus are OR'd (true wins).
+     */
     private fun mergeProgress(local: PlayerProgress, cloud: PlayerProgress): PlayerProgress {
-        // Take the furthest level for each difficulty; take maximum currency
         return local.copy(
-            coins         = maxOf(local.coins, cloud.coins),
-            diamonds      = maxOf(local.diamonds, cloud.diamonds),
-            lives         = maxOf(local.lives, cloud.lives),
-            easyLevel     = maxOf(local.easyLevel, cloud.easyLevel),
-            regularLevel  = maxOf(local.regularLevel, cloud.regularLevel),
-            hardLevel     = maxOf(local.hardLevel, cloud.hardLevel)
+            coins                   = maxOf(local.coins, cloud.coins),
+            diamonds                = maxOf(local.diamonds, cloud.diamonds),
+            lives                   = maxOf(local.lives, cloud.lives),
+            easyLevel               = maxOf(local.easyLevel, cloud.easyLevel),
+            regularLevel            = maxOf(local.regularLevel, cloud.regularLevel),
+            hardLevel               = maxOf(local.hardLevel, cloud.hardLevel),
+            vipLevel                = maxOf(local.vipLevel, cloud.vipLevel),
+            addGuessItems           = maxOf(local.addGuessItems, cloud.addGuessItems),
+            removeLetterItems       = maxOf(local.removeLetterItems, cloud.removeLetterItems),
+            definitionItems         = maxOf(local.definitionItems, cloud.definitionItems),
+            showLetterItems         = maxOf(local.showLetterItems, cloud.showLetterItems),
+            totalStarsEarned        = maxOf(local.totalStarsEarned, cloud.totalStarsEarned),
+            totalLevelsCompleted    = maxOf(local.totalLevelsCompleted, cloud.totalLevelsCompleted),
+            totalCoinsEarned        = maxOf(local.totalCoinsEarned, cloud.totalCoinsEarned),
+            loginBestStreak         = maxOf(local.loginBestStreak, cloud.loginBestStreak),
+            dailyChallengeBestStreak = maxOf(local.dailyChallengeBestStreak, cloud.dailyChallengeBestStreak),
+            // Seasonal level progress
+            seasonalEasterLevel       = maxOf(local.seasonalEasterLevel, cloud.seasonalEasterLevel),
+            seasonalValentinesLevel   = maxOf(local.seasonalValentinesLevel, cloud.seasonalValentinesLevel),
+            seasonalSummerLevel       = maxOf(local.seasonalSummerLevel, cloud.seasonalSummerLevel),
+            seasonalHalloweenLevel    = maxOf(local.seasonalHalloweenLevel, cloud.seasonalHalloweenLevel),
+            seasonalThanksgivingLevel = maxOf(local.seasonalThanksgivingLevel, cloud.seasonalThanksgivingLevel),
+            seasonalChristmasLevel    = maxOf(local.seasonalChristmasLevel, cloud.seasonalChristmasLevel),
+            // Seasonal milestones
+            seasonalMilestoneEaster       = maxOf(local.seasonalMilestoneEaster, cloud.seasonalMilestoneEaster),
+            seasonalMilestoneValentines   = maxOf(local.seasonalMilestoneValentines, cloud.seasonalMilestoneValentines),
+            seasonalMilestoneSummer       = maxOf(local.seasonalMilestoneSummer, cloud.seasonalMilestoneSummer),
+            seasonalMilestoneHalloween    = maxOf(local.seasonalMilestoneHalloween, cloud.seasonalMilestoneHalloween),
+            seasonalMilestoneThanksgiving = maxOf(local.seasonalMilestoneThanksgiving, cloud.seasonalMilestoneThanksgiving),
+            seasonalMilestoneChristmas    = maxOf(local.seasonalMilestoneChristmas, cloud.seasonalMilestoneChristmas),
+            isVip                   = local.isVip || cloud.isVip,
+            hasReceivedNewPlayerBonus = local.hasReceivedNewPlayerBonus || cloud.hasReceivedNewPlayerBonus,
+            hasReviewBeenRequested  = local.hasReviewBeenRequested || cloud.hasReviewBeenRequested,
+            reviewRewarded          = local.reviewRewarded || cloud.reviewRewarded,
+            // Keep whichever last-date strings are more recent (ISO format lexicographic sort)
+            lastLoginDate           = maxOf(local.lastLoginDate, cloud.lastLoginDate),
+            lastVipRewardDate       = maxOf(local.lastVipRewardDate, cloud.lastVipRewardDate)
         )
     }
 }

@@ -9,15 +9,20 @@ import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.notifications.LivesFullNotificationWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class InboxUiState(
     val items: List<InboxItemEntity> = emptyList(),
     val unclaimedCount: Int = 0,
     val isLoading: Boolean = true,
-    val claimAllDone: Boolean = false
+    val claimAllDone: Boolean = false,
+    val isVip: Boolean = false,
+    val nextVipRewardMs: Long = 0L   // ms until next VIP daily reward (0 = available now)
 )
 
 @HiltViewModel
@@ -32,6 +37,38 @@ class InboxViewModel @Inject constructor(
 
     init {
         loadItems()
+        observeVipStatus()
+        startVipCountdownTick()
+    }
+
+    /** Observe player VIP state and last-reward date to keep countdown accurate. */
+    private fun observeVipStatus() {
+        viewModelScope.launch {
+            playerRepository.playerProgressFlow.collectLatest { progress ->
+                val vipMs = if (progress.isVip && progress.lastVipRewardDate.isNotBlank()) {
+                    val nextMidnight = LocalDate.now().plusDays(1)
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant().toEpochMilli()
+                    (nextMidnight - System.currentTimeMillis()).coerceAtLeast(0L)
+                } else 0L
+                _uiState.update { it.copy(isVip = progress.isVip, nextVipRewardMs = vipMs) }
+            }
+        }
+    }
+
+    /** Ticks every second to update the VIP reward countdown. */
+    private fun startVipCountdownTick() {
+        viewModelScope.launch {
+            while (true) {
+                delay(1_000L)
+                val current = _uiState.value
+                if (current.isVip && current.nextVipRewardMs > 0L) {
+                    _uiState.update {
+                        it.copy(nextVipRewardMs = (it.nextVipRewardMs - 1_000L).coerceAtLeast(0L))
+                    }
+                }
+            }
+        }
     }
 
     fun loadItems() {

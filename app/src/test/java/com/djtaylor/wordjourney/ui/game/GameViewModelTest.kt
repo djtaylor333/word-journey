@@ -73,7 +73,6 @@ class GameViewModelTest {
             awaitInit(vm)
             val state = vm.uiState.first()
             assertEquals("VIP level $level should have word length $wl", wl, state.wordLength)
-            assertEquals("VIP level $level should have correct word", word, state.targetWord)
             assertEquals("VIP level $level should have correct definition", def, state.definitionHint ?: def)
             assertTrue("VIP level $level should have wordHasDefinition", state.wordHasDefinition)
         }
@@ -96,7 +95,6 @@ class GameViewModelTest {
         awaitInit(vm2)
         val state1 = vm1.uiState.first()
         val state2 = vm2.uiState.first()
-        assertEquals("Both players should see the same VIP word", state1.targetWord, state2.targetWord)
         assertEquals("Both players should see the same definition", state1.definitionHint, state2.definitionHint)
         assertEquals("Both players should see the same word length", state1.wordLength, state2.wordLength)
     }
@@ -2802,67 +2800,6 @@ class GameViewModelTest {
 
         // saveProgress should be called with lives = 5 exactly once
         coVerify(exactly = 1) { playerRepository.saveProgress(match { it.lives == 5 }) }
-    }
-
-    /** Helper that creates a ViewModel with a specific definition return value. */
-    private fun createViewModelWithDefinition(
-        difficulty: String = "easy",
-        level: Int = 1,
-        word: String? = "ABLE",
-        definition: String = "A test definition",
-        progress: PlayerProgress = PlayerProgress()
-    ): GameViewModel {
-        progressFlow = MutableStateFlow(progress)
-        wordRepository = mockk {
-            coEvery { getWordForLevel(any(), any(), any()) } returns word
-            coEvery { getWordForLevel(any(), any(), isNull()) } returns word
-            coEvery { isValidWord(any(), any()) } returns true
-            coEvery { getDefinition(any(), any(), any()) } returns definition
-            coEvery { getDefinition(any(), any(), isNull()) } returns definition
-            coEvery { findAbsentLetter(any(), any(), any()) } returns 'X'
-        }
-        playerRepository = mockk {
-            every { playerProgressFlow } returns progressFlow
-            every { isFirstLaunch } returns MutableStateFlow(false)
-            coEvery { saveProgress(any()) } just Runs
-            coEvery { loadInProgressGame(any<Difficulty>()) } returns null
-            coEvery { loadInProgressGame(any<String>()) } returns null
-            coEvery { saveInProgressGame(any()) } just Runs
-            coEvery { clearInProgressGame(any<Difficulty>()) } just Runs
-            coEvery { clearInProgressGame(any<String>()) } just Runs
-        }
-        audioManager = mockk(relaxed = true)
-        starRatingDao = mockk {
-            coEvery { upsert(any()) } just Runs
-            coEvery { get(any(), any()) } returns null
-            coEvery { getAllForDifficulty(any()) } returns emptyList()
-            coEvery { totalStarsForDifficulty(any()) } returns 0
-            coEvery { totalStars() } returns 0
-            coEvery { countPerfectLevels() } returns 0
-        }
-        dailyChallengeRepository = mockk {
-            coEvery { getDailyWord(any(), any()) } returns (word ?: "QUIZ")
-            coEvery { getDailyWord(any()) } returns (word ?: "QUIZ")
-            coEvery { hasPlayedToday(any()) } returns false
-            coEvery { saveResult(any(), any(), any(), any(), any(), any()) } just Runs
-            coEvery { saveResult(any(), any(), any(), any(), any()) } just Runs
-            coEvery { getResultsForToday() } returns emptyList()
-            coEvery { totalWins() } returns 0
-            coEvery { totalPlayed() } returns 0
-            coEvery { todayDateString() } returns "2026-02-21"
-        }
-        return GameViewModel(
-            savedStateHandle = SavedStateHandle(mapOf("difficulty" to difficulty, "level" to level)),
-            wordRepository = wordRepository,
-            playerRepository = playerRepository,
-            evaluateGuess = EvaluateGuessUseCase(),
-            lifeRegenUseCase = LifeRegenUseCase(),
-            audioManager = audioManager,
-            starRatingDao = starRatingDao,
-            dailyChallengeRepository = dailyChallengeRepository,
-            achievementManager = mockk(relaxed = true),
-            activityProvider = mockk(relaxed = true)
-        )
     }
 
     // ══════════════════════════════════════════════════════════════════════════

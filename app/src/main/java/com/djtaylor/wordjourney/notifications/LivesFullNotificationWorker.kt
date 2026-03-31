@@ -49,8 +49,13 @@ class LivesFullNotificationWorker @AssistedInject constructor(
                 currentLives, lastRegenTimestamp
             ).coerceAtLeast(1_000L)
 
+            val constraints = Constraints.Builder()
+                .setRequiresBatteryNotLow(true)
+                .build()
+
             val request = OneTimeWorkRequestBuilder<LivesFullNotificationWorker>()
                 .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+                .setConstraints(constraints)
                 .addTag(WORK_TAG)
                 .build()
 

@@ -48,8 +48,13 @@ class DailyChallengeReminderWorker @AssistedInject constructor(
 
             val delayMs = msUntilNextNoon()
 
+            val constraints = Constraints.Builder()
+                .setRequiresBatteryNotLow(true)
+                .build()
+
             val request = OneTimeWorkRequestBuilder<DailyChallengeReminderWorker>()
                 .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+                .setConstraints(constraints)
                 .addTag(WORK_TAG)
                 .build()
 

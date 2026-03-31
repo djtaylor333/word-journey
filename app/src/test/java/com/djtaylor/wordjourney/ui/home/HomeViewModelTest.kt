@@ -55,6 +55,7 @@ class HomeViewModelTest {
         playerRepository = mockk {
             every { playerProgressFlow } returns progressFlow
             coEvery { saveProgress(any()) } just Runs
+            coEvery { syncFromCloud() } returns null   // best-effort, no-op in tests
         }
         inboxRepository = mockk {
             coEvery { getUnclaimedCount() } returns 0
@@ -511,5 +512,36 @@ class HomeViewModelTest {
 
         // showReviewPrompt should still be true (not toggled off by re-emission)
         assertTrue(vm.uiState.first().showReviewPrompt)
+    }
+
+    // ── nextVipRewardMs (v2.33.0) ────────────────────────────────────────────
+
+    @Test
+    fun `nextVipRewardMs is positive when VIP player has received reward today`() = testWithVm(
+        PlayerProgress(
+            isVip = true,
+            lastVipRewardDate = java.time.LocalDate.now().toString(),
+            hasReceivedNewPlayerBonus = true
+        )
+    ) { vm ->
+        val ms = vm.uiState.first().nextVipRewardMs
+        assertTrue("Expected positive nextVipRewardMs for VIP with today's reward, got $ms", ms > 0L)
+    }
+
+    @Test
+    fun `nextVipRewardMs is zero for non-VIP player`() = testWithVm(
+        PlayerProgress(isVip = false, hasReceivedNewPlayerBonus = true)
+    ) { vm ->
+        assertEquals(0L, vm.uiState.first().nextVipRewardMs)
+    }
+
+    @Test
+    fun `nextVipRewardMs is positive after VIP reward fires on blank lastVipRewardDate`() = testWithVm(
+        PlayerProgress(isVip = true, lastVipRewardDate = "", hasReceivedNewPlayerBonus = true)
+    ) { vm ->
+        // Blank date triggers the VIP daily reward immediately, which sets lastVipRewardDate
+        // to today. The next reward is then due at midnight, so nextVipRewardMs > 0.
+        val ms = vm.uiState.first().nextVipRewardMs
+        assertTrue("Expected positive nextVipRewardMs after first VIP reward fires, got $ms", ms > 0L)
     }
 }

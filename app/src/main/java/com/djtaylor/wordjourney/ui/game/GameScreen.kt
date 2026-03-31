@@ -580,25 +580,9 @@ private fun ItemButton(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Icon row — show owned badge if any
+            // Icon row — no owned badge (count shown in subtitle as "N left")
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(icon, fontSize = (24 * textScale).sp)
-                if (ownedCount > 0) {
-                    Spacer(Modifier.width(3.dp))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = AccentEasy.copy(alpha = 0.25f),
-                        modifier = Modifier.padding(start = 2.dp)
-                    ) {
-                        Text(
-                            "×$ownedCount",
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                            fontSize = (13 * textScale).sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AccentEasy.copy(alpha = alpha)
-                        )
-                    }
-                }
             }
             Text(
                 label,

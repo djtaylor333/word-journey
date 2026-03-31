@@ -336,6 +336,34 @@ fun LevelSelectScreen(
         bottomBar = {
             Surface(color = curZone.bgTop, tonalElevation = 4.dp, modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp).navigationBarsPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Seasonal countdown row (only shown for seasonal packs)
+                    state.seasonalDaysLeft?.let { daysLeft ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = accent.copy(alpha = 0.20f),
+                                modifier = Modifier.padding(end = 6.dp)
+                            ) {
+                                Text(
+                                    text = if (daysLeft == 0) "⏰ Last day!" else "📅 $daysLeft ${if (daysLeft == 1) "day" else "days"} left",
+                                    color = accent,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                )
+                            }
+                            IconButton(
+                                onClick = { viewModel.showSeasonInfo() },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Text("ℹ️", fontSize = 20.sp)
+                            }
+                        }
+                    }
                     if (state.timerDisplayMs > 0L && state.lives + state.bonusLives <= 0) {
                         Text("⏱ Next life in ${fmtTimer(state.timerDisplayMs)}", style = MaterialTheme.typography.bodyMedium, color = accent)
                         Spacer(Modifier.height(8.dp))
@@ -432,9 +460,72 @@ fun LevelSelectScreen(
                         Spacer(Modifier.height(8.dp))
                         Text("⏱ Next life in ${fmtTimer(state.timerDisplayMs)}", color = accent, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     }
+                    if (state.adIsReady) {
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.watchAdForLife() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = accent)
+                        ) {
+                            Text("📺 Watch Ad → 1 Free Life", fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             },
             confirmButton = { Button(onClick = { viewModel.dismissNoLivesDialog() }) { Text("OK", fontSize = 17.sp) } }
+        )
+    }
+
+    // Ad life granted snackbar message
+    state.adLifeGrantedMessage?.let { msg ->
+        LaunchedEffect(msg) {
+            kotlinx.coroutines.delay(2_500L)
+            viewModel.dismissAdLifeMessage()
+        }
+    }
+
+    // Season info dialog — rules, date range, levels remaining
+    if (state.showSeasonInfoDialog) {
+        val packKey = state.seasonalPackKey
+        val (seasonName, dateRange, rules) = when (packKey) {
+            "easter"       -> Triple("Easter & Spring", "Mar 15 – Apr 20", "Bloom into spring! Solve 100 Easter-themed word puzzles before the season ends.")
+            "valentines"   -> Triple("Valentine's Day", "Feb 1 – Feb 14", "Spread the love! Solve 100 Valentine-themed word puzzles before Feb 14th.")
+            "summer"       -> Triple("Summer", "Jun 1 – Aug 31", "Catch the summer vibes! Complete all 100 beach-themed word puzzles before summer ends.")
+            "halloween"    -> Triple("Halloween", "Oct 1 – Oct 31", "Trick or treat! Solve 100 spooky word puzzles throughout October.")
+            "thanksgiving" -> Triple("Thanksgiving", "Nov 1 – Nov 28", "Give thanks! Complete all 100 Thanksgiving-themed puzzles before Nov 28th.")
+            "christmas"    -> Triple("Christmas & Winter", "Dec 1 – Dec 31", "Deck the halls! Solve 100 festive word puzzles throughout December.")
+            else           -> Triple("Seasonal Event", "Limited time", "Complete all levels before the season ends!")
+        }
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissSeasonInfo() },
+            title = { Text("$seasonName Journey", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+            text = {
+                Column {
+                    Text("📅 Active: $dateRange", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Text(rules, fontSize = 15.sp)
+                    state.seasonalDaysLeft?.let { days ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            if (days == 0) "⏰ Last day of the season — play now!"
+                            else "⏳ $days ${if (days == 1) "day" else "days"} remaining",
+                            color = accent,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("📊 Your progress: Level ${state.currentLevel} / ${state.totalLevels}", fontSize = 14.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text("⭐ Stars earned: ${state.totalStars}", fontSize = 14.sp)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissSeasonInfo() },
+                    colors = ButtonDefaults.buttonColors(containerColor = accent)
+                ) { Text("Got it!") }
+            }
         )
     }
 }

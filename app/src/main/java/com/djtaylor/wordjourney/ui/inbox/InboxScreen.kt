@@ -103,11 +103,26 @@ fun InboxScreen(
                                 fontSize = 20.sp
                             )
                             Spacer(Modifier.height(4.dp))
-                            Text(
-                                "No unclaimed rewards right now.\nCheck back tomorrow for VIP daily rewards.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
+                            if (uiState.isVip && uiState.nextVipRewardMs > 0L) {
+                                Text(
+                                    "Next VIP daily reward in:",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "⏱ ${fmtCountdown(uiState.nextVipRewardMs)}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Text(
+                                    "No unclaimed rewards right now.\nCheck back tomorrow for VIP daily rewards.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }
@@ -251,4 +266,13 @@ private fun buildRewardChips(item: InboxItemEntity): List<String> {
     if (item.definitionItemsGranted > 0) chips += "+${item.definitionItemsGranted} 📖"
     if (item.showLetterItemsGranted > 0) chips += "+${item.showLetterItemsGranted} 💡"
     return chips
+}
+
+/** Format milliseconds as "HH:MM:SS" for countdown display. */
+private fun fmtCountdown(ms: Long): String {
+    val totalSeconds = (ms / 1_000L).coerceAtLeast(0L)
+    val hours   = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return "%02d:%02d:%02d".format(hours, minutes, seconds)
 }
