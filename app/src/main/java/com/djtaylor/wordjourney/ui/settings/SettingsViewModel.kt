@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.content.Intent
+import com.djtaylor.wordjourney.BuildConfig
 import com.djtaylor.wordjourney.auth.AchievementManager
 import com.djtaylor.wordjourney.auth.PlayGamesHelper
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
@@ -36,7 +37,7 @@ data class SettingsUiState(
     val textScaleFactor: Float = 1.0f,
     val playGamesSignedIn: Boolean = false,
     val playerDisplayName: String? = null,
-    val appVersion: String = "2.30.7",
+    val appVersion: String = BuildConfig.VERSION_NAME,
     val selectedTheme: String = "classic",
     val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
     val diamonds: Int = 0,

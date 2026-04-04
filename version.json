@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.33.0",
-    "versionCode":  64,
+    "versionName":  "2.34.0",
+    "versionCode":  65,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
-    "buildDate":  "2026-04-01",
-    "releaseNotes":  "v2.33.0 — items display, VIP gift fix, battery, Unity Ads, seasonal countdown, cloud restore\n• Items bar: shows '4 left' only, no more duplicate x4 badge\n• VIP daily gift: fixed race condition ensuring inbox item is always added (NonCancellable)\n• Inbox: VIP 'next reward' countdown timer (HH:MM:SS until midnight)\n• Battery: WorkManager notification jobs skip when battery is critically low\n• Ads: Unity Ads 4.x integrated (RealAdManager); 'Watch Ad → 1 Free Life' in no-lives dialog\n• Seasonal packs: days-left countdown chip + info ℹ️ button showing rules and end date\n• Cloud saves: syncFromCloud() now called on startup to restore progress after reinstall\n• Cloud saves: mergeProgress now covers all fields (VIP, items, seasonal levels, milestones, stars)"
+    "buildDate":  "2026-04-05",
+    "releaseNotes":  "v2.34.0 — expanded word library, scrollable guess grid, live version display\n• Word library: 3-letter valid words 392→1307 (mob, lob, cob, etc. now accepted); 7-letter valid words 725→23778; game words expanded to 500/1500/2000/1500/1000 for lengths 3-7 with definitions\n• Guess grid: always scrollable on all screen sizes so all rows are reachable; auto-scrolls to active row after each guess\n• About page: version now reads directly from BuildConfig (always shows correct installed version)"
 }

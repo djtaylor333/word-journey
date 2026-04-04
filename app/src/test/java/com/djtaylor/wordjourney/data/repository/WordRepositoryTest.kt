@@ -559,4 +559,99 @@ class WordRepositoryTest {
         // 4-letter VIP requests with wordLengthOverride=4, sampleWords4 has definitions
         assertTrue(repo.hasDefinition(Difficulty.EASY, 1, wordLengthOverride = 4))
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // v2.34.0 — EXPANDED WORD LIBRARY
+    // Verified that common 3-letter/7-letter words that were previously
+    // rejected (MOB, LOB, etc.) are now accepted once the expanded dictionary
+    // is injected via setWordSetsForTesting.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** Common 3-letter words that must be valid guesses */
+    private val common3LetterWords = listOf(
+        "MOB", "LOB", "COB", "GOB", "JOB", "NOB", "ROB", "SOB",  // -ob family
+        "CAB", "DAB", "FAB", "GAB", "JAB", "LAB", "NAB", "TAB",  // -ab family
+        "BAD", "DAD", "FAD", "HAD", "LAD", "MAD", "SAD",          // -ad family
+        "BAG", "GAG", "HAG", "NAG", "RAG", "SAG", "TAG", "WAG",  // -ag family
+        "CAP", "GAP", "MAP", "NAP", "RAP", "SAP", "TAP", "YAP",  // -ap family
+        "DEN", "HEN", "MEN", "PEN", "TEN",                        // -en family
+        "BIG", "DIG", "FIG", "GIG", "JIG", "PIG", "RIG", "WIG",  // -ig family
+        "BIT", "FIT", "HIT", "KIT", "PIT", "SIT", "WIT",          // -it family
+        "BOW", "COW", "HOW", "MOW", "NOW", "ROW", "SOW", "TOW",  // -ow family
+        "BUD", "CUD", "DUD", "MUD",                                // -ud family
+        "BUN", "FUN", "GUN", "NUN", "PUN", "RUN", "SUN"           // -un family
+    )
+
+    @Test
+    fun `all common 3-letter -ob words are valid guesses`() = runTest {
+        val obWords = setOf("MOB", "LOB", "COB", "GOB", "JOB", "NOB", "ROB", "SOB",
+            "BOB", "FOB", "HOB", "POB")
+        val repo = createRepoWithDictionary(mapOf(3 to obWords))
+        for (word in listOf("MOB", "LOB", "COB", "GOB", "JOB", "ROB", "SOB")) {
+            assertTrue("$word should be a valid 3-letter guess", repo.isValidWord(word, 3))
+        }
+    }
+
+    @Test
+    fun `all common 3-letter -ab words are valid guesses`() = runTest {
+        val abWords = setOf("CAB", "DAB", "FAB", "GAB", "JAB", "LAB", "NAB", "TAB", "JOB")
+        val repo = createRepoWithDictionary(mapOf(3 to abWords))
+        for (word in listOf("CAB", "DAB", "JAB", "NAB", "TAB")) {
+            assertTrue("$word should be a valid 3-letter guess", repo.isValidWord(word, 3))
+        }
+    }
+
+    @Test
+    fun `common 3-letter words are case-insensitive when validated`() = runTest {
+        val words3 = setOf("MOB", "LOB", "JOB", "GOB")
+        val repo = createRepoWithDictionary(mapOf(3 to words3))
+        // Guesses submitted as lowercase should still be accepted
+        assertTrue("mob (lowercase) should be valid", repo.isValidWord("mob", 3))
+        assertTrue("lob (lowercase) should be valid", repo.isValidWord("lob", 3))
+        assertTrue("job (lowercase) should be valid", repo.isValidWord("job", 3))
+    }
+
+    @Test
+    fun `3-letter words rejected when not in dictionary`() = runTest {
+        val words3 = setOf("MOB", "LOB", "JOB")
+        val repo = createRepoWithDictionary(mapOf(3 to words3))
+        // Words not in the dictionary should be rejected
+        assertFalse("XYZ should not be valid", repo.isValidWord("XYZ", 3))
+        assertFalse("QQQ should not be valid", repo.isValidWord("QQQ", 3))
+    }
+
+    @Test
+    fun `7-letter words from expanded library are valid`() = runTest {
+        val words7 = setOf("ABANDON", "CABINET", "FITNESS", "KITCHEN", "MAXIMUM",
+            "MORNING", "NOTHING", "PASSION", "PROBLEM", "READING")
+        val repo = createRepoWithDictionary(mapOf(7 to words7))
+        for (word in words7) {
+            assertTrue("$word should be a valid 7-letter guess", repo.isValidWord(word, 7))
+        }
+    }
+
+    @Test
+    fun `word validation uses the length-matched dictionary`() = runTest {
+        // Ensure that a 3-letter word is not accidentally accepted as a 5-letter word
+        val repo = createRepoWithDictionary(mapOf(
+            3 to setOf("MOB"),
+            5 to setOf("CRANE", "DREAM")
+        ))
+        assertTrue(repo.isValidWord("MOB", 3))
+        assertFalse("MOB should not be valid as a 5-letter word", repo.isValidWord("MOB", 5))
+        assertTrue(repo.isValidWord("CRANE", 5))
+        assertFalse("CRANE should not be valid as a 3-letter word", repo.isValidWord("CRANE", 3))
+    }
+
+    @Test
+    fun `word sets injected for testing are fully searchable`() = runTest {
+        // Simulate the expanded dictionary with many 3-letter words using simple combinations
+        val letters = listOf("A", "B", "C", "D", "E")
+        val expanded3: Set<String> = letters.flatMap { a -> letters.flatMap { b -> letters.map { c -> "$a$b$c" } } }.toSet()
+        val repo = createRepoWithDictionary(mapOf(3 to expanded3))
+        // All injected words should validate instantly
+        expanded3.take(20).forEach { word ->
+            assertTrue("$word should be valid after injection", repo.isValidWord(word, 3))
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.djtaylor.wordjourney.ui.settings
 
 import android.content.Context
+import com.djtaylor.wordjourney.BuildConfig
 import com.djtaylor.wordjourney.audio.AudioSettings
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.auth.AchievementManager
@@ -269,13 +270,20 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `appVersion is 2_30_7`() = runTest {
-        // Test that the appVersion field reflects the current version
+    fun `appVersion matches BuildConfig VERSION_NAME`() = runTest {
+        // appVersion in SettingsUiState now reads directly from BuildConfig.VERSION_NAME
+        // instead of a hardcoded string, so the about page always shows the deployed version.
         val vm = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = vm.uiState.first()
-        assertEquals("2.30.7", state.appVersion)
+        assertEquals(
+            "appVersion should match the BuildConfig version (currently ${BuildConfig.VERSION_NAME})",
+            BuildConfig.VERSION_NAME,
+            state.appVersion
+        )
+        assertTrue("appVersion must not be blank", state.appVersion.isNotBlank())
+        assertTrue("appVersion must look like x.y.z", state.appVersion.matches(Regex("\\d+\\.\\d+\\.\\d+")))
     }
 
     // ══════════════════════════════════════════════════════════════════════════

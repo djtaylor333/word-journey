@@ -66,16 +66,16 @@ fun GameGrid(
         label = "shakeOffset"
     )
 
-    // Enable scrolling when 7+ total rows (covers EASY default 8, plus bonus rows)
-    val totalRows = uiState.maxGuesses
-    val needsScroll = totalRows >= 7
+    // Always enable scrolling so all rows are reachable on any screen size /
+    // resolution. BringIntoViewRequester keeps the active row visible after
+    // each submission; users can manually scroll up to review past guesses.
     val scrollState = rememberScrollState()
+    val needsScroll = true
 
     // BringIntoViewRequester on the active row so we scroll just enough to reveal it
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val guessCount = uiState.guesses.size
     LaunchedEffect(guessCount) {
-        if (!needsScroll) return@LaunchedEffect
         if (guessCount == 0) {
             // Level just loaded — sit at the very top
             scrollState.scrollTo(0)
