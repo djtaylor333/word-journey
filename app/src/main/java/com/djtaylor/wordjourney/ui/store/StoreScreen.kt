@@ -534,7 +534,8 @@ private fun VipTab(uiState: StoreUiState, viewModel: StoreViewModel) {
                     "📊 Advanced statistics",
                     "🎯 2× rewards on themed pack milestones (every 10 levels)",
                     "🏆 2× grand prize when completing all 100 levels in a themed pack",
-                    "💎 2× diamonds for completing every 10-level stage"
+                    "💎 2× diamonds for completing every 10-level stage",
+                    "🗃️ Extra Star Rewards — VIP bonus chests each month"
                 )
                 benefits.forEach { benefit ->
                     Text(

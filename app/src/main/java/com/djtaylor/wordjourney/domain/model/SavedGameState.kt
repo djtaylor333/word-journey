@@ -141,8 +141,15 @@ data class PlayerProgress(
     val hasReviewBeenRequested: Boolean = false,
     // True once the review reward (5 lives + 1000 coins + 10 diamonds) has been granted
     val reviewRewarded: Boolean = false,
-    // Total stars earned across all levels (all modes) — used for stage unlocking in the future
-    val totalStarsEarned: Int = 0
+    // Total stars earned across all levels (all modes) — used for stage unlocking
+    val totalStarsEarned: Int = 0,
+    // Star Rewards — chest system (monthly reset)
+    val starsSpentOnChests: Int = 0,           // total stars spent opening chests (not reset on month change)
+    val openedChestsThisMonthKeys: String = "", // comma-separated opened chest IDs e.g. "regular_1,vip_2"
+    val chestResetMonthKey: String = "",        // YYYY-MM — month when opened chest list was last cleared
+    // Streak Shield — spend gems to restore a broken daily challenge streak (missed exactly 1 day)
+    val streakShieldUsedThisMonth: Int = 0,     // number of shields used this calendar month (resets monthly)
+    val streakShieldMonthKey: String = ""       // YYYY-MM — month when streakShieldUsedThisMonth was last reset
 )
 
 // ── Seasonal level helpers ────────────────────────────────────────────────────

@@ -166,7 +166,6 @@ class PlayerRepository @Inject constructor(
             removeLetterItems       = maxOf(local.removeLetterItems, cloud.removeLetterItems),
             definitionItems         = maxOf(local.definitionItems, cloud.definitionItems),
             showLetterItems         = maxOf(local.showLetterItems, cloud.showLetterItems),
-            totalStarsEarned        = maxOf(local.totalStarsEarned, cloud.totalStarsEarned),
             totalLevelsCompleted    = maxOf(local.totalLevelsCompleted, cloud.totalLevelsCompleted),
             totalCoinsEarned        = maxOf(local.totalCoinsEarned, cloud.totalCoinsEarned),
             loginBestStreak         = maxOf(local.loginBestStreak, cloud.loginBestStreak),
@@ -189,6 +188,9 @@ class PlayerRepository @Inject constructor(
             hasReceivedNewPlayerBonus = local.hasReceivedNewPlayerBonus || cloud.hasReceivedNewPlayerBonus,
             hasReviewBeenRequested  = local.hasReviewBeenRequested || cloud.hasReviewBeenRequested,
             reviewRewarded          = local.reviewRewarded || cloud.reviewRewarded,
+            // Star rewards — take higher spent value to avoid re-opening already-opened chests
+            totalStarsEarned        = maxOf(local.totalStarsEarned, cloud.totalStarsEarned),
+            starsSpentOnChests      = maxOf(local.starsSpentOnChests, cloud.starsSpentOnChests),
             // Keep whichever last-date strings are more recent (ISO format lexicographic sort)
             lastLoginDate           = maxOf(local.lastLoginDate, cloud.lastLoginDate),
             lastVipRewardDate       = maxOf(local.lastVipRewardDate, cloud.lastVipRewardDate)

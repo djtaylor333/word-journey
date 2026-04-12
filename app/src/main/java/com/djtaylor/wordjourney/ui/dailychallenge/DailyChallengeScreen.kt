@@ -202,6 +202,93 @@ fun DailyChallengeScreen(
             }
         }
     }
+
+    // ── Streak Shield Dialog ──────────────────────────────────────────────────
+    if (uiState.showStreakShieldDialog) {
+        StreakShieldDialog(
+            streakDays = uiState.streakBeforeBreak,
+            gemCost = uiState.streakShieldCostGems,
+            onActivate = { viewModel.activateStreakShield() },
+            onDismiss = { viewModel.dismissStreakShieldDialog() }
+        )
+    }
+}
+
+@Composable
+private fun StreakShieldDialog(
+    streakDays: Int,
+    gemCost: Int,
+    onActivate: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF2A1F45),
+        shape = RoundedCornerShape(20.dp),
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text("💥", fontSize = 48.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Streak Broken!",
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "You missed a day and lost your $streakDays-day streak.",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF3D2B5A)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("💎", fontSize = 24.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Restore for $gemCost gems",
+                            color = Color(0xFFB388FF),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "This allows you to return to your $streakDays-day streak.",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onActivate,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED))
+            ) {
+                Text("🛡️ Restore Streak", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("No thanks", color = Color.White.copy(alpha = 0.6f))
+            }
+        }
+    )
 }
 
 @Composable

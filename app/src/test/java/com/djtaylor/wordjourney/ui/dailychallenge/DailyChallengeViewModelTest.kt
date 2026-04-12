@@ -52,7 +52,8 @@ class DailyChallengeViewModelTest {
         progress: PlayerProgress = PlayerProgress(),
         todayResults: List<DailyChallengeResultEntity> = emptyList(),
         totalWins: Int = 0,
-        totalPlayed: Int = 0
+        totalPlayed: Int = 0,
+        today: String = "2025-01-15"
     ): DailyChallengeViewModel {
         progressFlow = MutableStateFlow(progress)
         playerRepository = mockk {
@@ -63,6 +64,7 @@ class DailyChallengeViewModelTest {
             coEvery { getResultsForToday() } returns todayResults
             coEvery { totalWins() } returns totalWins
             coEvery { totalPlayed() } returns totalPlayed
+            every { todayDateString() } returns today
         }
         audioManager = mockk(relaxed = true)
 
@@ -79,9 +81,10 @@ class DailyChallengeViewModelTest {
         todayResults: List<DailyChallengeResultEntity> = emptyList(),
         totalWins: Int = 0,
         totalPlayed: Int = 0,
+        today: String = "2025-01-15",
         testBody: suspend TestScope.(DailyChallengeViewModel) -> Unit
     ) = runTest {
-        val vm = createViewModel(progress, todayResults, totalWins, totalPlayed)
+        val vm = createViewModel(progress, todayResults, totalWins, totalPlayed, today)
         testDispatcher.scheduler.runCurrent()
         try {
             testBody(vm)
@@ -267,5 +270,134 @@ class DailyChallengeViewModelTest {
         assertEquals(10, state.wins4)
         assertEquals(5, state.wins5)
         assertEquals(2, state.wins6)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 5. STREAK SHIELD
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `streak shield dialog shown when player missed exactly 1 day`() = testWithVm(
+        progress = PlayerProgress(
+            dailyChallengeStreak = 5,
+            dailyChallengeLastDate = "2025-01-13"  // 2 days before today "2025-01-15"
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertTrue(state.showStreakShieldDialog)
+        assertEquals(5, state.streakBeforeBreak)
+    }
+
+    @Test
+    fun `streak shield dialog NOT shown when player missed 2 days`() = testWithVm(
+        progress = PlayerProgress(
+            dailyChallengeStreak = 5,
+            dailyChallengeLastDate = "2025-01-12"  // 3 days before today
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertFalse(state.showStreakShieldDialog)
+    }
+
+    @Test
+    fun `streak shield dialog NOT shown when player has no streak`() = testWithVm(
+        progress = PlayerProgress(
+            dailyChallengeStreak = 0,
+            dailyChallengeLastDate = "2025-01-13"
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertFalse(state.showStreakShieldDialog)
+    }
+
+    @Test
+    fun `streak shield dialog NOT shown when player already played today`() = testWithVm(
+        progress = PlayerProgress(
+            dailyChallengeStreak = 5,
+            dailyChallengeLastDate = "2025-01-15"  // same as today
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertFalse(state.showStreakShieldDialog)
+    }
+
+    @Test
+    fun `streak shield cost is 5 gems on first use`() = testWithVm(
+        progress = PlayerProgress(
+            dailyChallengeStreak = 3,
+            dailyChallengeLastDate = "2025-01-13",
+            streakShieldUsedThisMonth = 0,
+            streakShieldMonthKey = "2025-01"
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(5, state.streakShieldCostGems)
+    }
+
+    @Test
+    fun `streak shield cost is 7 gems on second use`() = testWithVm(
+        progress = PlayerProgress(
+            dailyChallengeStreak = 3,
+            dailyChallengeLastDate = "2025-01-13",
+            streakShieldUsedThisMonth = 1,
+            streakShieldMonthKey = "2025-01"
+        )
+    ) { vm ->
+        val state = vm.uiState.first()
+        assertEquals(7, state.streakShieldCostGems)
+    }
+
+    @Test
+    fun `streak shield cost resets to 5 when month changes`() = testWithVm(
+        progress = PlayerProgress(
+            dailyChallengeStreak = 3,
+            dailyChallengeLastDate = "2025-01-13",
+            streakShieldUsedThisMonth = 3,     // 3 uses in previous month
+            streakShieldMonthKey = "2024-12"   // old month — today is 2025-01-15
+        )
+    ) { vm ->
+        // Month changed: counter reset → cost should be 5 (first use of new month)
+        val state = vm.uiState.first()
+        assertEquals(5, state.streakShieldCostGems)
+    }
+
+    @Test
+    fun `dismissing streak shield dialog hides it`() = testWithVm(
+        progress = PlayerProgress(
+            dailyChallengeStreak = 5,
+            dailyChallengeLastDate = "2025-01-13"
+        )
+    ) { vm ->
+        assertTrue(vm.uiState.first().showStreakShieldDialog)
+        vm.dismissStreakShieldDialog()
+        assertFalse(vm.uiState.first().showStreakShieldDialog)
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // 6. isMissedExactlyOneDay (internal helper)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `isMissedExactlyOneDay returns true for 2 day gap`() {
+        val vm = createViewModel()
+        assertTrue(vm.isMissedExactlyOneDay("2025-01-13", "2025-01-15"))
+    }
+
+    @Test
+    fun `isMissedExactlyOneDay returns false for 1 day gap (consecutive)`() {
+        val vm = createViewModel()
+        assertFalse(vm.isMissedExactlyOneDay("2025-01-14", "2025-01-15"))
+    }
+
+    @Test
+    fun `isMissedExactlyOneDay returns false for 3 day gap`() {
+        val vm = createViewModel()
+        assertFalse(vm.isMissedExactlyOneDay("2025-01-12", "2025-01-15"))
+    }
+
+    @Test
+    fun `isMissedExactlyOneDay returns false for empty lastDate`() {
+        val vm = createViewModel()
+        assertFalse(vm.isMissedExactlyOneDay("", "2025-01-15"))
     }
 }

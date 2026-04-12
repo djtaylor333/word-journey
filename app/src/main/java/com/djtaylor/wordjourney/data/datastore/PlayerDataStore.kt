@@ -151,6 +151,13 @@ class PlayerDataStore @Inject constructor(
         val KEY_DAILY_ALL_THREE_COMPLETED_DATE   = stringPreferencesKey("daily_all_three_completed_date")
         // Total stars earned across all levels (used for stage unlocking)
         val KEY_TOTAL_STARS_EARNED               = intPreferencesKey("total_stars_earned")
+        // Star Rewards — monthly chest system
+        val KEY_STARS_SPENT_ON_CHESTS            = intPreferencesKey("stars_spent_on_chests")
+        val KEY_OPENED_CHESTS_THIS_MONTH         = stringPreferencesKey("opened_chests_this_month")
+        val KEY_CHEST_RESET_MONTH_KEY            = stringPreferencesKey("chest_reset_month_key")
+        // Streak Shield — daily challenge streak recovery
+        val KEY_STREAK_SHIELD_USED_THIS_MONTH    = intPreferencesKey("streak_shield_used_this_month")
+        val KEY_STREAK_SHIELD_MONTH_KEY          = stringPreferencesKey("streak_shield_month_key")
         // In-progress serialized game states for seasonal packs
         val KEY_GAME_STATE_SEASONAL_EASTER     = stringPreferencesKey("game_state_seasonal_easter")
         val KEY_GAME_STATE_SEASONAL_VALENTINES = stringPreferencesKey("game_state_seasonal_valentines")
@@ -262,7 +269,12 @@ class PlayerDataStore @Inject constructor(
                 seasonalMilestoneChristmas     = prefs[KEY_SEASONAL_MILESTONE_CHRISTMAS] ?: 0,
                 lastLevelStars                 = prefs[KEY_LAST_LEVEL_STARS] ?: 0,
                 dailyAllThreeCompletedDate     = prefs[KEY_DAILY_ALL_THREE_COMPLETED_DATE] ?: "",
-                totalStarsEarned               = prefs[KEY_TOTAL_STARS_EARNED] ?: 0
+                totalStarsEarned               = prefs[KEY_TOTAL_STARS_EARNED] ?: 0,
+                starsSpentOnChests             = prefs[KEY_STARS_SPENT_ON_CHESTS] ?: 0,
+                openedChestsThisMonthKeys      = prefs[KEY_OPENED_CHESTS_THIS_MONTH] ?: "",
+                chestResetMonthKey             = prefs[KEY_CHEST_RESET_MONTH_KEY] ?: "",
+                streakShieldUsedThisMonth      = prefs[KEY_STREAK_SHIELD_USED_THIS_MONTH] ?: 0,
+                streakShieldMonthKey           = prefs[KEY_STREAK_SHIELD_MONTH_KEY] ?: ""
             )
         }
 
@@ -371,6 +383,11 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_LAST_LEVEL_STARS]                 = progress.lastLevelStars
             prefs[KEY_DAILY_ALL_THREE_COMPLETED_DATE]   = progress.dailyAllThreeCompletedDate
             prefs[KEY_TOTAL_STARS_EARNED]               = progress.totalStarsEarned
+            prefs[KEY_STARS_SPENT_ON_CHESTS]            = progress.starsSpentOnChests
+            prefs[KEY_OPENED_CHESTS_THIS_MONTH]         = progress.openedChestsThisMonthKeys
+            prefs[KEY_CHEST_RESET_MONTH_KEY]            = progress.chestResetMonthKey
+            prefs[KEY_STREAK_SHIELD_USED_THIS_MONTH]    = progress.streakShieldUsedThisMonth
+            prefs[KEY_STREAK_SHIELD_MONTH_KEY]          = progress.streakShieldMonthKey
         }
     }
 

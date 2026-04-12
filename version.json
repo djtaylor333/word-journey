@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.34.0",
-    "versionCode":  65,
+    "versionName":  "2.35.0",
+    "versionCode":  66,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
     "buildDate":  "2026-04-05",
-    "releaseNotes":  "v2.34.0 â€” expanded word library, scrollable guess grid, live version display\nâ€¢ Word library: 3-letter valid words 392â†’1307 (mob, lob, cob, etc. now accepted); 7-letter valid words 725â†’23778; game words expanded to 500/1500/2000/1500/1000 for lengths 3-7 with definitions\nâ€¢ Guess grid: always scrollable on all screen sizes so all rows are reachable; auto-scrolls to active row after each guess\nâ€¢ About page: version now reads directly from BuildConfig (always shows correct installed version)"
+    "releaseNotes":  "v2.35.0 — Streak Shield, Star Rewards, Daily Challenge stars\n• Streak Shield: spend gems to restore a broken daily streak (missed exactly 1 day); gem cost increases monthly\n• Star Rewards: trade accumulated stars for monthly chests with coins, lives, items and gems; VIP players unlock a second column of exclusive bonus chests\n• Daily Challenge stars: stars earned on daily challenges now count toward your Star Rewards total\n• Store: VIP benefits updated to highlight extra Star Rewards chests"
 }

@@ -44,6 +44,7 @@ fun HomeScreen(
     onNavigateToInbox: () -> Unit = {},
     onNavigateToTimerMode: () -> Unit = {},
     onNavigateToThemedPacks: () -> Unit = {},
+    onNavigateToStarRewards: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -287,11 +288,17 @@ fun HomeScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── STAR LEVELS ───────────────────────────────────────────────────
-            SectionHeader(emoji = "⭐", title = "Star Levels")
+            // ── STAR REWARDS ──────────────────────────────────────────────────
+            SectionHeader(emoji = "⭐", title = "Star Rewards")
             Spacer(Modifier.height(8.dp))
 
-            StarLevelsCard()
+            StarRewardsCard(
+                availableStars = uiState.progress.totalStarsEarned - uiState.progress.starsSpentOnChests,
+                onClick = {
+                    viewModel.playButtonClick()
+                    onNavigateToStarRewards()
+                }
+            )
 
             Spacer(Modifier.height(16.dp))
 
@@ -1091,21 +1098,26 @@ private fun formatTimerMs(ms: Long): String {
 }
 
 @Composable
-private fun StarLevelsCard() {
+private fun StarRewardsCard(
+    availableStars: Int,
+    onClick: () -> Unit
+) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 4.dp,
         tonalElevation = 2.dp,
-        border = BorderStroke(2.dp, Color(0xFFFFD700).copy(alpha = 0.4f)),
-        modifier = Modifier.fillMaxWidth()
+        border = BorderStroke(2.dp, Color(0xFFFFD700).copy(alpha = 0.6f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            Color(0xFFFFD700).copy(alpha = 0.07f),
+                            Color(0xFFFFD700).copy(alpha = 0.12f),
                             Color.Transparent
                         )
                     )
@@ -1122,29 +1134,29 @@ private fun StarLevelsCard() {
                 Text("⭐", fontSize = 42.sp)
                 Column {
                     Text(
-                        "Star Levels",
+                        "Star Rewards",
                         style = MaterialTheme.typography.titleLarge,
                         color = Color(0xFFFFD700),
                         fontSize = 22.sp
                     )
                     Text(
-                        "Unlock by earning stars in Adventure\nSpecial challenge levels — coming soon!",
+                        "Spend your stars on monthly chests!",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         fontSize = 13.sp
                     )
                 }
             }
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
+                color = Color(0xFFFFD700).copy(alpha = 0.15f)
             ) {
                 Text(
-                    "🔒 Soon",
+                    "⭐ $availableStars",
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    color = Color.Gray,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
+                    color = Color(0xFFFFD700),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
                     softWrap = false
                 )
             }
