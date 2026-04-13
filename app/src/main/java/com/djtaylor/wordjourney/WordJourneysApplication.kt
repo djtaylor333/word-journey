@@ -5,6 +5,7 @@ import androidx.work.Configuration
 import androidx.hilt.work.HiltWorkerFactory
 import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.notifications.NotificationChannels
+import com.facebook.ads.AudienceNetworkAds
 import com.google.android.gms.games.PlayGamesSdk
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -32,7 +33,17 @@ class WordJourneysApplication : Application(), Configuration.Provider {
         super.onCreate()
         // Register before anything else so activity references are available immediately
         registerActivityLifecycleCallbacks(activityProvider)
-        // AdMob SDK removed — placeholder for future ad partner integration
+        // Initialize Meta Audience Network SDK (must be called before any ad load)
+        AudienceNetworkAds
+            .buildInitSettings(this)
+            .withInitListener { result ->
+                if (result.isSuccess) {
+                    android.util.Log.d("WordJourneysApp", "Meta Audience Network initialized")
+                } else {
+                    android.util.Log.w("WordJourneysApp", "Meta AAN init failed: ${result.message}")
+                }
+            }
+            .initialize()
         // Initialize Play Games SDK
         PlayGamesSdk.initialize(this)
         // Create notification channels on app start (safe to call multiple times)

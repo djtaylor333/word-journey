@@ -42,13 +42,12 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.32.1 - VIP fixes, inbox & ads
+RELEASE_NOTES = """v2.35.0 - Streak Shield, Star Rewards & Daily stars
 
-\u2022 Map: level select scrolls to current level on all screen sizes
-\u2022 VIP Journey: word-length badges now show "3 letters", "7 letters" etc.
-\u2022 VIP Journey: definition button works correctly after restoring a saved game
-\u2022 Inbox: reward chips wrap into rows of 3 on narrow screens
-\u2022 AdMob removed while a new ad partner is evaluated"""
+\u2022 Streak Shield: Miss exactly 1 day? Spend gems to restore your streak. Cost rises each use per month (5, 7, 10, 14...).
+\u2022 Star Rewards: Trade stars for monthly reward chests (coins, lives, items, gems). VIP unlocks a bonus chest column.
+\u2022 Daily Challenge stars now count toward Star Rewards (first play only).
+\u2022 VIP benefits updated in Store."""
 
 
 def build_service(key_path: str):

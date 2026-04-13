@@ -34,3 +34,12 @@
 # App-specific: never obfuscate model classes used in serialization
 -keep class com.djtaylor.wordjourney.domain.model.** { *; }
 -keep class com.djtaylor.wordjourney.data.db.** { *; }
+
+# ── Meta Audience Network (Facebook FAN) ──────────────────────────────
+# facebook.infer.annotation is a Facebook-internal library not shipped in the AAR;
+# tell R8 to ignore it rather than failing the build.
+-dontwarn com.facebook.infer.annotation.**
+-dontwarn com.facebook.jni.**
+# Keep all FAN public API so ads load and render correctly
+-keep class com.facebook.ads.** { *; }
+-keepclassmembers class com.facebook.ads.** { *; }

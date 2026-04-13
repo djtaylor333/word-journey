@@ -164,11 +164,11 @@ dependencies {
     // ── Google Play Games (cloud saves) ─────────────────────────────────────
     implementation 'com.google.android.gms:play-services-games-v2:20.1.2'
 
-    // ── Ad partner — Unity Ads ────────────────────────────────────────────────
-    // Unity Ads 4.x is on Maven Central. Replace GAME_ID / placement IDs in
-    // RealAdManager.kt then flip the Hilt binding in AppModule.kt.
-    // Unity Dashboard: https://dashboard.unity3d.com/
-    implementation 'com.unity3d.ads:unity-ads:4.10.0'
+    // ── Meta Audience Network (rewarded ads) ─────────────────────────────────
+    // Dashboard: https://developers.facebook.com/apps → Audience Network
+    // Replace placeholder IDs in RealAdManager.kt then flip the Hilt binding in AppModule.kt.
+    implementation 'com.facebook.android:audience-network-sdk:6.21.0'
+    implementation 'androidx.annotation:annotation:1.9.1' // required by FAN SDK
 
     // ── Google Play Billing (stubbed) ────────────────────────────────────────
     implementation 'com.android.billingclient:billing-ktx:7.1.1'
