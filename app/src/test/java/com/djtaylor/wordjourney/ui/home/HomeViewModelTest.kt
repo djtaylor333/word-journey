@@ -60,6 +60,7 @@ class HomeViewModelTest {
         inboxRepository = mockk {
             coEvery { getUnclaimedCount() } returns 0
             coEvery { addVipDailyRewardIfNeeded(any(), any(), any(), any(), any(), any(), any()) } returns -1L
+            coEvery { addItem(any()) } returns 1L
         }
         audioManager = mockk(relaxed = true)
 
@@ -73,7 +74,7 @@ class HomeViewModelTest {
             achievementManager = mockk(relaxed = true),
             activityProvider = mockk(relaxed = true),
             inAppReviewManager = mockk {
-                coEvery { requestReview(any()) } returns true
+                every { openPlayStoreListing(any()) } just Runs
             }
         )
     }
@@ -413,9 +414,9 @@ class HomeViewModelTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `showReviewPrompt is false when levelsCompletedForReview is below threshold`() = testWithVm(
+    fun `showReviewPrompt is false when play time is below 10 minutes`() = testWithVm(
         PlayerProgress(
-            levelsCompletedForReview = 9,
+            totalTimePlayedMs = 9 * 60 * 1_000L,   // 9 minutes
             hasReviewBeenRequested = false,
             hasReceivedNewPlayerBonus = true
         )
@@ -424,9 +425,9 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `showReviewPrompt is true when levelsCompletedForReview reaches 10`() = testWithVm(
+    fun `showReviewPrompt is true when play time reaches 10 minutes`() = testWithVm(
         PlayerProgress(
-            levelsCompletedForReview = 10,
+            totalTimePlayedMs = 10 * 60 * 1_000L,  // exactly 10 minutes
             hasReviewBeenRequested = false,
             hasReceivedNewPlayerBonus = true
         )
@@ -435,9 +436,9 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `showReviewPrompt is false when hasReviewBeenRequested is true even with 10 levels`() = testWithVm(
+    fun `showReviewPrompt is false when hasReviewBeenRequested is true even with enough play time`() = testWithVm(
         PlayerProgress(
-            levelsCompletedForReview = 10,
+            totalTimePlayedMs = 20 * 60 * 1_000L,  // 20 minutes
             hasReviewBeenRequested = true,
             hasReceivedNewPlayerBonus = true
         )
@@ -448,7 +449,7 @@ class HomeViewModelTest {
     @Test
     fun `dismissReviewPrompt hides dialog and saves hasReviewBeenRequested`() = testWithVm(
         PlayerProgress(
-            levelsCompletedForReview = 10,
+            totalTimePlayedMs = 10 * 60 * 1_000L,
             hasReviewBeenRequested = false,
             hasReceivedNewPlayerBonus = true
         )
@@ -467,10 +468,10 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `completeReviewWithReward grants 5 lives 1000 coins 10 diamonds`() = testWithVm(
+    fun `completeReviewWithReward adds inbox item with 500 coins 5 lives 25 gems`() = testWithVm(
         PlayerProgress(
             lives = 3, coins = 500L, diamonds = 2,
-            levelsCompletedForReview = 10,
+            totalTimePlayedMs = 10 * 60 * 1_000L,
             hasReviewBeenRequested = false,
             hasReceivedNewPlayerBonus = true
         )
@@ -482,23 +483,46 @@ class HomeViewModelTest {
         // Dialog should be dismissed
         assertFalse(vm.uiState.first().showReviewPrompt)
 
-        // Reward should be saved: +5 lives, +1000 coins, +10 diamonds
+        // Inbox item should be added with correct rewards
+        coVerify {
+            inboxRepository.addItem(match {
+                it.type == "review_reward" &&
+                it.coinsGranted == 500L &&
+                it.livesGranted == 5 &&
+                it.diamondsGranted == 25
+            })
+        }
+
+        // Progress saved: hasReviewBeenRequested=true, reviewRewarded=true, NO direct reward grants
         coVerify {
             playerRepository.saveProgress(match {
-                it.lives == 8 &&
-                it.coins == 1500L &&
-                it.diamonds == 12 &&
                 it.hasReviewBeenRequested &&
                 it.reviewRewarded &&
-                it.levelsCompletedForReview == 0
+                it.levelsCompletedForReview == 0 &&
+                it.lives == 3 &&        // lives NOT changed directly
+                it.coins == 500L &&     // coins NOT changed directly
+                it.diamonds == 2        // diamonds NOT changed directly
             })
         }
     }
 
     @Test
+    fun `review reward can only be earned once`() = testWithVm(
+        PlayerProgress(
+            totalTimePlayedMs = 20 * 60 * 1_000L,
+            hasReviewBeenRequested = true,   // already requested
+            reviewRewarded = true,
+            hasReceivedNewPlayerBonus = true
+        )
+    ) { vm ->
+        // Review prompt should not show when already requested
+        assertFalse(vm.uiState.first().showReviewPrompt)
+    }
+
+    @Test
     fun `review prompt is not shown again once session flag is set`() = testWithVm(
         PlayerProgress(
-            levelsCompletedForReview = 10,
+            totalTimePlayedMs = 10 * 60 * 1_000L,
             hasReviewBeenRequested = false,
             hasReceivedNewPlayerBonus = true
         )
@@ -506,7 +530,7 @@ class HomeViewModelTest {
         // First emission — should trigger prompt
         assertTrue(vm.uiState.first().showReviewPrompt)
 
-        // Simulate flow re-emission (still 10 levels, not requested yet in DB)
+        // Simulate flow re-emission (still enough time, not requested yet in DB)
         progressFlow.value = progressFlow.value.copy(coins = 9999L)
         testDispatcher.scheduler.runCurrent()
 

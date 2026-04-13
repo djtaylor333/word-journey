@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.35.1",
-    "versionCode":  67,
+    "versionName":  "2.36.0",
+    "versionCode":  68,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
     "buildDate":  "2026-04-05",
-    "releaseNotes":  "v2.35.1 - Meta Audience Network ads enabled\n• Rewarded ads now served via Meta Audience Network (Facebook)\n• Watch ads in Store to earn bonus lives, coins and items"
+    "releaseNotes":  "v2.36.0 - Review Rewards\n• Review prompt after 10 minutes of play time\n• Earn 500 coins, 5 lives and 25 gems for leaving a review\n• Rewards delivered straight to your inbox"
 }

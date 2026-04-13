@@ -63,6 +63,11 @@ class HomeViewModel @Inject constructor(
     /** Session guard: prevents re-showing the review prompt if flow re-emits after we save. */
     private var reviewPromptShownThisSession = false
 
+    companion object {
+        /** 10 minutes of total in-game play time before the review prompt fires. */
+        const val REVIEW_TRIGGER_MS = 10L * 60 * 1_000
+    }
+
     init {
         loadProgress()
         startTimerTick()
@@ -163,10 +168,10 @@ class HomeViewModel @Inject constructor(
                 }
 
                 // Check whether it's time to show the in-app review prompt.
-                // Trigger once per session when the player has completed 10 non-timer
-                // levels and has not already been asked for a review.
+                // Trigger once per session when the player has >= 10 minutes of total
+                // in-game play time and has not already been asked for a review.
                 val triggerReview = !reviewPromptShownThisSession &&
-                    updated.levelsCompletedForReview >= 10 &&
+                    updated.totalTimePlayedMs >= REVIEW_TRIGGER_MS &&
                     !updated.hasReviewBeenRequested
                 if (triggerReview) reviewPromptShownThisSession = true
 
@@ -270,30 +275,42 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Called when the player taps "Rate Now" or "Leave Feedback" in the review dialog.
-     * Launches the Play In-App Review flow, grants the reward (5 lives + 1000 coins +
-     * 10 diamonds), and marks the review as completed.
+     * Called when the player taps "Rate on Play Store" or "Leave Feedback" in the review dialog.
+     * Opens the Play Store listing, drops a reward inbox item (500 coins + 5 lives + 25 gems)
+     * so it's waiting when the player returns, and marks the review as completed (one-time only).
      *
-     * @param activity The currently resumed Activity (required by the Play Review API).
+     * @param activity The currently resumed Activity.
      */
     fun completeReviewWithReward(activity: Activity) {
         _uiState.update { it.copy(showReviewPrompt = false) }
         viewModelScope.launch {
-            // Launch the in-app review overlay (or fallback to Play Store page)
-            inAppReviewManager.requestReview(activity)
+            // Open Play Store so the player can leave a review / feedback
+            inAppReviewManager.openPlayStoreListing(activity)
 
-            // Grant reward: 5 lives + 1000 coins + 10 diamonds
+            // Add reward to inbox — player collects it when they return to the game
+            inboxRepository.addItem(
+                com.djtaylor.wordjourney.data.db.InboxItemEntity(
+                    type           = "review_reward",
+                    title          = "⭐ Thanks for the Review!",
+                    message        = "You earned 500 coins, 5 lives and 25 gems for supporting Word Journeys!",
+                    coinsGranted   = 500L,
+                    livesGranted   = 5,
+                    diamondsGranted = 25
+                )
+            )
+
+            // Mark review as completed — reward can only be earned once
             val current = playerRepository.playerProgressFlow.first()
             val updated = current.copy(
-                lives    = current.lives + 5,
-                coins    = current.coins + 1000L,
-                diamonds = current.diamonds + 10,
                 hasReviewBeenRequested = true,
                 reviewRewarded = true,
                 levelsCompletedForReview = 0
             )
             playerRepository.saveProgress(updated)
             audioManager.playSfx(SfxSound.COIN_EARN)
+
+            // Refresh inbox badge so the reward notification dot appears immediately
+            _uiState.update { it.copy(inboxCount = inboxRepository.getUnclaimedCount()) }
         }
     }
 

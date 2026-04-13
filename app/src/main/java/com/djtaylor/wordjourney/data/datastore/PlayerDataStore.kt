@@ -158,6 +158,10 @@ class PlayerDataStore @Inject constructor(
         // Streak Shield — daily challenge streak recovery
         val KEY_STREAK_SHIELD_USED_THIS_MONTH    = intPreferencesKey("streak_shield_used_this_month")
         val KEY_STREAK_SHIELD_MONTH_KEY          = stringPreferencesKey("streak_shield_month_key")
+        // In-app review tracking
+        val KEY_HAS_REVIEW_BEEN_REQUESTED        = booleanPreferencesKey("has_review_been_requested")
+        val KEY_REVIEW_REWARDED                  = booleanPreferencesKey("review_rewarded")
+        val KEY_LEVELS_COMPLETED_FOR_REVIEW      = intPreferencesKey("levels_completed_for_review")
         // In-progress serialized game states for seasonal packs
         val KEY_GAME_STATE_SEASONAL_EASTER     = stringPreferencesKey("game_state_seasonal_easter")
         val KEY_GAME_STATE_SEASONAL_VALENTINES = stringPreferencesKey("game_state_seasonal_valentines")
@@ -274,7 +278,10 @@ class PlayerDataStore @Inject constructor(
                 openedChestsThisMonthKeys      = prefs[KEY_OPENED_CHESTS_THIS_MONTH] ?: "",
                 chestResetMonthKey             = prefs[KEY_CHEST_RESET_MONTH_KEY] ?: "",
                 streakShieldUsedThisMonth      = prefs[KEY_STREAK_SHIELD_USED_THIS_MONTH] ?: 0,
-                streakShieldMonthKey           = prefs[KEY_STREAK_SHIELD_MONTH_KEY] ?: ""
+                streakShieldMonthKey           = prefs[KEY_STREAK_SHIELD_MONTH_KEY] ?: "",
+                hasReviewBeenRequested         = prefs[KEY_HAS_REVIEW_BEEN_REQUESTED] ?: false,
+                reviewRewarded                 = prefs[KEY_REVIEW_REWARDED] ?: false,
+                levelsCompletedForReview       = prefs[KEY_LEVELS_COMPLETED_FOR_REVIEW] ?: 0
             )
         }
 
@@ -388,6 +395,9 @@ class PlayerDataStore @Inject constructor(
             prefs[KEY_CHEST_RESET_MONTH_KEY]            = progress.chestResetMonthKey
             prefs[KEY_STREAK_SHIELD_USED_THIS_MONTH]    = progress.streakShieldUsedThisMonth
             prefs[KEY_STREAK_SHIELD_MONTH_KEY]          = progress.streakShieldMonthKey
+            prefs[KEY_HAS_REVIEW_BEEN_REQUESTED]        = progress.hasReviewBeenRequested
+            prefs[KEY_REVIEW_REWARDED]                  = progress.reviewRewarded
+            prefs[KEY_LEVELS_COMPLETED_FOR_REVIEW]      = progress.levelsCompletedForReview
         }
     }
 

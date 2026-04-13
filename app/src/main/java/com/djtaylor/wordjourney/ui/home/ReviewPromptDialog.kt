@@ -62,19 +62,25 @@ fun ReviewPromptDialog(
                         step == 1 ->
                             "Have you been enjoying your Word Journeys experience so far?"
                         likedGame ->
-                            "We'd love if you shared your experience with a review on the Play Store — it really helps others discover the game!"
+                            "Can you please leave a review on the Play Store? Your support means the world to us and helps others discover the game! 🙏"
                         else ->
-                            "We're sorry it hasn't been perfect yet. Your honest feedback on the Play Store helps us make it better for everyone!"
+                            "Could you share some feedback or areas for improvement? Leave your thoughts on the Play Store — it really helps us make the game better for everyone!"
                     },
                     textAlign = TextAlign.Center
                 )
                 if (step == 2) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
                     Text(
-                        text = "🎁 Reward: +5 ❤️  +1,000 ⬡  +10 💎",
+                        text = "🎁 Reward: +500 ⬡  +5 ❤️  +25 💎",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Rewards go to your inbox when you return!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                 }
