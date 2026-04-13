@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.35.0",
-    "versionCode":  66,
+    "versionName":  "2.35.1",
+    "versionCode":  67,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
     "buildDate":  "2026-04-05",
-    "releaseNotes":  "v2.35.0 — Streak Shield, Star Rewards, Daily Challenge stars\n• Streak Shield: spend gems to restore a broken daily streak (missed exactly 1 day); gem cost increases monthly\n• Star Rewards: trade accumulated stars for monthly chests with coins, lives, items and gems; VIP players unlock a second column of exclusive bonus chests\n• Daily Challenge stars: stars earned on daily challenges now count toward your Star Rewards total\n• Store: VIP benefits updated to highlight extra Star Rewards chests"
+    "releaseNotes":  "v2.35.1 - Meta Audience Network ads enabled\n• Rewarded ads now served via Meta Audience Network (Facebook)\n• Watch ads in Store to earn bonus lives, coins and items"
 }
