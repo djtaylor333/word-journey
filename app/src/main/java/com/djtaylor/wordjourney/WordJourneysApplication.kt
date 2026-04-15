@@ -3,8 +3,10 @@ package com.djtaylor.wordjourney
 import android.app.Application
 import androidx.work.Configuration
 import androidx.hilt.work.HiltWorkerFactory
+import com.djtaylor.wordjourney.BuildConfig
 import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.notifications.NotificationChannels
+import com.facebook.ads.AdSettings
 import com.facebook.ads.AudienceNetworkAds
 import com.google.android.gms.games.PlayGamesSdk
 import dagger.hilt.android.HiltAndroidApp
@@ -34,11 +36,17 @@ class WordJourneysApplication : Application(), Configuration.Provider {
         // Register before anything else so activity references are available immediately
         registerActivityLifecycleCallbacks(activityProvider)
         // Initialize Meta Audience Network SDK (must be called before any ad load)
+        // In debug builds, enable test mode so ads load without Meta dashboard approval.
+        // Test ads will also show: "This is a test ad" overlay.
+        if (BuildConfig.DEBUG) {
+            AdSettings.setTestMode(true)
+            android.util.Log.d("WordJourneysApp", "Meta Audience Network: TEST MODE enabled (debug build)")
+        }
         AudienceNetworkAds
             .buildInitSettings(this)
             .withInitListener { result ->
                 if (result.isSuccess) {
-                    android.util.Log.d("WordJourneysApp", "Meta Audience Network initialized")
+                    android.util.Log.d("WordJourneysApp", "Meta Audience Network initialized (testMode=${BuildConfig.DEBUG})")
                 } else {
                     android.util.Log.w("WordJourneysApp", "Meta AAN init failed: ${result.message}")
                 }

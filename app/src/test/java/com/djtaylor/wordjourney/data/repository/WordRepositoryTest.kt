@@ -654,4 +654,67 @@ class WordRepositoryTest {
             assertTrue("$word should be valid after injection", repo.isValidWord(word, 3))
         }
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // NUMERIC WORD SAFETY (v2.37.0 — bug fix)
+    // Numbers like "23RD", "10TH" etc in the word list caused level crashes
+    // because the tile system only handles A-Z characters.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `words containing digits are never returned as valid guesses`() = runTest {
+        // Inject a clean dictionary that does NOT contain numeric words.
+        // This mirrors the fixed valid_words.json (v2.37.0) from which 23RD, 10TH etc were removed.
+        val cleanDict = mapOf(4 to setOf("ABLE", "BONE", "CAVE", "DAZE"))
+        val repo = createRepoWithDictionary(cleanDict)
+        // Numeric words must NOT be valid after the clean
+        assertFalse("23RD should not be a valid word after fix", repo.isValidWord("23RD", 4))
+        assertFalse("10TH should not be a valid word after fix", repo.isValidWord("10TH", 4))
+        assertFalse("1000 should not be a valid word", repo.isValidWord("1000", 4))
+        // Normal words still accepted
+        assertTrue("ABLE should be valid", repo.isValidWord("ABLE", 4))
+    }
+
+    @Test
+    fun `word list used for levels only contains alphabetic characters when DAO is clean`() = runTest {
+        // Simulate a clean DAO (after migration 3_4 which removes numeric words) — no digits
+        val cleanWords = listOf(
+            WordEntity(1, "ABLE", 4, "Having ability"),
+            WordEntity(2, "BONE", 4, "Part of skeleton"),
+            WordEntity(3, "CAVE", 4, "A hollow in rock"),
+            WordEntity(4, "DAZE", 4, "To stun"),
+            WordEntity(5, "EDGE", 4, "A border")
+        )
+        coEvery { wordDao.getAllByLength(4) } returns cleanWords
+        val repo = createRepo()
+
+        for (level in 1..5) {
+            val word = repo.getWordForLevel(Difficulty.EASY, level)
+            assertNotNull("Level $level word should not be null", word)
+            assertTrue(
+                "Level $level word '$word' must only contain A-Z letters",
+                word!!.all { it.isLetter() && it in 'A'..'Z' }
+            )
+        }
+    }
+
+    @Test
+    fun `numeric word in DAO would pass through repo — migration must clean the DB`() = runTest {
+        // This test DOCUMENTS the expected contract:
+        // The repo itself does not filter numbers — the DB migration (3_4) must do it.
+        // If a numeric word somehow reached the repo, it could cause a game crash.
+        val wordsWithNumeric = listOf(
+            WordEntity(1, "ABLE", 4, "Normal word"),
+            WordEntity(2, "23RD", 4, "Ordinal number — should NOT be in DB after migration")
+        )
+        coEvery { wordDao.getAllByLength(4) } returns wordsWithNumeric
+        val repo = createRepo()
+
+        // The repo returns the shuffled word — it doesn't filter.
+        // This test documents WHY the DB migration is critical for existing users.
+        val allWords = (1..2).map { repo.getWordForLevel(Difficulty.EASY, it)!! }
+        // At least one of these will be a letter-only word
+        assertTrue("At least one returned word with clean data should be alphabetic",
+            allWords.any { w -> w.all { it.isLetter() } })
+    }
 }

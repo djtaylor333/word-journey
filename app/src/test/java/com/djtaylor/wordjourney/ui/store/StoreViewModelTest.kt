@@ -1235,4 +1235,106 @@ class StoreViewModelTest {
         assertTrue("Warning should list coins_500", warning!!.contains(ProductIds.COINS_500))
         assertTrue("Warning should list vip_monthly", warning.contains(ProductIds.VIP_MONTHLY))
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // AD LOAD AWAITING FIX (v2.37.0)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `isAdReady is true after loadRewardedAd awaits successfully`() = runTest {
+        // Call createViewModel() to initialise class-level mocks (billingManager, etc.)
+        createViewModel()
+        // Override adManager with one that reports ready after load completes
+        val adManagerSequence = mockk<IAdManager> {
+            every { isRewardedAdReady } returnsMany listOf(false, true)
+            coEvery { loadRewardedAd() } just Runs   // simulates awaiting a successful load
+            coEvery { showRewardedAd(any()) } returns AdRewardResult(watched = true)
+        }
+        progressFlow = MutableStateFlow(PlayerProgress(coins = 500L))
+        val playerRepo = mockk<PlayerRepository> {
+            every { playerProgressFlow } returns progressFlow
+            coEvery { saveProgress(any()) } just Runs
+        }
+        val vm = StoreViewModel(
+            playerRepository = playerRepo,
+            billingManager = billingManager,
+            adManager = adManagerSequence,
+            audioManager = audioManager,
+            inboxRepository = inboxRepository,
+            vipDailyRewardUseCase = mockk { every { calculateRewards(any(), any()) } returns null },
+            achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true)
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // loadRewardedAd() was called during init
+        coVerify { adManagerSequence.loadRewardedAd() }
+        // isAdReady reflects the adManager state after load
+        val state = vm.uiState.first()
+        assertTrue("isAdReady should be true after loadRewardedAd() completes successfully", state.isAdReady)
+    }
+
+    @Test
+    fun `isAdReady stays false when loadRewardedAd fails or times out`() = runTest {
+        createViewModel()
+        val failingAdManager = mockk<IAdManager> {
+            every { isRewardedAdReady } returns false
+            coEvery { loadRewardedAd() } just Runs   // completes, but ad not ready (timeout/error)
+            coEvery { showRewardedAd(any()) } returns AdRewardResult(watched = false)
+        }
+        progressFlow = MutableStateFlow(PlayerProgress(coins = 500L))
+        val playerRepo = mockk<PlayerRepository> {
+            every { playerProgressFlow } returns progressFlow
+            coEvery { saveProgress(any()) } just Runs
+        }
+        val vm = StoreViewModel(
+            playerRepository = playerRepo,
+            billingManager = billingManager,
+            adManager = failingAdManager,
+            audioManager = audioManager,
+            inboxRepository = inboxRepository,
+            vipDailyRewardUseCase = mockk { every { calculateRewards(any(), any()) } returns null },
+            achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true)
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = vm.uiState.first()
+        assertFalse("isAdReady should remain false when ad fails to load", state.isAdReady)
+    }
+
+    @Test
+    fun `watchAdForCoins reloads ad after watching and updates isAdReady`() = runTest {
+        createViewModel()
+        var loadCallCount = 0
+        val adManagerTracking = mockk<IAdManager> {
+            every { isRewardedAdReady } answers { loadCallCount > 0 }
+            coEvery { loadRewardedAd() } coAnswers { loadCallCount++ }
+            coEvery { showRewardedAd(any()) } returns AdRewardResult(watched = true)
+        }
+        progressFlow = MutableStateFlow(PlayerProgress(coins = 500L))
+        val playerRepo = mockk<PlayerRepository> {
+            every { playerProgressFlow } returns progressFlow
+            coEvery { saveProgress(any()) } just Runs
+        }
+        val vm = StoreViewModel(
+            playerRepository = playerRepo,
+            billingManager = billingManager,
+            adManager = adManagerTracking,
+            audioManager = audioManager,
+            inboxRepository = inboxRepository,
+            vipDailyRewardUseCase = mockk { every { calculateRewards(any(), any()) } returns null },
+            achievementManager = mockk(relaxed = true),
+            activityProvider = mockk(relaxed = true)
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        vm.watchAdForCoins(mockk(relaxed = true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // loadRewardedAd should be called twice: once in init, once after watching
+        assertTrue("loadRewardedAd should be called at least twice (init + after watch)", loadCallCount >= 2)
+    }
 }
+
+

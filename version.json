@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.36.0",
-    "versionCode":  68,
+    "versionName":  "2.37.0",
+    "versionCode":  69,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
     "buildDate":  "2026-04-05",
-    "releaseNotes":  "v2.36.0 - Review Rewards\n• Review prompt after 10 minutes of play time\n• Earn 500 coins, 5 lives and 25 gems for leaving a review\n• Rewards delivered straight to your inbox"
+    "releaseNotes":  "v2.37.0 - Bug fixes\n- Fixed crash on levels with numeric words (23RD etc.)\n- Back button now returns to level select screen\n- Fixed rewarded ads loading (now properly awaits Meta response)"
 }

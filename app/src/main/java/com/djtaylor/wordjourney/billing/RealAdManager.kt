@@ -5,11 +5,15 @@ import android.content.Context
 import android.util.Log
 import com.facebook.ads.Ad
 import com.facebook.ads.AdError
+import com.facebook.ads.AdSettings
 import com.facebook.ads.RewardedVideoAd
 import com.facebook.ads.RewardedVideoAdListener
+import com.djtaylor.wordjourney.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -40,14 +44,16 @@ class RealAdManager @Inject constructor(
 
     companion object {
         private const val TAG = "RealAdManager"
-
-        // Meta Audience Network — Rewarded Video placement
-        // Property: https://business.facebook.com/pub/property/adspace?business_id=303388240893368&property_id=4583483115306548
+        /** Timeout for ad load requests — prevents the UI showing "Loading" forever. */
+        private const val LOAD_TIMEOUT_MS = 15_000L
         const val PLACEMENT_ID = "1685702049238776_1685706569238324"
     }
 
     private var rewardedVideoAd: RewardedVideoAd? = null
     private var adReadyInternal = false
+
+    // Completed in onAdLoaded/onError so loadRewardedAd() can await the result
+    private var loadDeferred: CompletableDeferred<Boolean>? = null
 
     // Set in showRewardedAd(), resolved in listener callbacks
     private var pendingCont: CancellableContinuation<AdRewardResult>? = null
@@ -57,12 +63,17 @@ class RealAdManager @Inject constructor(
         get() = adReadyInternal && rewardedVideoAd != null
 
     /**
-     * Pre-fetch the next rewarded ad. Called automatically after a show and by ViewModels on init.
-     * Safe to call multiple times.
+     * Pre-fetch the next rewarded ad and WAIT until it is loaded or fails (max 15 s).
+     * The previous implementation returned immediately after firing the async network
+     * request, so isRewardedAdReady was always false right after the call.
      */
     override suspend fun loadRewardedAd() {
         adReadyInternal = false
-        prefetchAd()
+        val deferred = prefetchAd()
+        val result = withTimeoutOrNull(LOAD_TIMEOUT_MS) { deferred.await() }
+        if (result == null) {
+            Log.w(TAG, "Ad load timed out after ${LOAD_TIMEOUT_MS}ms — no fill or network issue")
+        }
     }
 
     /**
@@ -85,8 +96,10 @@ class RealAdManager @Inject constructor(
 
     // ── Internal ──────────────────────────────────────────────────────────────
 
-    internal fun prefetchAd() {
+    internal fun prefetchAd(): CompletableDeferred<Boolean> {
         rewardedVideoAd?.destroy()
+        val deferred = CompletableDeferred<Boolean>()
+        loadDeferred = deferred
         val ad = RewardedVideoAd(context, PLACEMENT_ID)
         rewardedVideoAd = ad
         ad.loadAd(
@@ -94,7 +107,8 @@ class RealAdManager @Inject constructor(
                 .withAdListener(adListener)
                 .build()
         )
-        Log.d(TAG, "Requesting Meta rewarded ad for placement: $PLACEMENT_ID")
+        Log.d(TAG, "Requesting Meta rewarded ad for placement: $PLACEMENT_ID (debug=${BuildConfig.DEBUG})")
+        return deferred
     }
 
     private val adListener = object : RewardedVideoAdListener {
@@ -102,11 +116,13 @@ class RealAdManager @Inject constructor(
         override fun onAdLoaded(ad: Ad) {
             Log.d(TAG, "Meta rewarded ad loaded and ready")
             adReadyInternal = true
+            loadDeferred?.complete(true)   // unblock loadRewardedAd()
         }
 
         override fun onError(ad: Ad?, error: AdError) {
             Log.e(TAG, "Meta ad error ${error.errorCode}: ${error.errorMessage}")
             adReadyInternal = false
+            loadDeferred?.complete(false)  // unblock loadRewardedAd() with failure
             resolvePending(AdRewardResult(watched = false))
         }
 
@@ -134,7 +150,7 @@ class RealAdManager @Inject constructor(
                     rewardAmount = 1
                 )
             )
-            // Pre-load the next ad for a seamless future show
+            // Pre-load the next ad for a seamless future show (fire-and-forget, no await needed)
             prefetchAd()
         }
     }

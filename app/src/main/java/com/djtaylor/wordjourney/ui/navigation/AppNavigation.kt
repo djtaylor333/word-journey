@@ -93,11 +93,10 @@ fun AppNavigation(
                 difficultyKey    = difficultyKey,
                 levelArg         = level,
                 onNavigateHome   = {
-                    if (difficultyKey.startsWith("daily")) {
-                        navController.popBackStack()
-                    } else {
-                        navController.popBackStack(Screen.Home.route, inclusive = false)
-                    }
+                    // Always pop just one screen back:
+                    // - On a level from LevelSelect: returns to LevelSelect (not Home)
+                    // - On a daily challenge level: returns to DailyChallenge screen
+                    navController.popBackStack()
                 },
                 onNavigateToStore = { navController.navigate(Screen.Store.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },

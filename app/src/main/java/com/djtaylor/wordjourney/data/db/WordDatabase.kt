@@ -17,7 +17,7 @@ import org.json.JSONObject
         AchievementEntity::class,
         InboxItemEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class WordDatabase : RoomDatabase() {
@@ -155,13 +155,25 @@ abstract class WordDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration 3 → 4: Remove any words whose spelling contains digits.
+         * Words like "23RD", "10TH" etc. crash the game engine because the letter-tile
+         * system only accepts A-Z characters.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // SQLite GLOB '*[0-9]*' matches any word containing at least one digit.
+                db.execSQL("DELETE FROM words WHERE word GLOB '*[0-9]*'")
+            }
+        }
+
         fun buildDatabase(context: Context): WordDatabase {
             return Room.databaseBuilder(
                 context.applicationContext,
                 WordDatabase::class.java,
                 DATABASE_NAME
             )
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
         }
     }
