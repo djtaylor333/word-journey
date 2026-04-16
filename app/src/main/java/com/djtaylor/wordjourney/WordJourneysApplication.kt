@@ -40,7 +40,8 @@ class WordJourneysApplication : Application(), Configuration.Provider {
         // Test ads will also show: "This is a test ad" overlay.
         if (BuildConfig.DEBUG) {
             AdSettings.setTestMode(true)
-            android.util.Log.d("WordJourneysApp", "Meta Audience Network: TEST MODE enabled (debug build)")
+            AdSettings.turnOnSDKDebugger(this)   // verbose Logcat output from Meta SDK
+            android.util.Log.d("WordJourneysApp", "Meta Audience Network: TEST MODE + SDK debugger enabled (debug build)")
         }
         AudienceNetworkAds
             .buildInitSettings(this)

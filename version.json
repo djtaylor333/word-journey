@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.37.0",
-    "versionCode":  69,
+    "versionName":  "2.37.1",
+    "versionCode":  70,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
     "buildDate":  "2026-04-05",
-    "releaseNotes":  "v2.37.0 - Bug fixes\n- Fixed crash on levels with numeric words (23RD etc.)\n- Back button now returns to level select screen\n- Fixed rewarded ads loading (now properly awaits Meta response)"
+    "releaseNotes":  "v2.37.1 - Ad loading fixes\n- Fixed race condition where ads loaded before Meta SDK had initialized\n- Ads button now shows Retry instead of stuck Loading after a failed load\n- Added SDK debugger for debug builds (verbose Meta Logcat output)\n- Added instrumented ad load test"
 }

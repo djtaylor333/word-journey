@@ -26,6 +26,10 @@ data class StoreUiState(
     val isRestoringPurchases: Boolean = false,
     val message: String? = null,
     val isAdReady: Boolean = false,
+    /** True while an ad load request is in-flight. */
+    val isAdLoading: Boolean = false,
+    /** True after a load attempt finished with no ad (timeout / error / no fill). */
+    val adLoadFailed: Boolean = false,
     val isWatchingAd: Boolean = false,
     /** Non-null when one or more Play Console products couldn't be loaded (not dev mode). */
     val billingSetupWarning: String? = null
@@ -58,8 +62,10 @@ class StoreViewModel @Inject constructor(
         }
         // Pre-fetch a rewarded ad and update isAdReady when the load completes
         viewModelScope.launch {
+            _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
             adManager.loadRewardedAd()
-            _uiState.update { it.copy(isAdReady = adManager.isRewardedAdReady) }
+            val ready = adManager.isRewardedAdReady
+            _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
         }
         // Check billing product availability (non dev-mode only)
         viewModelScope.launch {
@@ -219,6 +225,20 @@ class StoreViewModel @Inject constructor(
 
     // ── Ad Rewards ────────────────────────────────────────────────────────────
 
+    /**
+     * Retry loading a rewarded ad after a previous load failed (e.g. timeout / no fill).
+     * Exposed so the Store UI can show a "Retry" button instead of a permanently disabled one.
+     */
+    fun retryAdLoad() {
+        if (_uiState.value.isAdLoading) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
+            adManager.loadRewardedAd()
+            val ready = adManager.isRewardedAdReady
+            _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
+        }
+    }
+
     fun watchAdForCoins(activity: android.app.Activity) {
         _uiState.update { it.copy(isWatchingAd = true) }
         viewModelScope.launch {
@@ -235,8 +255,10 @@ class StoreViewModel @Inject constructor(
             } else {
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
             }
+            _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
             adManager.loadRewardedAd()
-            _uiState.update { it.copy(isAdReady = adManager.isRewardedAdReady) }
+            val ready = adManager.isRewardedAdReady
+            _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
         }
     }
 
@@ -256,8 +278,10 @@ class StoreViewModel @Inject constructor(
             } else {
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
             }
+            _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
             adManager.loadRewardedAd()
-            _uiState.update { it.copy(isAdReady = adManager.isRewardedAdReady) }
+            val ready = adManager.isRewardedAdReady
+            _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
         }
     }
 
@@ -302,8 +326,10 @@ class StoreViewModel @Inject constructor(
             } else {
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
             }
+            _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
             adManager.loadRewardedAd()
-            _uiState.update { it.copy(isAdReady = adManager.isRewardedAdReady) }
+            val ready = adManager.isRewardedAdReady
+            _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
         }
     }
 

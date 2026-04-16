@@ -1244,10 +1244,12 @@ class StoreViewModelTest {
     fun `isAdReady is true after loadRewardedAd awaits successfully`() = runTest {
         // Call createViewModel() to initialise class-level mocks (billingManager, etc.)
         createViewModel()
-        // Override adManager with one that reports ready after load completes
+        // Use a mutable flag so isRewardedAdReady correctly reflects state after load,
+        // regardless of how many times collectLatest reads it (avoids returnsMany timing races).
+        var adIsLoaded = false
         val adManagerSequence = mockk<IAdManager> {
-            every { isRewardedAdReady } returnsMany listOf(false, true)
-            coEvery { loadRewardedAd() } just Runs   // simulates awaiting a successful load
+            every { isRewardedAdReady } answers { adIsLoaded }
+            coEvery { loadRewardedAd() } coAnswers { adIsLoaded = true }   // marks ready on completion
             coEvery { showRewardedAd(any()) } returns AdRewardResult(watched = true)
         }
         progressFlow = MutableStateFlow(PlayerProgress(coins = 500L))
@@ -1272,6 +1274,8 @@ class StoreViewModelTest {
         // isAdReady reflects the adManager state after load
         val state = vm.uiState.first()
         assertTrue("isAdReady should be true after loadRewardedAd() completes successfully", state.isAdReady)
+        assertFalse("adLoadFailed should be false on successful load", state.adLoadFailed)
+        assertFalse("isAdLoading should be false once coroutine finishes", state.isAdLoading)
     }
 
     @Test
@@ -1301,6 +1305,8 @@ class StoreViewModelTest {
 
         val state = vm.uiState.first()
         assertFalse("isAdReady should remain false when ad fails to load", state.isAdReady)
+        assertTrue("adLoadFailed should be true after a failed load", state.adLoadFailed)
+        assertFalse("isAdLoading should be false once the coroutine finishes", state.isAdLoading)
     }
 
     @Test

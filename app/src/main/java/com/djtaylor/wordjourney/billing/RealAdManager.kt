@@ -6,12 +6,14 @@ import android.util.Log
 import com.facebook.ads.Ad
 import com.facebook.ads.AdError
 import com.facebook.ads.AdSettings
+import com.facebook.ads.AudienceNetworkAds
 import com.facebook.ads.RewardedVideoAd
 import com.facebook.ads.RewardedVideoAdListener
 import com.djtaylor.wordjourney.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
@@ -64,11 +66,24 @@ class RealAdManager @Inject constructor(
 
     /**
      * Pre-fetch the next rewarded ad and WAIT until it is loaded or fails (max 15 s).
-     * The previous implementation returned immediately after firing the async network
-     * request, so isRewardedAdReady was always false right after the call.
+     *
+     * Waits for the Meta SDK to finish initializing before firing the request — this fixes
+     * a race condition where the ViewModel is created (and triggers the first load) fractions
+     * of a second after Application.onCreate(), before AudienceNetworkAds.initialize() has
+     * completed its async internal setup.
      */
     override suspend fun loadRewardedAd() {
         adReadyInternal = false
+        // Wait for SDK initialization (up to 3 s, checked every 300 ms)
+        var initTries = 0
+        while (!AudienceNetworkAds.isInitialized(context) && initTries < 10) {
+            Log.d(TAG, "Waiting for Meta SDK init (attempt ${initTries + 1}/10)…")
+            delay(300)
+            initTries++
+        }
+        if (!AudienceNetworkAds.isInitialized(context)) {
+            Log.w(TAG, "Meta SDK still not initialized after ${initTries * 300}ms — attempting ad load anyway")
+        }
         val deferred = prefetchAd()
         val result = withTimeoutOrNull(LOAD_TIMEOUT_MS) { deferred.await() }
         if (result == null) {

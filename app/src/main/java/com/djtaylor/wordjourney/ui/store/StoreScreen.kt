@@ -243,32 +243,40 @@ private fun ItemsTab(uiState: StoreUiState, viewModel: StoreViewModel) {
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
 
+        // Label & enabled state depend on whether the ad is ready, loading, or failed
+        val adButtonLabel = when {
+            uiState.isAdReady   -> "Watch"
+            uiState.isAdLoading -> "Loading…"
+            uiState.adLoadFailed -> "Retry"
+            else                -> "Loading…"
+        }
+        val adButtonEnabled = (uiState.isAdReady || uiState.adLoadFailed) && !uiState.isWatchingAd
         StoreCard(
             emoji = "🎬",
             title = "Watch Ad → 100 Coins",
             description = "Watch a short video to earn 100 free coins",
-            costLabel = if (uiState.isAdReady) "Watch" else "Loading…",
+            costLabel = adButtonLabel,
             costColor = AccentEasy,
-            enabled = uiState.isAdReady && !uiState.isWatchingAd,
-            onBuy = { viewModel.watchAdForCoins(activity) }
+            enabled = adButtonEnabled,
+            onBuy = { if (uiState.adLoadFailed) viewModel.retryAdLoad() else viewModel.watchAdForCoins(activity) }
         )
         StoreCard(
             emoji = "🎬",
             title = "Watch Ad → 1 Life",
             description = "Watch a short video to earn 1 free life",
-            costLabel = if (uiState.isAdReady) "Watch" else "Loading…",
+            costLabel = adButtonLabel,
             costColor = HeartRed,
-            enabled = uiState.isAdReady && !uiState.isWatchingAd,
-            onBuy = { viewModel.watchAdForLife(activity) }
+            enabled = adButtonEnabled,
+            onBuy = { if (uiState.adLoadFailed) viewModel.retryAdLoad() else viewModel.watchAdForLife(activity) }
         )
         StoreCard(
             emoji = "🎬",
             title = "Watch Ad → Random Item",
             description = "Watch a short video to earn 1 random power-up",
-            costLabel = if (uiState.isAdReady) "Watch" else "Loading…",
+            costLabel = adButtonLabel,
             costColor = Primary,
-            enabled = uiState.isAdReady && !uiState.isWatchingAd,
-            onBuy = { viewModel.watchAdForItem(activity) }
+            enabled = adButtonEnabled,
+            onBuy = { if (uiState.adLoadFailed) viewModel.retryAdLoad() else viewModel.watchAdForItem(activity) }
         )
     }
 }
