@@ -9,6 +9,8 @@ import com.djtaylor.wordjourney.BuildConfig
 import com.djtaylor.wordjourney.auth.AchievementManager
 import com.djtaylor.wordjourney.auth.PlayGamesHelper
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
+import com.djtaylor.wordjourney.billing.AdDebugHelper
+import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.GameTheme
@@ -42,7 +44,9 @@ data class SettingsUiState(
     val ownedThemes: Set<String> = setOf("classic", "ocean_breeze", "forest_grove"),
     val diamonds: Int = 0,
     val isVip: Boolean = false,
-    val devModeEnabled: Boolean = false   // unlocked via secret tap easter egg
+    val devModeEnabled: Boolean = false,   // unlocked via secret tap easter egg
+    /** Non-null while a dev-mode ad test is in progress or has a result. */
+    val adTestStatus: String? = null,
 )
 
 @HiltViewModel
@@ -52,7 +56,8 @@ class SettingsViewModel @Inject constructor(
     private val dailyChallengeRepository: DailyChallengeRepository,
     private val audioManager: WordJourneysAudioManager,
     private val playGamesHelper: PlayGamesHelper,
-    private val achievementManager: AchievementManager
+    private val achievementManager: AchievementManager,
+    private val adManager: IAdManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -197,10 +202,39 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    // ── Dev Mode ─────────────────────────────────────────────────────────────
+    // ── Dev Mode ────────────────────────────────────────────────────────────────────────
 
     fun setDevModeEnabled(enabled: Boolean) {
         saveField { it.copy(devModeEnabled = enabled) }
+    }
+
+    /**
+     * [DEV] Manually triggers an ad load and updates [SettingsUiState.adTestStatus] with
+     * the result. Only functional in debug builds; safe no-op in release.
+     * Shows in the dev-mode section as "Test Ad Load" so you can verify without navigating
+     * to the Store screen.
+     */
+    fun testAdLoad() {
+        if (!BuildConfig.DEBUG) return
+        _uiState.update { it.copy(adTestStatus = "⏳ Loading ad...") }
+        AdDebugHelper.printSdkStatus(context)
+        AdDebugHelper.printHashedDeviceId()
+        viewModelScope.launch {
+            adManager.loadRewardedAd()
+            val ready = adManager.isRewardedAdReady
+            _uiState.update {
+                it.copy(
+                    adTestStatus = if (ready)
+                        "✅ Ad loaded successfully (isRewardedAdReady=true). Check Logcat tag=RealAdManager."
+                    else
+                        "❌ Ad load failed (isRewardedAdReady=false). Check Logcat tag=RealAdManager for error code."
+                )
+            }
+        }
+    }
+
+    fun dismissAdTestStatus() {
+        _uiState.update { it.copy(adTestStatus = null) }
     }
 
     // ── Google Play Games ─────────────────────────────────────────────────────

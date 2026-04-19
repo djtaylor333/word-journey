@@ -23,21 +23,30 @@ import kotlin.coroutines.resume
 /**
  * Production [IAdManager] backed by Meta Audience Network (Facebook Audience Network).
  *
- * ## Setup
- * 1. Go to https://developers.facebook.com/apps → create/open your app.
- * 2. Add the "Audience Network" product, create a Property (Android, package = com.djtaylor.wordjourney).
- * 3. Inside the property, create an Ad Unit of type "Rewarded Video" → copy the Placement ID.
- * 4. Set [PLACEMENT_ID] below.
- * 5. In AppModule.kt, change @Binds from StubAdManager → RealAdManager.
- * 6. Call AudienceNetworkAds.initialize(this) in Application.onCreate() — already done.
+ * ## Setup checklist — tick each before testing
+ * ☐ 1. Go to https://developers.facebook.com/apps → open your app.
+ * ☐ 2. Add the "Audience Network" product; create a Property for Android (package = com.djtaylor.wordjourney).
+ * ☐ 3. Create an Ad Unit of type "Rewarded Video" → copy the Placement ID into [PLACEMENT_ID].
+ * ☐ 4. Set [PLACEMENT_ID] below.
+ * ☐ 5. In strings.xml set facebook_app_id = numeric App ID from Meta (Settings → Basic).
+ * ☐ 6. In strings.xml set facebook_client_token from Meta (Settings → Advanced).
+ * ☐ 7. Both values must also appear in AndroidManifest.xml via the string refs (already done).
  *
- * ## Test mode
- * During development, add your device's hashed ID as a test device in the Meta dashboard OR
- * use the test placement ID "YOUR_PLACEMENT_ID#YOUR_APP_ID" format from the dashboard.
+ * ## Debug / test mode
+ * In DEBUG builds [loadRewardedAd] calls [logAdDiagnostics] which prints:
+ *  • SDK init status
+ *  • Hashed device ID (add this in Meta dashboard → Test Devices if needed)
+ *  • Current placement ID
+ *  • Error codes with plain-English explanations
+ *
+ * Run the instrumented test to verify the whole pipeline end-to-end:
+ *   ./gradlew :app:connectedDebugAndroidTest --tests "*.RealAdManagerInstrumentedTest"
+ *
+ * Filter Logcat to see just ad-related output:
+ *   adb logcat -s RealAdManager:V AudienceNetworkAds:V FBAudienceNetwork:V
  *
  * ## GDPR / Privacy
  * For EU users, call AudienceNetworkAds.setDataProcessingOptions([]) before showing ads.
- * See https://developers.facebook.com/docs/audience-network/optimization/best-practices/gdpr
  */
 @Singleton
 class RealAdManager @Inject constructor(
@@ -48,7 +57,26 @@ class RealAdManager @Inject constructor(
         private const val TAG = "RealAdManager"
         /** Timeout for ad load requests — prevents the UI showing "Loading" forever. */
         private const val LOAD_TIMEOUT_MS = 15_000L
+
+        /**
+         * The Placement ID from your Meta Audience Network property.
+         * Format: "<numeric_app_id>_<placement_id>"
+         * Find it at: developers.facebook.com → Audience Network → your property → Ad Units
+         */
         const val PLACEMENT_ID = "1685702049238776_1685706569238324"
+
+        /**
+         * Known Meta error codes with plain-English explanations.
+         * Printed in debug builds to diagnose "retry" loops.
+         */
+        private val ERROR_EXPLANATIONS = mapOf(
+            1000 to "Network error — device has no connectivity",
+            1001 to "No fill — no ads available for this placement right now (normal on new/unreviewed apps; enable test mode to bypass)",
+            1002 to "Load too frequently — too many ad requests in short succession",
+            2000 to "Internal error — usually means SDK failed to initialize (check App ID + Client Token in strings.xml and Manifest)",
+            2001 to "Server error — Meta backend returned an unexpected response",
+            6 to "Ad load failed — placement ID may be wrong or the ad unit is paused",
+        )
     }
 
     private var rewardedVideoAd: RewardedVideoAd? = null
@@ -74,6 +102,9 @@ class RealAdManager @Inject constructor(
      */
     override suspend fun loadRewardedAd() {
         adReadyInternal = false
+
+        if (BuildConfig.DEBUG) logAdDiagnostics("loadRewardedAd called")
+
         // Wait for SDK initialization (up to 3 s, checked every 300 ms)
         var initTries = 0
         while (!AudienceNetworkAds.isInitialized(context) && initTries < 10) {
@@ -82,12 +113,17 @@ class RealAdManager @Inject constructor(
             initTries++
         }
         if (!AudienceNetworkAds.isInitialized(context)) {
-            Log.w(TAG, "Meta SDK still not initialized after ${initTries * 300}ms — attempting ad load anyway")
+            Log.w(TAG, "⚠️  Meta SDK still not initialized after ${initTries * 300}ms. " +
+                "Check that facebook_app_id and facebook_client_token strings are set, " +
+                "and the <meta-data> entries exist in AndroidManifest.xml — attempting ad load anyway")
         }
+
         val deferred = prefetchAd()
         val result = withTimeoutOrNull(LOAD_TIMEOUT_MS) { deferred.await() }
         if (result == null) {
-            Log.w(TAG, "Ad load timed out after ${LOAD_TIMEOUT_MS}ms — no fill or network issue")
+            Log.w(TAG, "⚠️  Ad load timed out after ${LOAD_TIMEOUT_MS}ms — " +
+                "possible causes: no network, wrong placement ID, SDK not initialized. " +
+                "Run: adb logcat -s RealAdManager:V AudienceNetworkAds:V FBAudienceNetwork:V")
         }
     }
 
@@ -122,22 +158,29 @@ class RealAdManager @Inject constructor(
                 .withAdListener(adListener)
                 .build()
         )
-        Log.d(TAG, "Requesting Meta rewarded ad for placement: $PLACEMENT_ID (debug=${BuildConfig.DEBUG})")
+        Log.d(TAG, "Requesting Meta rewarded ad | placement=$PLACEMENT_ID | debug=${BuildConfig.DEBUG} | sdkInit=${AudienceNetworkAds.isInitialized(context)}")
         return deferred
     }
 
     private val adListener = object : RewardedVideoAdListener {
 
         override fun onAdLoaded(ad: Ad) {
-            Log.d(TAG, "Meta rewarded ad loaded and ready")
+            Log.d(TAG, "✅ Meta rewarded ad loaded and ready")
             adReadyInternal = true
-            loadDeferred?.complete(true)   // unblock loadRewardedAd()
+            loadDeferred?.complete(true)
         }
 
         override fun onError(ad: Ad?, error: AdError) {
-            Log.e(TAG, "Meta ad error ${error.errorCode}: ${error.errorMessage}")
+            val explanation = ERROR_EXPLANATIONS[error.errorCode]
+                ?: "Unknown error — see https://developers.facebook.com/docs/audience-network/reference/error-codes"
+            Log.e(TAG, "❌ Meta ad error ${error.errorCode}: ${error.errorMessage}\n" +
+                "   ↳ Meaning: $explanation\n" +
+                "   ↳ Placement: $PLACEMENT_ID\n" +
+                "   ↳ SDK initialized: ${AudienceNetworkAds.isInitialized(context)}\n" +
+                "   ↳ Test mode: ${BuildConfig.DEBUG}\n" +
+                "   ↳ To debug: adb logcat -s RealAdManager:V AudienceNetworkAds:V FBAudienceNetwork:V")
             adReadyInternal = false
-            loadDeferred?.complete(false)  // unblock loadRewardedAd() with failure
+            loadDeferred?.complete(false)
             resolvePending(AdRewardResult(watched = false))
         }
 
@@ -150,13 +193,11 @@ class RealAdManager @Inject constructor(
         }
 
         override fun onRewardedVideoCompleted() {
-            // Called when user finishes watching the full video (before the close button appears)
-            Log.d(TAG, "Meta rewarded video completed — reward earned")
+            Log.d(TAG, "✅ Meta rewarded video completed — reward earned")
             userCompletedWatch = true
         }
 
         override fun onRewardedVideoClosed() {
-            // Always the last callback; resume the coroutine here
             Log.d(TAG, "Meta rewarded video closed (watched=$userCompletedWatch)")
             resolvePending(
                 AdRewardResult(
@@ -165,7 +206,6 @@ class RealAdManager @Inject constructor(
                     rewardAmount = 1
                 )
             )
-            // Pre-load the next ad for a seamless future show (fire-and-forget, no await needed)
             prefetchAd()
         }
     }
@@ -175,5 +215,23 @@ class RealAdManager @Inject constructor(
             if (cont.isActive) cont.resume(result)
             pendingCont = null
         }
+    }
+
+    /**
+     * Prints a full diagnostic block to Logcat in DEBUG builds.
+     * Filter with: adb logcat -s RealAdManager:V
+     */
+    private fun logAdDiagnostics(trigger: String) {
+        Log.d(TAG, """
+            ┌─ Ad Diagnostics [$trigger] ─
+            │  SDK initialized : ${AudienceNetworkAds.isInitialized(context)}
+            │  Test mode       : ${BuildConfig.DEBUG}
+            │  Placement ID    : $PLACEMENT_ID
+            │  Ad ready        : $adReadyInternal
+            │  Hashed device ID: see Logcat tag=FBAudienceNetwork, text="Test Device Hash"
+            │    → OR ensure AdSettings.setTestMode(true) is called BEFORE
+            │      AudienceNetworkAds.initialize() in Application.onCreate()
+            └──────────────────────────────────────────────────────────
+        """.trimIndent())
     }
 }

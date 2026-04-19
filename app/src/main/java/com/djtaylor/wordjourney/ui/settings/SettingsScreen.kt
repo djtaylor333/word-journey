@@ -674,6 +674,9 @@ fun SettingsScreen(
             // ── Dev Mode Panel (only visible when dev mode is active) ──────────
             if (state.devModeEnabled) {
                 DevModePanel(
+                    adTestStatus           = state.adTestStatus,
+                    onTestAdLoad           = { viewModel.testAdLoad() },
+                    onDismissAdTestStatus  = { viewModel.dismissAdTestStatus() },
                     onResetDailyChallenges = { viewModel.devResetDailyChallenges() },
                     onResetLevelProgress   = { viewModel.devResetLevelProgress() },
                     onResetStatistics      = { viewModel.devResetStatistics() },
@@ -757,6 +760,9 @@ fun SettingsScreen(
 
 @Composable
 private fun DevModePanel(
+    adTestStatus: String?,
+    onTestAdLoad: () -> Unit,
+    onDismissAdTestStatus: () -> Unit,
     onResetDailyChallenges: () -> Unit,
     onResetLevelProgress: () -> Unit,
     onResetStatistics: () -> Unit,
@@ -788,6 +794,53 @@ private fun DevModePanel(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
+            HorizontalDivider(color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+
+            // ── Ad diagnostics ────────────────────────────────────────────────
+            Text(
+                "Ad Testing",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+            )
+            OutlinedButton(
+                onClick = onTestAdLoad,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("🎬 Test Ad Load (Meta AAN)")
+            }
+            adTestStatus?.let { status ->
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            status,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Filter Logcat: tag=RealAdManager",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                        TextButton(
+                            onClick = onDismissAdTestStatus,
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.align(Alignment.End)
+                        ) { Text("Dismiss", style = MaterialTheme.typography.labelSmall) }
+                    }
+                }
+            }
+
             HorizontalDivider(color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
 
             // Reset daily challenges

@@ -5,6 +5,7 @@ import androidx.work.Configuration
 import androidx.hilt.work.HiltWorkerFactory
 import com.djtaylor.wordjourney.BuildConfig
 import com.djtaylor.wordjourney.billing.ActivityProvider
+import com.djtaylor.wordjourney.billing.AdDebugHelper
 import com.djtaylor.wordjourney.notifications.NotificationChannels
 import com.facebook.ads.AdSettings
 import com.facebook.ads.AudienceNetworkAds
@@ -36,20 +37,27 @@ class WordJourneysApplication : Application(), Configuration.Provider {
         // Register before anything else so activity references are available immediately
         registerActivityLifecycleCallbacks(activityProvider)
         // Initialize Meta Audience Network SDK (must be called before any ad load)
-        // In debug builds, enable test mode so ads load without Meta dashboard approval.
-        // Test ads will also show: "This is a test ad" overlay.
+        // IMPORTANT: setTestMode / setSDKDebugger MUST be called BEFORE initialize().
         if (BuildConfig.DEBUG) {
             AdSettings.setTestMode(true)
-            AdSettings.turnOnSDKDebugger(this)   // verbose Logcat output from Meta SDK
+            AdSettings.turnOnSDKDebugger(this)
             android.util.Log.d("WordJourneysApp", "Meta Audience Network: TEST MODE + SDK debugger enabled (debug build)")
         }
         AudienceNetworkAds
             .buildInitSettings(this)
             .withInitListener { result ->
                 if (result.isSuccess) {
-                    android.util.Log.d("WordJourneysApp", "Meta Audience Network initialized (testMode=${BuildConfig.DEBUG})")
+                    android.util.Log.d("WordJourneysApp", "✅ Meta Audience Network initialized (testMode=${BuildConfig.DEBUG})")
+                    // In debug builds, print the full diagnostic block so any setup
+                    // problems (wrong App ID, missing client token, etc.) are immediately visible.
+                    if (BuildConfig.DEBUG) {
+                        AdDebugHelper.printSdkStatus(this)
+                        AdDebugHelper.printHashedDeviceId()
+                    }
                 } else {
-                    android.util.Log.w("WordJourneysApp", "Meta AAN init failed: ${result.message}")
+                    android.util.Log.e("WordJourneysApp", "❌ Meta AAN init failed: ${result.message}\n" +
+                        "   Check: strings.xml facebook_app_id / facebook_client_token\n" +
+                        "   Check: AndroidManifest.xml has both com.facebook.sdk.* <meta-data> entries")
                 }
             }
             .initialize()

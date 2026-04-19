@@ -6,6 +6,7 @@ import com.djtaylor.wordjourney.audio.AudioSettings
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.auth.AchievementManager
 import com.djtaylor.wordjourney.auth.PlayGamesHelper
+import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.data.repository.DailyChallengeRepository
 import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
@@ -98,7 +99,8 @@ class SettingsViewModelTest {
             dailyChallengeRepository = dailyChallengeRepository,
             audioManager = audioManager,
             playGamesHelper = mockk(relaxed = true),
-            achievementManager = mockk(relaxed = true)
+            achievementManager = mockk(relaxed = true),
+            adManager = mockk(relaxed = true),
         )
     }
 

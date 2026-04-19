@@ -24,8 +24,8 @@ android {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 35
-        versionCode 70
-        versionName "2.37.1"
+        versionCode 71
+        versionName "2.38.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -164,9 +164,10 @@ dependencies {
     // ── Google Play Games (cloud saves) ─────────────────────────────────────
     implementation 'com.google.android.gms:play-services-games-v2:20.1.2'
 
-    // ── Meta Audience Network (rewarded ads) ─────────────────────────────────
-    // Dashboard: https://developers.facebook.com/apps → Audience Network
-    // Replace placeholder IDs in RealAdManager.kt then flip the Hilt binding in AppModule.kt.
+    // ── Meta Audience Network (Facebook) rewarded ads ─────────────────────────
+    // Replaces the earlier Unity Ads placeholder.
+    // See RealAdManager.kt for PLACEMENT_ID and setup instructions.
+    // Meta Developer Portal: https://developers.facebook.com/apps
     implementation 'com.facebook.android:audience-network-sdk:6.21.0'
     implementation 'androidx.annotation:annotation:1.9.1' // required by FAN SDK
 
@@ -188,10 +189,5 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
 }
-
-
-
-
-
 
 
