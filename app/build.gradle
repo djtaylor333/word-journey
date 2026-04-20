@@ -24,8 +24,8 @@ android {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 35
-        versionCode 73
-        versionName "2.39.1"
+        versionCode 74
+        versionName "2.40.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -92,6 +92,7 @@ android {
 
     lint {
         disable "NullSafeMutableLiveData"
+        disable "MobileAdsSdkOutdatedVersion"   // prevent Yandex lint blocking release builds when a newer SDK drops
         abortOnError false
         checkReleaseBuilds false
     }
@@ -164,12 +165,16 @@ dependencies {
     // ── Google Play Games (cloud saves) ─────────────────────────────────────
     implementation 'com.google.android.gms:play-services-games-v2:20.1.2'
 
-    // ── Meta Audience Network (Facebook) rewarded ads ─────────────────────────
-    // Replaces the earlier Unity Ads placeholder.
-    // See RealAdManager.kt for PLACEMENT_ID and setup instructions.
-    // Meta Developer Portal: https://developers.facebook.com/apps
-    implementation 'com.facebook.android:audience-network-sdk:6.21.0'
-    implementation 'androidx.annotation:annotation:1.9.1' // required by FAN SDK
+    // ── Yandex Mobile Ads ────────────────────────────────────────────────────────
+    // Dashboard: partner.yandex.com → Word Journeys → Android app → Rewards Based
+    // Ad Unit ID: R-M-19134646-1  (Rewarded ads)
+    // Docs: https://ads.yandex.com/helpcenter/en/dev/android/quick-start
+    //
+    // Meta (Facebook) Audience Network — kept on backburner; restore with:
+    //   implementation 'com.facebook.android:audience-network-sdk:6.21.0'
+    //   implementation 'androidx.annotation:annotation:1.9.1'
+    //   and swap RealAdManager.kt back to the Meta implementation (git tag v2.39.1)
+    implementation 'com.yandex.android:mobileads:7.18.5'
 
     // ── Google Play Billing (stubbed) ────────────────────────────────────────
     implementation 'com.android.billingclient:billing-ktx:7.1.1'

@@ -1,19 +1,21 @@
-﻿package com.djtaylor.wordjourney.billing
+package com.djtaylor.wordjourney.billing
 
 import android.app.Activity
 import android.content.Context
 import android.util.Log
-import com.facebook.ads.Ad
-import com.facebook.ads.AdError
-import com.facebook.ads.AdSettings
-import com.facebook.ads.AudienceNetworkAds
-import com.facebook.ads.RewardedInterstitialAd
-import com.facebook.ads.RewardedInterstitialAdListener
 import com.djtaylor.wordjourney.BuildConfig
+import com.yandex.mobile.ads.common.AdError
+import com.yandex.mobile.ads.common.AdRequestConfiguration
+import com.yandex.mobile.ads.common.AdRequestError
+import com.yandex.mobile.ads.common.ImpressionData
+import com.yandex.mobile.ads.rewarded.Reward
+import com.yandex.mobile.ads.rewarded.RewardedAd
+import com.yandex.mobile.ads.rewarded.RewardedAdEventListener
+import com.yandex.mobile.ads.rewarded.RewardedAdLoadListener
+import com.yandex.mobile.ads.rewarded.RewardedAdLoader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
@@ -21,32 +23,27 @@ import javax.inject.Singleton
 import kotlin.coroutines.resume
 
 /**
- * Production [IAdManager] backed by Meta Audience Network (Facebook Audience Network).
+ * Production [IAdManager] backed by Yandex Mobile Ads SDK.
  *
- * ## Setup checklist — tick each before testing
- * ☐ 1. Go to https://developers.facebook.com/apps → open your app.
- * ☐ 2. Add the "Audience Network" product; create a Property for Android (package = com.djtaylor.wordjourney).
- * ☐ 3. Create an Ad Unit of type "Rewarded Interstitial" → copy the Placement ID into [PLACEMENT_ID].
- * ☐ 4. Set [PLACEMENT_ID] below.
- * ☐ 5. In strings.xml set facebook_app_id = numeric App ID from Meta (Settings → Basic).
- * ☐ 6. In strings.xml set facebook_client_token from Meta (Settings → Advanced).
- * ☐ 7. Both values must also appear in AndroidManifest.xml via the string refs (already done).
+ * ## Setup (all done)
+ * ? 1. Yandex Advertising Network: partner.yandex.com  (account: Kiwi Land Racing)
+ * ? 2. App registered: Word Journeys (com.djtaylor.wordjourney)
+ * ? 3. Ad unit: R-M-19134646-1  (Rewarded ads � "Reward store add")
+ * ? 4. SDK: com.yandex.android:mobileads:7.18.5  (build.gradle)
+ * ? 5. MobileAds.initialize() called in Application.onCreate()
  *
- * ## Debug / test mode
- * In DEBUG builds [loadRewardedAd] calls [logAdDiagnostics] which prints:
- *  • SDK init status
- *  • Hashed device ID (add this in Meta dashboard → Test Devices if needed)
- *  • Current placement ID
- *  • Error codes with plain-English explanations
+ * ## Test mode
+ * DEBUG builds use [TEST_AD_UNIT_ID] ("demo-rewarded-yandex") which always
+ * returns a live test ad � no device registration or allowlisting needed.
  *
- * Run the instrumented test to verify the whole pipeline end-to-end:
- *   ./gradlew :app:connectedDebugAndroidTest --tests "*.RealAdManagerInstrumentedTest"
+ * ## Verify integration
+ *   adb logcat -v brief '*:S YandexAds'
+ *   Expected: "[Integration] Ad type rewarded was integrated successfully"
  *
- * Filter Logcat to see just ad-related output:
- *   adb logcat -s RealAdManager:V AudienceNetworkAds:V FBAudienceNetwork:V
- *
- * ## GDPR / Privacy
- * For EU users, call AudienceNetworkAds.setDataProcessingOptions([]) before showing ads.
+ * ## Meta (Facebook Audience Network) � on backburner
+ * Credentials and implementation retained in git (tag v2.39.1).
+ * To restore: swap build.gradle dependency back to audience-network-sdk
+ * and checkout billing/RealAdManager.kt from that tag.
  */
 @Singleton
 class RealAdManager @Inject constructor(
@@ -55,159 +52,153 @@ class RealAdManager @Inject constructor(
 
     companion object {
         private const val TAG = "RealAdManager"
-        /** Timeout for ad load requests — prevents the UI showing "Loading" forever. */
+
+        /** Max time to wait for an ad to load before giving up. */
         private const val LOAD_TIMEOUT_MS = 15_000L
 
-        /**
-         * The Placement ID from your Meta Audience Network property.
-         * Format: "<numeric_app_id>_<placement_id>"
-         * Find it at: developers.facebook.com → Audience Network → your property → Ad Units
-         */
-        const val PLACEMENT_ID = "1685702049238776_1685706569238324"
+        /** Real ad unit ID � partner.yandex.com ? Word Journeys ? Rewards Based */
+        const val PROD_AD_UNIT_ID = "R-M-19134646-1"
 
-        /**
-         * Known Meta error codes with plain-English explanations.
-         * Printed in debug builds to diagnose "retry" loops.
-         */
-        private val ERROR_EXPLANATIONS = mapOf(
-            1000 to "Network error — device has no connectivity",
-            1001 to "No fill — no ads available for this placement right now (normal on new/unreviewed apps; enable test mode to bypass)",
-            1002 to "Load too frequently — too many ad requests in short succession",
-            2000 to "Internal error — usually means SDK failed to initialize (check App ID + Client Token in strings.xml and Manifest)",
-            2001 to "Server error — Meta backend returned an unexpected response",
-            6 to "Ad load failed — placement ID may be wrong or the ad unit is paused",
-        )
+        /** Yandex demo unit � always returns a test ad, used in all DEBUG builds. */
+        const val TEST_AD_UNIT_ID = "demo-rewarded-yandex"
+
+        /** Runtime value: demo unit in DEBUG, real unit in release. */
+        val AD_UNIT_ID get() = if (BuildConfig.DEBUG) TEST_AD_UNIT_ID else PROD_AD_UNIT_ID
     }
 
-    private var rewardedVideoAd: RewardedInterstitialAd? = null
+    // Strong reference required per Yandex SDK docs
+    private var rewardedAdLoader: RewardedAdLoader? = null
+    private var rewardedAd: RewardedAd? = null
     private var adReadyInternal = false
 
-    // Completed in onAdLoaded/onError so loadRewardedAd() can await the result
+    // Completed in load listener so loadRewardedAd() can await the result
     private var loadDeferred: CompletableDeferred<Boolean>? = null
 
-    // Set in showRewardedAd(), resolved in listener callbacks
+    // Resolved once the ad is dismissed
     private var pendingCont: CancellableContinuation<AdRewardResult>? = null
-    private var userCompletedWatch = false
+    private var userRewarded = false
 
     override val isRewardedAdReady: Boolean
-        get() = adReadyInternal && rewardedVideoAd != null
+        get() = adReadyInternal && rewardedAd != null
 
     /**
-     * Pre-fetch the next rewarded ad and WAIT until it is loaded or fails (max 15 s).
+     * Pre-fetches a rewarded ad and suspends until loaded (max [LOAD_TIMEOUT_MS]).
      *
-     * Waits for the Meta SDK to finish initializing before firing the request — this fixes
-     * a race condition where the ViewModel is created (and triggers the first load) fractions
-     * of a second after Application.onCreate(), before AudienceNetworkAds.initialize() has
-     * completed its async internal setup.
+     * Must be called on the main thread � satisfied because callers use
+     * viewModelScope (Dispatchers.Main).
      */
     override suspend fun loadRewardedAd() {
         adReadyInternal = false
+        rewardedAd?.setAdEventListener(null)
+        rewardedAd = null
 
-        if (BuildConfig.DEBUG) logAdDiagnostics("loadRewardedAd called")
-
-        // Wait for SDK initialization (up to 3 s, checked every 300 ms)
-        var initTries = 0
-        while (!AudienceNetworkAds.isInitialized(context) && initTries < 10) {
-            Log.d(TAG, "Waiting for Meta SDK init (attempt ${initTries + 1}/10)…")
-            delay(300)
-            initTries++
-        }
-        if (!AudienceNetworkAds.isInitialized(context)) {
-            Log.w(TAG, "⚠️  Meta SDK still not initialized after ${initTries * 300}ms. " +
-                "Check that facebook_app_id and facebook_client_token strings are set, " +
-                "and the <meta-data> entries exist in AndroidManifest.xml — attempting ad load anyway")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "loadRewardedAd() � adUnitId=$AD_UNIT_ID")
         }
 
-        val deferred = prefetchAd()
+        val deferred = CompletableDeferred<Boolean>()
+        loadDeferred = deferred
+
+        // Reuse a single loader instance (Yandex recommendation for best performance)
+        if (rewardedAdLoader == null) {
+            rewardedAdLoader = RewardedAdLoader(context).apply {
+                setAdLoadListener(loadListener)
+            }
+        }
+
+        val config = AdRequestConfiguration.Builder(AD_UNIT_ID).build()
+        rewardedAdLoader?.loadAd(config)
+
         val result = withTimeoutOrNull(LOAD_TIMEOUT_MS) { deferred.await() }
         if (result == null) {
-            Log.w(TAG, "⚠️  Ad load timed out after ${LOAD_TIMEOUT_MS}ms — " +
-                "possible causes: no network, wrong placement ID, SDK not initialized. " +
-                "Run: adb logcat -s RealAdManager:V AudienceNetworkAds:V FBAudienceNetwork:V")
+            Log.w(TAG, "?? Ad load timed out after ${LOAD_TIMEOUT_MS}ms � adUnitId=$AD_UNIT_ID")
         }
     }
 
     /**
-     * Show the pre-loaded rewarded ad. The coroutine suspends until the ad is dismissed.
-     * Returns [AdRewardResult.watched] = true only if the user watched to completion.
+     * Shows the pre-loaded ad. Suspends until dismissed.
+     * Returns [AdRewardResult.watched] = true only if [onRewarded] fired before dismissal.
      */
     override suspend fun showRewardedAd(activity: Activity): AdRewardResult {
-        val ad = rewardedVideoAd
+        val ad = rewardedAd
         if (!adReadyInternal || ad == null) {
-            Log.w(TAG, "showRewardedAd called but no ad is loaded — returning not-watched")
+            Log.w(TAG, "showRewardedAd called but no ad is ready � returning not-watched")
             return AdRewardResult(watched = false)
         }
         return suspendCancellableCoroutine { cont ->
             pendingCont = cont
-            userCompletedWatch = false
-            adReadyInternal = false   // consumed; will reload after close
-            ad.show(ad.buildShowAdConfig().build())
+            userRewarded = false
+            adReadyInternal = false  // consumed; will reload after close
+            ad.setAdEventListener(eventListener)
+            ad.show(activity)
         }
     }
 
-    // ── Internal ──────────────────────────────────────────────────────────────
+    // -- Listeners --------------------------------------------------------------
 
-    internal fun prefetchAd(): CompletableDeferred<Boolean> {
-        rewardedVideoAd?.destroy()
-        val deferred = CompletableDeferred<Boolean>()
-        loadDeferred = deferred
-        val ad = RewardedInterstitialAd(context, PLACEMENT_ID)
-        rewardedVideoAd = ad
-        ad.loadAd(
-            ad.buildLoadAdConfig()
-                .withAdListener(adListener)
-                .build()
-        )
-        Log.d(TAG, "Requesting Meta rewarded ad | placement=$PLACEMENT_ID | debug=${BuildConfig.DEBUG} | sdkInit=${AudienceNetworkAds.isInitialized(context)}")
-        return deferred
-    }
-
-    private val adListener = object : RewardedInterstitialAdListener {
-
-        override fun onAdLoaded(ad: Ad) {
-            Log.d(TAG, "✅ Meta rewarded ad loaded and ready")
+    private val loadListener = object : RewardedAdLoadListener {
+        override fun onAdLoaded(ad: RewardedAd) {
+            Log.d(TAG, "? Yandex rewarded ad loaded (adUnitId=$AD_UNIT_ID)")
+            rewardedAd = ad
             adReadyInternal = true
             loadDeferred?.complete(true)
         }
 
-        override fun onError(ad: Ad?, error: AdError) {
-            val explanation = ERROR_EXPLANATIONS[error.errorCode]
-                ?: "Unknown error — see https://developers.facebook.com/docs/audience-network/reference/error-codes"
-            Log.e(TAG, "❌ Meta ad error ${error.errorCode}: ${error.errorMessage}\n" +
-                "   ↳ Meaning: $explanation\n" +
-                "   ↳ Placement: $PLACEMENT_ID\n" +
-                "   ↳ SDK initialized: ${AudienceNetworkAds.isInitialized(context)}\n" +
-                "   ↳ Test mode: ${BuildConfig.DEBUG}\n" +
-                "   ↳ To debug: adb logcat -s RealAdManager:V AudienceNetworkAds:V FBAudienceNetwork:V")
+        override fun onAdFailedToLoad(error: AdRequestError) {
+            Log.e(TAG, "? Yandex ad failed to load\n" +
+                "   ? code        : ${error.code}\n" +
+                "   ? description : ${error.description}\n" +
+                "   ? adUnitId    : $AD_UNIT_ID\n" +
+                "   ? Verify unit is active: partner.yandex.com ? Word Journeys ? Android app")
             adReadyInternal = false
+            rewardedAd = null
             loadDeferred?.complete(false)
+        }
+    }
+
+    private val eventListener = object : RewardedAdEventListener {
+        override fun onAdShown() {
+            Log.d(TAG, "Yandex rewarded ad shown")
+        }
+
+        override fun onAdFailedToShow(error: AdError) {
+            Log.e(TAG, "? Yandex rewarded ad failed to show: ${error.description}")
+            cleanup()
             resolvePending(AdRewardResult(watched = false))
         }
 
-        override fun onLoggingImpression(ad: Ad) {
-            Log.d(TAG, "Meta ad impression logged")
-        }
-
-        override fun onAdClicked(ad: Ad) {
-            Log.d(TAG, "Meta ad clicked")
-        }
-
-        override fun onRewardedInterstitialCompleted() {
-            Log.d(TAG, "✅ Meta rewarded interstitial completed — reward earned")
-            userCompletedWatch = true
-        }
-
-        override fun onRewardedInterstitialClosed() {
-            Log.d(TAG, "Meta rewarded interstitial closed (watched=$userCompletedWatch)")
-            resolvePending(
-                AdRewardResult(
-                    watched = userCompletedWatch,
-                    rewardType = "life",
-                    rewardAmount = 1
-                )
+        override fun onAdDismissed() {
+            Log.d(TAG, "Yandex rewarded ad dismissed (rewarded=$userRewarded)")
+            val result = AdRewardResult(
+                watched = userRewarded,
+                rewardType = "life",
+                rewardAmount = 1
             )
-            prefetchAd()
+            cleanup()
+            resolvePending(result)
+            // Pre-load next ad for a seamless future show
+            rewardedAdLoader?.loadAd(AdRequestConfiguration.Builder(AD_UNIT_ID).build())
         }
+
+        override fun onAdClicked() {
+            Log.d(TAG, "Yandex rewarded ad clicked")
+        }
+
+        override fun onAdImpression(data: ImpressionData?) {
+            Log.d(TAG, "Yandex rewarded ad impression logged")
+        }
+
+        override fun onRewarded(reward: Reward) {
+            Log.d(TAG, "? Yandex reward granted � type=${reward.type} amount=${reward.amount}")
+            userRewarded = true
+        }
+    }
+
+    // -- Helpers ----------------------------------------------------------------
+
+    private fun cleanup() {
+        rewardedAd?.setAdEventListener(null)
+        rewardedAd = null
     }
 
     private fun resolvePending(result: AdRewardResult) {
@@ -216,22 +207,5 @@ class RealAdManager @Inject constructor(
             pendingCont = null
         }
     }
-
-    /**
-     * Prints a full diagnostic block to Logcat in DEBUG builds.
-     * Filter with: adb logcat -s RealAdManager:V
-     */
-    private fun logAdDiagnostics(trigger: String) {
-        Log.d(TAG, """
-            ┌─ Ad Diagnostics [$trigger] ─
-            │  SDK initialized : ${AudienceNetworkAds.isInitialized(context)}
-            │  Test mode       : ${BuildConfig.DEBUG}
-            │  Placement ID    : $PLACEMENT_ID
-            │  Ad ready        : $adReadyInternal
-            │  Hashed device ID: see Logcat tag=FBAudienceNetwork, text="Test Device Hash"
-            │    → OR ensure AdSettings.setTestMode(true) is called BEFORE
-            │      AudienceNetworkAds.initialize() in Application.onCreate()
-            └──────────────────────────────────────────────────────────
-        """.trimIndent())
-    }
 }
+

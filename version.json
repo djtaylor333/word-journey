@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.39.1",
-    "versionCode":  73,
+    "versionName":  "2.40.0",
+    "versionCode":  74,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
     "buildDate":  "2026-04-20",
-    "releaseNotes":  "v2.39.1 - Set real Meta App ID (2060723234858706) and Client Token in strings.xml"
+    "releaseNotes":  "v2.40.0 - Switch ads from Meta Audience Network to Yandex Mobile Ads SDK (R-M-19134646-1)"
 }

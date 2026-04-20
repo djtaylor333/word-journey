@@ -3,103 +3,77 @@ package com.djtaylor.wordjourney.billing
 import android.content.Context
 import android.util.Log
 import com.djtaylor.wordjourney.BuildConfig
-import com.facebook.ads.AdSettings
-import com.facebook.ads.AudienceNetworkAds
 
 /**
- * Debug helpers for Meta Audience Network ad testing.
+ * Debug helpers for Yandex Mobile Ads integration.
  *
- * Only meaningful in DEBUG builds — all public functions are no-ops in release.
+ * All public functions are no-ops in release builds.
  *
- * ## Quick-start: why are ads showing "Retry"?
+ * ## Quick-start: why are ads not loading?
  *
- * Step 1 — Check initialization
- *   Call [printSdkStatus] right after Application.onCreate() completes.
- *   If "SDK initialized: false" → your App ID or Client Token is wrong.
+ * Step 1 — Check SDK initialisation in Logcat after launch:
+ *   adb logcat -v brief '*:S YandexAds'
+ *   Should see: "[Integration] Ad type rewarded was integrated successfully"
+ *   Then:       "Yandex Mobile Ads 7.x initialized successfully"
  *
- * Step 2 — Get your hashed device ID
- *   Call [printHashedDeviceId] and paste the result into Meta Dashboard:
- *   developers.facebook.com → your app → Audience Network → Test Devices
- *   (Only needed if setTestMode(true) alone isn't serving test ads)
+ * Step 2 — Check ad load in Logcat:
+ *   adb logcat -s RealAdManager:V
+ *   Should see: "✅ Yandex rewarded ad loaded (adUnitId=demo-rewarded-yandex)"
  *
- * Step 3 — Run the live instrumented test on a connected device:
- *   ./gradlew :app:connectedDebugAndroidTest \
- *       --tests "com.djtaylor.wordjourney.billing.RealAdManagerInstrumentedTest"
- *
- * Step 4 — Watch Logcat in real time:
- *   adb logcat -s RealAdManager:V AudienceNetworkAds:V FBAudienceNetwork:V AdDebugHelper:V
- *
- * Step 5 — Interpret error codes
- *   1001 = No fill (use test mode in debug — already enabled automatically)
- *   2000 = Init failed (App ID / Client Token missing from Manifest)
- *   1000 = No network
- *   6    = Wrong placement ID / ad unit paused
+ * Step 3 — No device registration needed.
+ *   DEBUG builds use "demo-rewarded-yandex" which always serves test ads.
  */
 object AdDebugHelper {
 
     private const val TAG = "AdDebugHelper"
 
     /**
-     * Prints the current SDK + test-mode status to Logcat (DEBUG only).
-     * Call this from HomeViewModel or Application.onCreate() to verify setup.
+     * Prints Yandex SDK status and unit ID configuration to Logcat (DEBUG only).
      */
     fun printSdkStatus(context: Context) {
         if (!BuildConfig.DEBUG) return
-        val initialized = AudienceNetworkAds.isInitialized(context)
-        val testMode    = BuildConfig.DEBUG  // test mode is gated on debug build
         Log.d(TAG, """
-            ┌─ Meta AAN SDK Status ──────────────────────────────────────
-            │  SDK initialized : $initialized
-            │  Test mode active: $testMode  (setTestMode called in Application.onCreate)
-            │  Placement ID    : ${RealAdManager.PLACEMENT_ID}
+            ┌─ Yandex Mobile Ads Status ──────────────────────────────────────
+            │  Ad Unit (debug)  : ${RealAdManager.TEST_AD_UNIT_ID} (demo — always fills)
+            │  Ad Unit (release): ${RealAdManager.PROD_AD_UNIT_ID}
+            │  Currently using  : ${RealAdManager.AD_UNIT_ID}
             │
-            │  If initialized=false check:
-            │    • strings.xml → facebook_app_id  (numeric, e.g. "1685702049238776")
-            │    • strings.xml → facebook_client_token  (from Meta → Settings → Advanced)
-            │    • AndroidManifest.xml has both <meta-data> entries
-            │    • AudienceNetworkAds.initialize() is called in Application.onCreate()
-            │      AFTER AdSettings.setTestMode(true)
-            └────────────────────────────────────────────────────────────
+            │  Integration check (run after first launch):
+            │    adb logcat -v brief '*:S YandexAds'
+            │    → "[Integration] Ad type rewarded was integrated successfully"
+            │    → "Yandex Mobile Ads 7.x initialized successfully"
+            │
+            │  Dashboard: partner.yandex.com → Word Journeys → Android app
+            └────────────────────────────────────────────────────────────────
         """.trimIndent())
     }
 
     /**
-     * Prints the hashed device ID that can be registered in Meta's test-device list.
-     * Useful when setTestMode(true) isn't sufficient (e.g. specific network configs).
+     * Yandex SDK does not use device-hash allowlisting.
+     * Test ads are served automatically via the demo ad unit in DEBUG builds.
      */
     fun printHashedDeviceId() {
         if (!BuildConfig.DEBUG) return
-        // Meta AAN SDK 6.x does not expose a programmatic API to retrieve the hashed device ID.
-        // The SDK logs it automatically to Logcat on first initialization under the tag
-        // "FBAudienceNetwork" as "Test Device Hash: XXXXXXXXXX".
         Log.d(TAG, """
-            ┌─ Meta AAN Test Device Hash ─────────────────────────────
-            │  The hashed device ID is printed automatically by the Meta SDK
-            │  to Logcat on first launch. To find it:
+            ┌─ Yandex Ads Test Mode ──────────────────────────────────────────
+            │  No device registration needed.
+            │  All DEBUG builds use: demo-rewarded-yandex
+            │  → guarantees a test ad on every device, no allowlisting required.
             │
-            │  Run the app and search Logcat for:
-            │    tag: FBAudienceNetwork
-            │    text: "Test Device Hash"
-            │
-            │  Then paste that hash in Meta Dashboard:
-            │  developers.facebook.com → your app → Audience Network
-            │    → Test Devices → Add Device
-            │
-            │  Note: If AdSettings.setTestMode(true) is called BEFORE initialize()
-            │  test ads load WITHOUT device registration.
-            └─────────────────────────────────────────────────────────────
+            │  To confirm test ads are loading:
+            │    adb logcat -s RealAdManager:V
+            │    → "✅ Yandex rewarded ad loaded (adUnitId=demo-rewarded-yandex)"
+            └────────────────────────────────────────────────────────────────
         """.trimIndent())
     }
 
     /**
-     * Manually forces the SDK into test mode and re-prints diagnostics.
-     * Call this from a debug button or from a unit test bootstrap.
+     * Prints full diagnostics. Call from a debug button or test bootstrap.
      */
     fun forceTestModeAndPrintDiagnostics(context: Context) {
         if (!BuildConfig.DEBUG) return
-        AdSettings.setTestMode(true)
-        AdSettings.turnOnSDKDebugger(context)
         printSdkStatus(context)
         printHashedDeviceId()
     }
 }
+

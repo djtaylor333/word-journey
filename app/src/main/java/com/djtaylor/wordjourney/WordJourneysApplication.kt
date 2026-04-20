@@ -7,8 +7,7 @@ import com.djtaylor.wordjourney.BuildConfig
 import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.billing.AdDebugHelper
 import com.djtaylor.wordjourney.notifications.NotificationChannels
-import com.facebook.ads.AdSettings
-import com.facebook.ads.AudienceNetworkAds
+import com.yandex.mobile.ads.common.MobileAds
 import com.google.android.gms.games.PlayGamesSdk
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -36,31 +35,16 @@ class WordJourneysApplication : Application(), Configuration.Provider {
         super.onCreate()
         // Register before anything else so activity references are available immediately
         registerActivityLifecycleCallbacks(activityProvider)
-        // Initialize Meta Audience Network SDK (must be called before any ad load)
-        // IMPORTANT: setTestMode / setSDKDebugger MUST be called BEFORE initialize().
-        if (BuildConfig.DEBUG) {
-            AdSettings.setTestMode(true)
-            AdSettings.turnOnSDKDebugger(this)
-            android.util.Log.d("WordJourneysApp", "Meta Audience Network: TEST MODE + SDK debugger enabled (debug build)")
-        }
-        AudienceNetworkAds
-            .buildInitSettings(this)
-            .withInitListener { result ->
-                if (result.isSuccess) {
-                    android.util.Log.d("WordJourneysApp", "✅ Meta Audience Network initialized (testMode=${BuildConfig.DEBUG})")
-                    // In debug builds, print the full diagnostic block so any setup
-                    // problems (wrong App ID, missing client token, etc.) are immediately visible.
-                    if (BuildConfig.DEBUG) {
-                        AdDebugHelper.printSdkStatus(this)
-                        AdDebugHelper.printHashedDeviceId()
-                    }
-                } else {
-                    android.util.Log.e("WordJourneysApp", "❌ Meta AAN init failed: ${result.message}\n" +
-                        "   Check: strings.xml facebook_app_id / facebook_client_token\n" +
-                        "   Check: AndroidManifest.xml has both com.facebook.sdk.* <meta-data> entries")
-                }
+        // Initialize Yandex Mobile Ads SDK.
+        // DEBUG builds automatically use the demo ad unit (demo-rewarded-yandex) — no setup needed.
+        // Verify in Logcat: adb logcat -v brief '*:S YandexAds'
+        MobileAds.initialize(this) {
+            android.util.Log.d("WordJourneysApp", "✅ Yandex Mobile Ads initialized (debug=${BuildConfig.DEBUG})")
+            if (BuildConfig.DEBUG) {
+                AdDebugHelper.printSdkStatus(this)
+                AdDebugHelper.printHashedDeviceId()
             }
-            .initialize()
+        }
         // Initialize Play Games SDK
         PlayGamesSdk.initialize(this)
         // Create notification channels on app start (safe to call multiple times)

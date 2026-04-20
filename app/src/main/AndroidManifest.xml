@@ -28,19 +28,15 @@
             android:value="@string/app_id" />
 
         <!--
-            Meta Audience Network — REQUIRED for SDK initialisation.
-            Without these two entries AudienceNetworkAds.initialize() silently
-            fails and every ad request returns error 2000 ("No Fill / Init failed").
-
-            facebook_app_id   : developers.facebook.com → your app → Settings → Basic → App ID
-            facebook_client_token: same page → Settings → Advanced → Client Token
-        -->
+            Meta (Facebook) Audience Network — on backburner.
+            Restore these entries when switching back to the Meta SDK (see git tag v2.39.1).
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"
             android:value="@string/facebook_app_id" />
         <meta-data
             android:name="com.facebook.sdk.ClientToken"
             android:value="@string/facebook_client_token" />
+        -->
 
         <!-- AdMob App ID — disabled while new ad partner is evaluated -->
         <!-- Restore when re-integrating ads:
