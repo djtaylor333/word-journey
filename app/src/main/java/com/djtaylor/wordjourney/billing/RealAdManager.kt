@@ -7,8 +7,8 @@ import com.facebook.ads.Ad
 import com.facebook.ads.AdError
 import com.facebook.ads.AdSettings
 import com.facebook.ads.AudienceNetworkAds
-import com.facebook.ads.RewardedVideoAd
-import com.facebook.ads.RewardedVideoAdListener
+import com.facebook.ads.RewardedInterstitialAd
+import com.facebook.ads.RewardedInterstitialAdListener
 import com.djtaylor.wordjourney.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellableContinuation
@@ -26,7 +26,7 @@ import kotlin.coroutines.resume
  * ## Setup checklist — tick each before testing
  * ☐ 1. Go to https://developers.facebook.com/apps → open your app.
  * ☐ 2. Add the "Audience Network" product; create a Property for Android (package = com.djtaylor.wordjourney).
- * ☐ 3. Create an Ad Unit of type "Rewarded Video" → copy the Placement ID into [PLACEMENT_ID].
+ * ☐ 3. Create an Ad Unit of type "Rewarded Interstitial" → copy the Placement ID into [PLACEMENT_ID].
  * ☐ 4. Set [PLACEMENT_ID] below.
  * ☐ 5. In strings.xml set facebook_app_id = numeric App ID from Meta (Settings → Basic).
  * ☐ 6. In strings.xml set facebook_client_token from Meta (Settings → Advanced).
@@ -79,7 +79,7 @@ class RealAdManager @Inject constructor(
         )
     }
 
-    private var rewardedVideoAd: RewardedVideoAd? = null
+    private var rewardedVideoAd: RewardedInterstitialAd? = null
     private var adReadyInternal = false
 
     // Completed in onAdLoaded/onError so loadRewardedAd() can await the result
@@ -151,7 +151,7 @@ class RealAdManager @Inject constructor(
         rewardedVideoAd?.destroy()
         val deferred = CompletableDeferred<Boolean>()
         loadDeferred = deferred
-        val ad = RewardedVideoAd(context, PLACEMENT_ID)
+        val ad = RewardedInterstitialAd(context, PLACEMENT_ID)
         rewardedVideoAd = ad
         ad.loadAd(
             ad.buildLoadAdConfig()
@@ -162,7 +162,7 @@ class RealAdManager @Inject constructor(
         return deferred
     }
 
-    private val adListener = object : RewardedVideoAdListener {
+    private val adListener = object : RewardedInterstitialAdListener {
 
         override fun onAdLoaded(ad: Ad) {
             Log.d(TAG, "✅ Meta rewarded ad loaded and ready")
@@ -192,13 +192,13 @@ class RealAdManager @Inject constructor(
             Log.d(TAG, "Meta ad clicked")
         }
 
-        override fun onRewardedVideoCompleted() {
-            Log.d(TAG, "✅ Meta rewarded video completed — reward earned")
+        override fun onRewardedInterstitialCompleted() {
+            Log.d(TAG, "✅ Meta rewarded interstitial completed — reward earned")
             userCompletedWatch = true
         }
 
-        override fun onRewardedVideoClosed() {
-            Log.d(TAG, "Meta rewarded video closed (watched=$userCompletedWatch)")
+        override fun onRewardedInterstitialClosed() {
+            Log.d(TAG, "Meta rewarded interstitial closed (watched=$userCompletedWatch)")
             resolvePending(
                 AdRewardResult(
                     watched = userCompletedWatch,
