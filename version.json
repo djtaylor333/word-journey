@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.39.0",
-    "versionCode":  72,
+    "versionName":  "2.39.1",
+    "versionCode":  73,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
     "buildDate":  "2026-04-20",
-    "releaseNotes":  "v2.39.0 - Fix ad placement type: RewardedVideoAd -\u003e RewardedInterstitialAd to match Meta dashboard format"
+    "releaseNotes":  "v2.39.1 - Set real Meta App ID (2060723234858706) and Client Token in strings.xml"
 }

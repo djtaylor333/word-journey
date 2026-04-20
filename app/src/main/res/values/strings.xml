@@ -10,8 +10,8 @@
         (The App ID is typically the numeric prefix of your Placement ID —
          e.g. for placement "1685702049238776_1685706569238324" the App ID is "1685702049238776")
     -->
-    <string name="facebook_app_id">1685702049238776</string>
-    <string name="facebook_client_token">YOUR_CLIENT_TOKEN_HERE</string>
+    <string name="facebook_app_id">2060723234858706</string>
+    <string name="facebook_client_token">8870faf0799005e59997a7be078e8ea4</string>
 
     <!-- Difficulties -->
     <string name="difficulty_easy">Easy</string>
