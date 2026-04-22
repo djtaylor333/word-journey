@@ -52,7 +52,7 @@ $tag = "v$newVersion"
 git add -A
 git commit -m "Release $tag"
 git tag $tag
-git push origin main
+git push origin master
 git push origin $tag
 
 Write-Host ""
