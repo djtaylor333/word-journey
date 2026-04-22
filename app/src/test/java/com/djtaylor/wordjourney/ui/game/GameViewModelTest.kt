@@ -62,10 +62,13 @@ class GameViewModelTest {
             "A structure spanning and providing passage over a gap",
             "A room or area where food is prepared and cooked"
         )
-        for (level in 1..5) {
+        // Test two full cycles (levels 1–10) to verify the wrap-around works correctly,
+        // including the second cycle where level 6 restarts at 3-letter words, level 7 → 4,
+        // level 8 → 5, level 9 → 6, level 10 → 7.
+        for (level in 1..10) {
             val wl = Difficulty.vipWordLengthForLevel(level)
-            val word = vipWords[level - 1]
-            val def = definitions[level - 1]
+            val word = vipWords[(level - 1) % vipWords.size]
+            val def = definitions[(level - 1) % definitions.size]
             val progress = PlayerProgress(lives = 3, isVip = true, vipLevel = level)
             val vm = createViewModelWithDefinition(
                 difficulty = "vip", level = level, word = word, definition = def, progress = progress
@@ -76,6 +79,27 @@ class GameViewModelTest {
             assertEquals("VIP level $level should have correct definition", def, state.definitionHint ?: def)
             assertTrue("VIP level $level should have wordHasDefinition", state.wordHasDefinition)
         }
+    }
+
+    @Test
+    fun `VIP level 7 uses 4-letter word on second cycle`() = runTest {
+        // Level 7 is the second occurrence of the 4-letter slot in the cycle:
+        // cycle = [3,4,5,6,7] → index (7-1)%5 = 1 → length 4.
+        val expectedWordLength = 4
+        assertEquals("vipWordLengthForLevel(7) should be 4", expectedWordLength,
+            Difficulty.vipWordLengthForLevel(7))
+
+        val word = "BEEP"
+        val def = "A short high-pitched sound"
+        val progress = PlayerProgress(lives = 3, isVip = true, vipLevel = 7)
+        val vm = createViewModelWithDefinition(
+            difficulty = "vip", level = 7, word = word, definition = def, progress = progress
+        )
+        awaitInit(vm)
+        val state = vm.uiState.first()
+        assertEquals("VIP level 7 should be a 4-letter word", expectedWordLength, state.wordLength)
+        assertEquals("VIP level 7 should show the correct definition", def, state.definitionHint ?: def)
+        assertTrue("VIP level 7 should have wordHasDefinition set", state.wordHasDefinition)
     }
 
     @Test

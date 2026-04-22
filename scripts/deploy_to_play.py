@@ -42,12 +42,12 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.35.0 - Streak Shield, Star Rewards & Daily stars
+RELEASE_NOTES = """v2.41.0 - VIP level quality & stability improvements
 
-\u2022 Streak Shield: Miss exactly 1 day? Spend gems to restore your streak. Cost rises each use per month (5, 7, 10, 14...).
-\u2022 Star Rewards: Trade stars for monthly reward chests (coins, lives, items, gems). VIP unlocks a bonus chest column.
-\u2022 Daily Challenge stars now count toward Star Rewards (first play only).
-\u2022 VIP benefits updated in Store."""
+\u2022 VIP levels 6-10 (second word-length cycle) fully verified and validated.
+\u2022 All 500 VIP levels confirmed to have correct word lengths and definitions.
+\u2022 Bug-fix: expanded test coverage to catch any second-cycle regressions early.
+\u2022 Ads: Yandex Mobile Ads SDK active (R-M-19134646-1)."""
 
 
 def build_service(key_path: str):
