@@ -24,8 +24,8 @@ android {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 35
-        versionCode 75
-        versionName "2.40.1"
+        versionCode 76
+        versionName "2.41.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -92,7 +92,6 @@ android {
 
     lint {
         disable "NullSafeMutableLiveData"
-        disable "MobileAdsSdkOutdatedVersion"   // prevent Yandex lint blocking release builds when a newer SDK drops
         abortOnError false
         checkReleaseBuilds false
     }
@@ -165,16 +164,14 @@ dependencies {
     // ── Google Play Games (cloud saves) ─────────────────────────────────────
     implementation 'com.google.android.gms:play-services-games-v2:20.1.2'
 
-    // ── Yandex Mobile Ads ────────────────────────────────────────────────────────
-    // Dashboard: partner.yandex.com → Word Journeys → Android app → Rewards Based
-    // Ad Unit ID: R-M-19134646-1  (Rewarded ads)
-    // Docs: https://ads.yandex.com/helpcenter/en/dev/android/quick-start
-    //
-    // Meta (Facebook) Audience Network — kept on backburner; restore with:
-    //   implementation 'com.facebook.android:audience-network-sdk:6.21.0'
-    //   implementation 'androidx.annotation:annotation:1.9.1'
-    //   and swap RealAdManager.kt back to the Meta implementation (git tag v2.39.1)
-    implementation 'com.yandex.android:mobileads:7.18.5'
+    // ── IronSource LevelPlay (Unity) ──────────────────────────────────────────────
+    // Dashboard: https://platform.ironsrc.com → Word Journeys
+    // App Key   : 261bf8a5d
+    // Ad Unit ID: pln4wccgklbgalc6  (Rewarded Android)
+    // Unity Game ID: 6097761
+    // Docs: https://developers.is.com/ironsource-mobile/android/android-sdk/
+    implementation 'com.ironsource.sdk:mediationsdk:8.3.0'
+
 
     // ── Google Play Billing (stubbed) ────────────────────────────────────────
     implementation 'com.android.billingclient:billing-ktx:7.1.1'
@@ -194,6 +191,7 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
     androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
 }
+
 
 
 

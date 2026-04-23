@@ -35,11 +35,12 @@
 -keep class com.djtaylor.wordjourney.domain.model.** { *; }
 -keep class com.djtaylor.wordjourney.data.db.** { *; }
 
-# ── Meta Audience Network (Facebook FAN) ──────────────────────────────
-# facebook.infer.annotation is a Facebook-internal library not shipped in the AAR;
-# tell R8 to ignore it rather than failing the build.
--dontwarn com.facebook.infer.annotation.**
--dontwarn com.facebook.jni.**
-# Keep all FAN public API so ads load and render correctly
--keep class com.facebook.ads.** { *; }
--keepclassmembers class com.facebook.ads.** { *; }
+# ── IronSource LevelPlay (Unity) ───────────────────────────────────
+-keep class com.ironsource.** { *; }
+-keepclassmembers class com.ironsource.** { *; }
+-dontwarn com.ironsource.**
+-keep class com.unity3d.** { *; }
+-keepclassmembers class com.unity3d.** { *; }
+-dontwarn com.unity3d.**
+-keep class com.ironsource.adapters.** { *; }
+-dontwarn com.ironsource.adapters.**

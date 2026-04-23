@@ -6,8 +6,10 @@ import androidx.hilt.work.HiltWorkerFactory
 import com.djtaylor.wordjourney.BuildConfig
 import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.billing.AdDebugHelper
+import com.djtaylor.wordjourney.billing.RealAdManager
 import com.djtaylor.wordjourney.notifications.NotificationChannels
-import com.yandex.mobile.ads.common.MobileAds
+import com.ironsource.mediationsdk.IronSource
+import com.ironsource.mediationsdk.sdk.InitializationListener
 import com.google.android.gms.games.PlayGamesSdk
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -35,16 +37,27 @@ class WordJourneysApplication : Application(), Configuration.Provider {
         super.onCreate()
         // Register before anything else so activity references are available immediately
         registerActivityLifecycleCallbacks(activityProvider)
-        // Initialize Yandex Mobile Ads SDK.
-        // DEBUG builds automatically use the demo ad unit (demo-rewarded-yandex) — no setup needed.
-        // Verify in Logcat: adb logcat -v brief '*:S YandexAds'
-        MobileAds.initialize(this) {
-            android.util.Log.d("WordJourneysApp", "✅ Yandex Mobile Ads initialized (debug=${BuildConfig.DEBUG})")
-            if (BuildConfig.DEBUG) {
-                AdDebugHelper.printSdkStatus(this)
-                AdDebugHelper.printHashedDeviceId()
-            }
+        // Enable LevelPlay test suite in DEBUG builds (must be set BEFORE init)
+        if (BuildConfig.DEBUG) {
+            IronSource.setMetaData("is_test_suite", "enable")
         }
+        // Pass Unity Game ID to the Unity Ads mediation adapter
+        IronSource.setMetaData("unityads_game_id", RealAdManager.UNITY_GAME_ID)
+        // Initialize IronSource LevelPlay SDK.
+        // Docs: https://developers.is.com/ironsource-mobile/android/android-sdk/
+        IronSource.init(
+            this,
+            RealAdManager.APP_KEY,
+            InitializationListener {
+                android.util.Log.d("WordJourneysApp",
+                    "✅ IronSource LevelPlay SDK initialized (debug=${BuildConfig.DEBUG})")
+                if (BuildConfig.DEBUG) {
+                    AdDebugHelper.printSdkStatus(this)
+                    AdDebugHelper.printTestModeStatus()
+                }
+            },
+            IronSource.AD_UNIT.REWARDED_VIDEO
+        )
         // Initialize Play Games SDK
         PlayGamesSdk.initialize(this)
         // Create notification channels on app start (safe to call multiple times)

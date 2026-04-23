@@ -19,6 +19,7 @@ import com.djtaylor.wordjourney.data.datastore.PlayerDataStore
 import com.djtaylor.wordjourney.domain.model.ThemeRegistry
 import com.djtaylor.wordjourney.ui.navigation.AppNavigation
 import com.djtaylor.wordjourney.ui.theme.WordJourneysTheme
+import com.ironsource.mediationsdk.IronSource
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -94,12 +95,16 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         audioManager.onForeground()
         cloudSaveManager.setActivity(this)
+        // Required by IronSource SDK to track foreground state for ad serving
+        IronSource.onResume(this)
     }
 
     override fun onPause() {
         super.onPause()
         audioManager.onBackground()
         cloudSaveManager.setActivity(null)
+        // Required by IronSource SDK
+        IronSource.onPause(this)
     }
 
     override fun onDestroy() {

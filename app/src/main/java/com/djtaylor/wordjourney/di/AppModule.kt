@@ -18,8 +18,8 @@ abstract class AppModule {
     @Singleton
     abstract fun bindBillingManager(impl: RealBillingManager): IBillingManager
 
-    // Meta Audience Network rewarded ads.
-    // Replace placeholder PLACEMENT_ID in RealAdManager.kt before releasing.
+    // IronSource LevelPlay rewarded ads.
+    // App Key: 261bf8a5d | Ad Unit ID: pln4wccgklbgalc6
     @Binds
     @Singleton
     abstract fun bindAdManager(impl: RealAdManager): IAdManager

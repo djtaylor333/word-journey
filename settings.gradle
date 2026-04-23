@@ -10,6 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // IronSource LevelPlay SDK
+        maven { url 'https://android-sdk.is.com/' }
     }
 }
 

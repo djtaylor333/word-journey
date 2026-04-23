@@ -1,49 +1,39 @@
-package com.djtaylor.wordjourney.billing
+ï»¿package com.djtaylor.wordjourney.billing
 
 import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.djtaylor.wordjourney.BuildConfig
-import com.yandex.mobile.ads.common.AdError
-import com.yandex.mobile.ads.common.AdRequestConfiguration
-import com.yandex.mobile.ads.common.AdRequestError
-import com.yandex.mobile.ads.common.ImpressionData
-import com.yandex.mobile.ads.rewarded.Reward
-import com.yandex.mobile.ads.rewarded.RewardedAd
-import com.yandex.mobile.ads.rewarded.RewardedAdEventListener
-import com.yandex.mobile.ads.rewarded.RewardedAdLoadListener
-import com.yandex.mobile.ads.rewarded.RewardedAdLoader
+import com.ironsource.mediationsdk.IronSource
+import com.ironsource.mediationsdk.adunit.adapter.utility.AdInfo
+import com.ironsource.mediationsdk.logger.IronSourceError
+import com.ironsource.mediationsdk.model.Placement
+import com.ironsource.mediationsdk.sdk.LevelPlayRewardedVideoListener
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellableContinuation
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 
 /**
- * Production [IAdManager] backed by Yandex Mobile Ads SDK.
+ * Production [IAdManager] backed by IronSource LevelPlay (Unity) SDK.
  *
  * ## Setup (all done)
- * ? 1. Yandex Advertising Network: partner.yandex.com  (account: Kiwi Land Racing)
- * ? 2. App registered: Word Journeys (com.djtaylor.wordjourney)
- * ? 3. Ad unit: R-M-19134646-1  (Rewarded ads — "Reward store add")
- * ? 4. SDK: com.yandex.android:mobileads:7.18.5  (build.gradle)
- * ? 5. MobileAds.initialize() called in Application.onCreate()
+ *  App Key       : 261bf8a5d
+ *  Ad Unit ID    : pln4wccgklbgalc6  (ad unit name: "Rewarded Android")
+ *  Unity Game ID : 6097761
+ *  SDK           : com.ironsource.sdk:mediationsdk:8.3.0
  *
  * ## Test mode
- * DEBUG builds use [TEST_AD_UNIT_ID] ("demo-rewarded-yandex") which always
- * returns a live test ad — no device registration or allowlisting needed.
+ * DEBUG builds call IronSource.setMetaData("is_test_suite", "enable") before
+ * init, which routes all ad requests to the LevelPlay test suite.
+ * No device registration or dashboard changes needed.
  *
  * ## Verify integration
- *   adb logcat -v brief '*:S YandexAds'
- *   Expected: "[Integration] Ad type rewarded was integrated successfully"
- *
- * ## Meta (Facebook Audience Network) — on backburner
- * Credentials and implementation retained in git (tag v2.39.1).
- * To restore: swap build.gradle dependency back to audience-network-sdk
- * and checkout billing/RealAdManager.kt from that tag.
+ *   adb logcat -s IronSource:V
+ *   Expected: "IronSource SDK version X.Y.Z initialized successfully"
+ *   Then:     ad available callback fires -> isRewardedAdReady = true
  */
 @Singleton
 class RealAdManager @Inject constructor(
@@ -53,153 +43,102 @@ class RealAdManager @Inject constructor(
     companion object {
         private const val TAG = "RealAdManager"
 
-        /** Max time to wait for an ad to load before giving up. */
-        private const val LOAD_TIMEOUT_MS = 15_000L
+        /** LevelPlay App Key - Unity dashboard -> LevelPlay -> App Settings */
+        const val APP_KEY = "261bf8a5d"
 
-        /** Real ad unit ID — partner.yandex.com ? Word Journeys ? Rewards Based */
-        const val PROD_AD_UNIT_ID = "R-M-19134646-1"
+        /** LevelPlay rewarded ad unit ID (ad unit name: "Rewarded Android") */
+        const val AD_UNIT_ID = "pln4wccgklbgalc6"
 
-        /** Yandex demo unit — always returns a test ad, used in all DEBUG builds. */
-        const val TEST_AD_UNIT_ID = "demo-rewarded-yandex"
-
-        /** Runtime value: demo unit in DEBUG, real unit in release. */
-        val AD_UNIT_ID get() = if (BuildConfig.DEBUG) TEST_AD_UNIT_ID else PROD_AD_UNIT_ID
+        /** Unity Ads Game ID (used by Unity Ads mediation adapter) */
+        const val UNITY_GAME_ID = "6097761"
     }
 
-    // Strong reference required per Yandex SDK docs
-    private var rewardedAdLoader: RewardedAdLoader? = null
-    private var rewardedAd: RewardedAd? = null
-    private var adReadyInternal = false
+    @Volatile private var adReady = false
 
-    // Completed in load listener so loadRewardedAd() can await the result
-    private var loadDeferred: CompletableDeferred<Boolean>? = null
-
-    // Resolved once the ad is dismissed
+    // Resolved once the rewarded ad sequence completes (dismissed after possible reward)
     private var pendingCont: CancellableContinuation<AdRewardResult>? = null
     private var userRewarded = false
 
     override val isRewardedAdReady: Boolean
-        get() = adReadyInternal && rewardedAd != null
+        get() = adReady
 
-    /**
-     * Pre-fetches a rewarded ad and suspends until loaded (max [LOAD_TIMEOUT_MS]).
-     *
-     * Must be called on the main thread — satisfied because callers use
-     * viewModelScope (Dispatchers.Main).
-     */
-    override suspend fun loadRewardedAd() {
-        adReadyInternal = false
-        rewardedAd?.setAdEventListener(null)
-        rewardedAd = null
+    // -- LevelPlay rewarded video listener -----------------------------------
+    // Declared before init{} so it is initialized when init{} references it.
 
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "loadRewardedAd() — adUnitId=$AD_UNIT_ID")
+    private val rewardedListener = object : LevelPlayRewardedVideoListener {
+
+        override fun onAdAvailable(adInfo: AdInfo) {
+            Log.d(TAG, "LevelPlay rewarded ad available -- network=${adInfo.adNetwork}")
+            adReady = true
         }
 
-        val deferred = CompletableDeferred<Boolean>()
-        loadDeferred = deferred
-
-        // Reuse a single loader instance (Yandex recommendation for best performance)
-        if (rewardedAdLoader == null) {
-            rewardedAdLoader = RewardedAdLoader(context).apply {
-                setAdLoadListener(loadListener)
-            }
+        override fun onAdUnavailable() {
+            Log.w(TAG, "LevelPlay rewarded ad unavailable (no fill)")
+            adReady = false
         }
 
-        val config = AdRequestConfiguration.Builder(AD_UNIT_ID).build()
-        rewardedAdLoader?.loadAd(config)
+        override fun onAdOpened(adInfo: AdInfo) {
+            Log.d(TAG, "LevelPlay rewarded ad opened")
+        }
 
-        val result = withTimeoutOrNull(LOAD_TIMEOUT_MS) { deferred.await() }
-        if (result == null) {
-            Log.w(TAG, "?? Ad load timed out after ${LOAD_TIMEOUT_MS}ms — adUnitId=$AD_UNIT_ID")
+        override fun onAdShowFailed(error: IronSourceError, adInfo: AdInfo) {
+            Log.e(TAG, "LevelPlay ad show failed: ${error.errorMessage} (code=${error.errorCode})")
+            resolvePending(AdRewardResult(watched = false))
+        }
+
+        override fun onAdClosed(adInfo: AdInfo) {
+            Log.d(TAG, "LevelPlay rewarded ad closed (rewarded=$userRewarded)")
+            resolvePending(
+                AdRewardResult(watched = userRewarded, rewardType = "life", rewardAmount = 1)
+            )
+            // Pre-fetch the next ad immediately
+            IronSource.loadRewardedVideo()
+        }
+
+        override fun onAdRewarded(placement: Placement, adInfo: AdInfo) {
+            Log.d(TAG, "Reward granted -- placement=${placement.placementName}")
+            userRewarded = true
+        }
+
+        override fun onAdClicked(placement: Placement, adInfo: AdInfo) {
+            Log.d(TAG, "LevelPlay rewarded ad clicked")
         }
     }
 
+    init {
+        // Register the listener; IronSource routes events to it after init()
+        IronSource.setLevelPlayRewardedVideoListener(rewardedListener)
+    }
+
     /**
-     * Shows the pre-loaded ad. Suspends until dismissed.
-     * Returns [AdRewardResult.watched] = true only if [onRewarded] fired before dismissal.
+     * Requests an ad load. In the IronSource SDK, loadRewardedVideo() triggers
+     * a fresh fill attempt; availability is reported via [LevelPlayRewardedVideoListener.onAdAvailable].
+     */
+    override suspend fun loadRewardedAd() {
+        if (BuildConfig.DEBUG) Log.d(TAG, "loadRewardedAd() -- requesting IronSource fill")
+        IronSource.loadRewardedVideo()
+        // onAdAvailable / onAdUnavailable will update adReady asynchronously
+    }
+
+    /**
+     * Shows the rewarded ad and suspends until it is dismissed.
+     * Returns [AdRewardResult.watched] = true only when the reward callback fired
+     * before dismissal.
      */
     override suspend fun showRewardedAd(activity: Activity): AdRewardResult {
-        val ad = rewardedAd
-        if (!adReadyInternal || ad == null) {
-            Log.w(TAG, "showRewardedAd called but no ad is ready — returning not-watched")
+        if (!adReady) {
+            Log.w(TAG, "showRewardedAd called but no ad is ready -- returning not-watched")
             return AdRewardResult(watched = false)
         }
         return suspendCancellableCoroutine { cont ->
             pendingCont = cont
             userRewarded = false
-            adReadyInternal = false  // consumed; will reload after close
-            ad.setAdEventListener(eventListener)
-            ad.show(activity)
+            adReady = false  // consumed; will be reset when next ad becomes available
+            IronSource.showRewardedVideo()
         }
     }
 
-    // -- Listeners --------------------------------------------------------------
-
-    private val loadListener = object : RewardedAdLoadListener {
-        override fun onAdLoaded(ad: RewardedAd) {
-            Log.d(TAG, "? Yandex rewarded ad loaded (adUnitId=$AD_UNIT_ID)")
-            rewardedAd = ad
-            adReadyInternal = true
-            loadDeferred?.complete(true)
-        }
-
-        override fun onAdFailedToLoad(error: AdRequestError) {
-            Log.e(TAG, "? Yandex ad failed to load\n" +
-                "   ? code        : ${error.code}\n" +
-                "   ? description : ${error.description}\n" +
-                "   ? adUnitId    : $AD_UNIT_ID\n" +
-                "   ? Verify unit is active: partner.yandex.com ? Word Journeys ? Android app")
-            adReadyInternal = false
-            rewardedAd = null
-            loadDeferred?.complete(false)
-        }
-    }
-
-    private val eventListener = object : RewardedAdEventListener {
-        override fun onAdShown() {
-            Log.d(TAG, "Yandex rewarded ad shown")
-        }
-
-        override fun onAdFailedToShow(error: AdError) {
-            Log.e(TAG, "? Yandex rewarded ad failed to show: ${error.description}")
-            cleanup()
-            resolvePending(AdRewardResult(watched = false))
-        }
-
-        override fun onAdDismissed() {
-            Log.d(TAG, "Yandex rewarded ad dismissed (rewarded=$userRewarded)")
-            val result = AdRewardResult(
-                watched = userRewarded,
-                rewardType = "life",
-                rewardAmount = 1
-            )
-            cleanup()
-            resolvePending(result)
-            // Pre-load next ad for a seamless future show
-            rewardedAdLoader?.loadAd(AdRequestConfiguration.Builder(AD_UNIT_ID).build())
-        }
-
-        override fun onAdClicked() {
-            Log.d(TAG, "Yandex rewarded ad clicked")
-        }
-
-        override fun onAdImpression(data: ImpressionData?) {
-            Log.d(TAG, "Yandex rewarded ad impression logged")
-        }
-
-        override fun onRewarded(reward: Reward) {
-            Log.d(TAG, "? Yandex reward granted — type=${reward.type} amount=${reward.amount}")
-            userRewarded = true
-        }
-    }
-
-    // -- Helpers ----------------------------------------------------------------
-
-    private fun cleanup() {
-        rewardedAd?.setAdEventListener(null)
-        rewardedAd = null
-    }
+    // -- Helpers --------------------------------------------------------------
 
     private fun resolvePending(result: AdRewardResult) {
         pendingCont?.let { cont ->
@@ -208,4 +147,3 @@ class RealAdManager @Inject constructor(
         }
     }
 }
-
