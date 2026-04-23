@@ -379,6 +379,37 @@ fun LevelSelectScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = accent),
                         enabled = state.lives + state.bonusLives > 0
                     ) { Text("Continue — Level ${state.currentLevel}", fontSize = 20.sp, fontWeight = FontWeight.Bold) }
+                    // [DEV] Reset this map's progress back to level 1
+                    if (state.devModeEnabled) {
+                        var showResetConfirm by remember { mutableStateOf(false) }
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { showResetConfirm = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("🔄 [DEV] Reset ${difficulty.displayName} Map", fontWeight = FontWeight.Bold)
+                        }
+                        if (showResetConfirm) {
+                            AlertDialog(
+                                onDismissRequest = { showResetConfirm = false },
+                                title = { Text("Reset ${difficulty.displayName} Map?") },
+                                text = { Text("This will reset the ${difficulty.displayName} journey back to Level 1 and clear any in-progress save. Other maps are unaffected.") },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            viewModel.devResetMapProgress()
+                                            showResetConfirm = false
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                                    ) { Text("Reset") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showResetConfirm = false }) { Text("Cancel") }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }

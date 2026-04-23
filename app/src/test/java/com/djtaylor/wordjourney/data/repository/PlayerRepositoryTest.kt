@@ -2,6 +2,7 @@ package com.djtaylor.wordjourney.data.repository
 
 import com.djtaylor.wordjourney.data.cloud.CloudSaveManager
 import com.djtaylor.wordjourney.data.datastore.PlayerDataStore
+import com.djtaylor.wordjourney.domain.model.Difficulty
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import io.mockk.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -154,5 +155,50 @@ class PlayerRepositoryTest {
         repository.saveProgress(progress)
         coVerify { dataStore.savePlayerProgress(progress) }
         coVerify { cloudSave.writeSave(progress) }
+    }
+
+    // ── devResetMapProgress ───────────────────────────────────────────────────
+
+    @Test
+    fun `devResetMapProgress easy resets easyLevel to 1`() = runTest {
+        coEvery { dataStore.clearInProgressGame("easy") } just Runs
+        val progress = PlayerProgress(easyLevel = 15, easyLevelsCompletedSinceBonusLife = 3)
+        repository.devResetMapProgress(progress, Difficulty.EASY)
+        coVerify { dataStore.clearInProgressGame("easy") }
+        val saved = slot<PlayerProgress>()
+        coVerify { dataStore.savePlayerProgress(capture(saved)) }
+        assertEquals(1, saved.captured.easyLevel)
+        assertEquals(0, saved.captured.easyLevelsCompletedSinceBonusLife)
+        // Other difficulties should be untouched
+        assertEquals(progress.regularLevel, saved.captured.regularLevel)
+        assertEquals(progress.hardLevel, saved.captured.hardLevel)
+        assertEquals(progress.vipLevel, saved.captured.vipLevel)
+    }
+
+    @Test
+    fun `devResetMapProgress vip resets vipLevel to 1`() = runTest {
+        coEvery { dataStore.clearInProgressGame("vip") } just Runs
+        val progress = PlayerProgress(vipLevel = 8, vipLevelsCompletedSinceBonusLife = 2)
+        repository.devResetMapProgress(progress, Difficulty.VIP)
+        coVerify { dataStore.clearInProgressGame("vip") }
+        val saved = slot<PlayerProgress>()
+        coVerify { dataStore.savePlayerProgress(capture(saved)) }
+        assertEquals(1, saved.captured.vipLevel)
+        assertEquals(0, saved.captured.vipLevelsCompletedSinceBonusLife)
+        // Easy/regular/hard unchanged
+        assertEquals(progress.easyLevel, saved.captured.easyLevel)
+    }
+
+    @Test
+    fun `devResetMapProgress does not affect other difficulties`() = runTest {
+        coEvery { dataStore.clearInProgressGame("hard") } just Runs
+        val progress = PlayerProgress(easyLevel = 10, regularLevel = 20, hardLevel = 30, vipLevel = 5)
+        repository.devResetMapProgress(progress, Difficulty.HARD)
+        val saved = slot<PlayerProgress>()
+        coVerify { dataStore.savePlayerProgress(capture(saved)) }
+        assertEquals(10, saved.captured.easyLevel)    // unchanged
+        assertEquals(20, saved.captured.regularLevel) // unchanged
+        assertEquals(1,  saved.captured.hardLevel)    // reset
+        assertEquals(5,  saved.captured.vipLevel)     // unchanged
     }
 }

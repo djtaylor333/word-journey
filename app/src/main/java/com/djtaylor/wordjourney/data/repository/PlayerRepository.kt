@@ -148,6 +148,21 @@ class PlayerRepository @Inject constructor(
     }
 
     /**
+     * [DEV] Resets level progress for a single difficulty back to level 1.
+     * Only the specified difficulty is affected; others are unchanged.
+     */
+    suspend fun devResetMapProgress(current: PlayerProgress, difficulty: Difficulty) {
+        dataStore.clearInProgressGame(difficulty.saveKey)
+        val updated = when (difficulty) {
+            Difficulty.EASY    -> current.copy(easyLevel = 1, easyLevelsCompletedSinceBonusLife = 0)
+            Difficulty.REGULAR -> current.copy(regularLevel = 1, regularLevelsCompletedSinceBonusLife = 0)
+            Difficulty.HARD    -> current.copy(hardLevel = 1, hardLevelsCompletedSinceBonusLife = 0)
+            Difficulty.VIP     -> current.copy(vipLevel = 1, vipLevelsCompletedSinceBonusLife = 0)
+        }
+        saveProgress(updated)
+    }
+
+    /**
      * Merge local and cloud progress, taking the best of each field.
      * Rule: currency/lives/items/levels all take the maximum.
      * VIP status is OR'd (either source having VIP grants it in merged).

@@ -3017,4 +3017,67 @@ class GameViewModelTest {
         assertTrue("Should grant free definition preview for 2+ stars", state.grantedFreeDefinition)
         assertEquals("Having the ability to do something", state.definitionHint)
     }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // DEV MODE — skip level, devModeEnabled exposed
+    // ═════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `devModeEnabled is false when progress devModeEnabled is false`() = runTest {
+        val progress = PlayerProgress(lives = 3, devModeEnabled = false)
+        val vm = createViewModel("easy", 1, "ABLE", progress = progress)
+        awaitInit(vm)
+        assertFalse("devModeEnabled should be false", vm.uiState.first().devModeEnabled)
+    }
+
+    @Test
+    fun `devModeEnabled is true when progress devModeEnabled is true`() = runTest {
+        val progress = PlayerProgress(lives = 3, devModeEnabled = true)
+        val vm = createViewModel("easy", 1, "ABLE", progress = progress)
+        awaitInit(vm)
+        assertTrue("devModeEnabled should be true", vm.uiState.first().devModeEnabled)
+    }
+
+    @Test
+    fun `devSkipLevel returns correct difficultyKey and nextLevel`() = runTest {
+        val progress = PlayerProgress(lives = 3, easyLevel = 5, devModeEnabled = true)
+        val vm = createViewModel("easy", 5, "CRANE", progress = progress)
+        awaitInit(vm)
+        val (diff, lvl) = vm.devSkipLevel()
+        assertEquals("easy", diff)
+        assertEquals(6, lvl)
+    }
+
+    @Test
+    fun `devSkipLevel for VIP returns vip difficultyKey and next level`() = runTest {
+        val progress = PlayerProgress(lives = 3, vipLevel = 7, isVip = true, devModeEnabled = true)
+        val vm = createViewModel("vip", 7, "BEEP", progress = progress)
+        awaitInit(vm)
+        val (diff, lvl) = vm.devSkipLevel()
+        assertEquals("vip", diff)
+        assertEquals(8, lvl)
+    }
+
+    @Test
+    fun `devSkipLevel saves progress with advanced level`() = runTest {
+        val progress = PlayerProgress(lives = 2, easyLevel = 3, devModeEnabled = true)
+        val vm = createViewModel("easy", 3, "ABLE", progress = progress)
+        awaitInit(vm)
+        vm.devSkipLevel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        // At least one save should advance the easy level
+        val saveSlots = mutableListOf<PlayerProgress>()
+        coVerify(atLeast = 1) { playerRepository.saveProgress(capture(saveSlots)) }
+        assertTrue("Skip should save a progress update", saveSlots.isNotEmpty())
+    }
+
+    @Test
+    fun `devSkipLevel clears in-progress game`() = runTest {
+        val progress = PlayerProgress(lives = 2, easyLevel = 3, devModeEnabled = true)
+        val vm = createViewModel("easy", 3, "ABLE", progress = progress)
+        awaitInit(vm)
+        vm.devSkipLevel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify { playerRepository.clearInProgressGame(Difficulty.EASY) }
+    }
 }

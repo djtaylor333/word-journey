@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.41.0",
-    "versionCode":  76,
+    "versionName":  "2.42.0",
+    "versionCode":  77,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
-    "buildDate":  "2026-04-20",
-    "releaseNotes":  "v2.40.0 - Switch ads from Meta Audience Network to Yandex Mobile Ads SDK (R-M-19134646-1)"
+    "buildDate":  "2026-04-23",
+    "releaseNotes":  "v2.42.0 - Fix VIP level 7 game state collision; fix settings persistence on startup; dev mode: skip level + per-map reset"
 }

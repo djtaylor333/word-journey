@@ -553,4 +553,38 @@ class LevelSelectViewModelTest {
             testDispatcher.scheduler.runCurrent()
             assertNull(vm.uiState.first().adLifeGrantedMessage)
         }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    // DEV MODE
+    // ═════════════════════════════════════════════════════════════════════════
+
+    @Test
+    fun `devModeEnabled is false when progress has devModeEnabled false`() =
+        testWithVm("easy", PlayerProgress(devModeEnabled = false)) { vm ->
+            assertFalse(vm.uiState.first().devModeEnabled)
+        }
+
+    @Test
+    fun `devModeEnabled is true when progress has devModeEnabled true`() =
+        testWithVm("easy", PlayerProgress(devModeEnabled = true)) { vm ->
+            assertTrue(vm.uiState.first().devModeEnabled)
+        }
+
+    @Test
+    fun `devResetMapProgress calls repository with correct difficulty`() =
+        testWithVm("easy", PlayerProgress(easyLevel = 10, devModeEnabled = true)) { vm ->
+            coEvery { playerRepository.devResetMapProgress(any(), any()) } just Runs
+            vm.devResetMapProgress()
+            testDispatcher.scheduler.runCurrent()
+            coVerify { playerRepository.devResetMapProgress(any(), Difficulty.EASY) }
+        }
+
+    @Test
+    fun `devResetMapProgress for vip resets vip difficulty`() =
+        testWithVm("vip", PlayerProgress(vipLevel = 5, devModeEnabled = true)) { vm ->
+            coEvery { playerRepository.devResetMapProgress(any(), any()) } just Runs
+            vm.devResetMapProgress()
+            testDispatcher.scheduler.runCurrent()
+            coVerify { playerRepository.devResetMapProgress(any(), Difficulty.VIP) }
+        }
 }

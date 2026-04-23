@@ -169,6 +169,8 @@ class PlayerDataStore @Inject constructor(
         val KEY_GAME_STATE_SEASONAL_HALLOWEEN  = stringPreferencesKey("game_state_seasonal_halloween")
         val KEY_GAME_STATE_SEASONAL_THANKSGIVING = stringPreferencesKey("game_state_seasonal_thanksgiving")
         val KEY_GAME_STATE_SEASONAL_CHRISTMAS  = stringPreferencesKey("game_state_seasonal_christmas")
+        // VIP has its own save slot (separate from Hard to avoid collision)
+        val KEY_GAME_STATE_VIP                 = stringPreferencesKey("game_state_vip")
     }
 
     // ── Flows ─────────────────────────────────────────────────────────────────
@@ -414,6 +416,7 @@ class PlayerDataStore @Inject constructor(
         difficultyKey == "seasonal_halloween"     -> KEY_GAME_STATE_SEASONAL_HALLOWEEN
         difficultyKey == "seasonal_thanksgiving"  -> KEY_GAME_STATE_SEASONAL_THANKSGIVING
         difficultyKey == "seasonal_christmas"     -> KEY_GAME_STATE_SEASONAL_CHRISTMAS
+        difficultyKey == "vip"                     -> KEY_GAME_STATE_VIP
         else                                      -> KEY_GAME_STATE_HARD
     }
 

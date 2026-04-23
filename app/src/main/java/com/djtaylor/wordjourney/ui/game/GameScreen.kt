@@ -166,6 +166,25 @@ fun GameScreen(
                     Spacer(Modifier.height(6.dp))
                 }
 
+                // ── DEV: SKIP LEVEL ───────────────────────────────────────────
+                if (uiState.devModeEnabled && !uiState.isReplay && !uiState.isDailyChallenge) {
+                    OutlinedButton(
+                        onClick = {
+                            val (diff, lvl) = viewModel.devSkipLevel()
+                            onNavigateToNextLevel(diff, lvl)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("⏩ [DEV] Skip Level", fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
+
                 // ── GAME GRID ─────────────────────────────────────────────────
                 Box(
                     modifier = Modifier.weight(1f).clipToBounds(),

@@ -4,14 +4,19 @@ import android.app.Application
 import androidx.work.Configuration
 import androidx.hilt.work.HiltWorkerFactory
 import com.djtaylor.wordjourney.BuildConfig
+import com.djtaylor.wordjourney.audio.AudioSettings
+import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.billing.AdDebugHelper
 import com.djtaylor.wordjourney.billing.RealAdManager
+import com.djtaylor.wordjourney.data.datastore.PlayerDataStore
 import com.djtaylor.wordjourney.notifications.NotificationChannels
 import com.ironsource.mediationsdk.IronSource
 import com.ironsource.mediationsdk.sdk.InitializationListener
 import com.google.android.gms.games.PlayGamesSdk
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -22,6 +27,10 @@ class WordJourneysApplication : Application(), Configuration.Provider {
 
     /** Tracks the currently resumed Activity so RealBillingManager can launch the purchase sheet. */
     @Inject lateinit var activityProvider: ActivityProvider
+
+    /** Needed to eagerly apply saved audio settings before any Activity starts. */
+    @Inject lateinit var playerDataStore: PlayerDataStore
+    @Inject lateinit var audioManager: WordJourneysAudioManager
 
     /**
      * WorkManager queries this before constructing any Worker, so the factory
@@ -37,6 +46,20 @@ class WordJourneysApplication : Application(), Configuration.Provider {
         super.onCreate()
         // Register before anything else so activity references are available immediately
         registerActivityLifecycleCallbacks(activityProvider)
+        // Eagerly apply saved audio settings so the AudioManager has the correct
+        // enabled/volume state before MainActivity.onResume() fires audioManager.onForeground().
+        // Without this, the manager starts with defaults (sound ON) until a ViewModel loads.
+        try {
+            val savedProgress = runBlocking { playerDataStore.playerProgressFlow.first() }
+            audioManager.updateSettings(
+                AudioSettings(
+                    musicEnabled = savedProgress.musicEnabled,
+                    musicVolume  = savedProgress.musicVolume,
+                    sfxEnabled   = savedProgress.sfxEnabled,
+                    sfxVolume    = savedProgress.sfxVolume
+                )
+            )
+        } catch (_: Exception) { /* keep defaults if DataStore unavailable */ }
         // Enable LevelPlay test suite in DEBUG builds (must be set BEFORE init)
         if (BuildConfig.DEBUG) {
             IronSource.setMetaData("is_test_suite", "enable")

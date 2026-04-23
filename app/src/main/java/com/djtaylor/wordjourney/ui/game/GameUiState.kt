@@ -85,7 +85,10 @@ data class GameUiState(
     val areaCompleteMessage: String? = null,
 
     // Seasonal pack milestone reward (every 10 levels) — shown in win dialog
-    val seasonalMilestoneMessage: String? = null
+    val seasonalMilestoneMessage: String? = null,
+
+    // Dev mode — shows skip button on the game screen
+    val devModeEnabled: Boolean = false
 ) {
     val currentRow: Int get() = guesses.size
     val remainingGuesses: Int get() = maxGuesses - guesses.size

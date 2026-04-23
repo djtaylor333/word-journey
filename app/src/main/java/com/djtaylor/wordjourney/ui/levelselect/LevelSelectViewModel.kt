@@ -42,7 +42,8 @@ data class LevelSelectUiState(
     val adIsReady: Boolean = false,      // whether a rewarded ad is loaded and ready
     val adLifeGrantedMessage: String? = null,  // shown briefly after watching an ad for a life
     val seasonalDaysLeft: Int? = null,   // days remaining in the current seasonal event (null if not seasonal)
-    val showSeasonInfoDialog: Boolean = false  // show rules/dates info dialog
+    val showSeasonInfoDialog: Boolean = false,  // show rules/dates info dialog
+    val devModeEnabled: Boolean = false   // shows [DEV] reset button when true
 )
 
 @HiltViewModel
@@ -159,7 +160,8 @@ class LevelSelectViewModel @Inject constructor(
                         bonusLives = maxOf(playerProgress.lives - 10, 0),
                         coins = playerProgress.coins,
                         diamonds = playerProgress.diamonds,
-                        isLoading = false
+                        isLoading = false,
+                        devModeEnabled = progress.devModeEnabled
                     )
                 }
             }
@@ -288,4 +290,14 @@ class LevelSelectViewModel @Inject constructor(
     // Expose seasonal info for the UI
     val isSeasonalPack: Boolean get() = isSeasonalLevel
     val seasonPackKey: String? get() = seasonalPackKey
+
+    /**
+     * [DEV] Resets level progress for this map only (the difficulty shown in this screen).
+     * Clears in-progress save and sets the level back to 1.
+     */
+    fun devResetMapProgress() {
+        viewModelScope.launch {
+            playerRepository.devResetMapProgress(playerProgress, difficulty)
+        }
+    }
 }

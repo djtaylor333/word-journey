@@ -107,7 +107,8 @@ class GameViewModel @Inject constructor(
                         addGuessItems = progress.addGuessItems,
                         removeLetterItems = progress.removeLetterItems,
                         definitionItems = progress.definitionItems,
-                        showLetterItems = progress.showLetterItems
+                        showLetterItems = progress.showLetterItems,
+                        devModeEnabled = progress.devModeEnabled
                     )
                 }
             }
@@ -1074,6 +1075,43 @@ class GameViewModel @Inject constructor(
     /** Returns (difficultyKey, nextLevel) for navigation. */
     fun getNextLevelRoute(): Pair<String, Int> {
         return Pair(difficultyKey, _uiState.value.level + 1)
+    }
+
+    /**
+     * [DEV] Skips the current level without spending lives, earning rewards, or
+     * consuming bonuses. Advances level progress identically to a win, but
+     * grants no coins, items, or stars.
+     * Returns (difficultyKey, nextLevel) for the caller to navigate immediately.
+     */
+    fun devSkipLevel(): Pair<String, Int> {
+        val currentLevel = _uiState.value.level
+        val nextLevel = currentLevel + 1
+        viewModelScope.launch {
+            // Refund life if it was deducted on level entry and no guess was submitted
+            if (lifeDeductedForCurrentLevel && !guessSubmittedThisAttempt) {
+                val updated = playerProgress.copy(lives = playerProgress.lives + 1)
+                playerProgress = updated
+                playerRepository.saveProgress(updated)
+                lifeDeductedForCurrentLevel = false
+            }
+            // Advance the level counter (no rewards)
+            var p = playerProgress
+            p = when {
+                isSeasonalLevel -> p.withSeasonalLevelAdvanced(seasonalPackKey!!, nextLevel)
+                else -> when (difficulty) {
+                    Difficulty.EASY    -> p.copy(easyLevel = nextLevel)
+                    Difficulty.REGULAR -> p.copy(regularLevel = nextLevel)
+                    Difficulty.HARD    -> p.copy(hardLevel = nextLevel)
+                    Difficulty.VIP     -> p.copy(vipLevel = nextLevel)
+                }
+            }
+            playerProgress = p
+            playerRepository.saveProgress(p)
+            // Clear any in-progress save for this level
+            if (isSeasonalLevel) playerRepository.clearInProgressGame(difficultyKey)
+            else playerRepository.clearInProgressGame(difficulty)
+        }
+        return Pair(difficultyKey, nextLevel)
     }
 
     // ── Show Letter item ──────────────────────────────────────────────────────
