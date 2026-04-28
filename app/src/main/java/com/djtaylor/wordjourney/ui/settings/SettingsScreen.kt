@@ -740,9 +740,9 @@ fun SettingsScreen(
                     )
                     Text(
                         "A level-based word puzzle adventure with multiple difficulties, " +
-                            "items, and progression. Features VIP levels with varying word lengths " +
-                            "(3–7 letters), seasonal events, daily challenges, star rewards, and " +
-                            "rewarded ads via IronSource LevelPlay.",
+                            "items, and progression. Features VIP levels with hardcoded verified " +
+                            "words (levels 1–50, varying 3–7 letters), seasonal events, daily " +
+                            "challenges, star rewards, and rewarded ads via IronSource LevelPlay.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )

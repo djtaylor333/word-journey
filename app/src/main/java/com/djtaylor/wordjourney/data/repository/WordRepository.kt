@@ -4,6 +4,7 @@ import android.content.Context
 import com.djtaylor.wordjourney.data.db.WordDao
 import com.djtaylor.wordjourney.data.db.WordEntity
 import com.djtaylor.wordjourney.domain.model.Difficulty
+import com.djtaylor.wordjourney.domain.model.VipWordPacks
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.json.JSONObject
 import javax.inject.Inject
@@ -130,6 +131,9 @@ class WordRepository @Inject constructor(
      *                           Used for VIP difficulty which varies word length by level.
      */
     suspend fun getWordForLevel(difficulty: Difficulty, level: Int, wordLengthOverride: Int? = null): String? {
+        if (difficulty == Difficulty.VIP && VipWordPacks.hasLevel(level)) {
+            return VipWordPacks.getWord(level)
+        }
         val length = wordLengthOverride ?: difficulty.wordLength
         val words = getWordsForDifficulty(difficulty, length)
         if (words.isEmpty()) return null
@@ -144,6 +148,9 @@ class WordRepository @Inject constructor(
      *                           Used for VIP difficulty which varies word length by level.
      */
     suspend fun getDefinition(difficulty: Difficulty, level: Int, wordLengthOverride: Int? = null): String {
+        if (difficulty == Difficulty.VIP && VipWordPacks.hasLevel(level)) {
+            return VipWordPacks.getDefinition(level) ?: ""
+        }
         val length = wordLengthOverride ?: difficulty.wordLength
         val words = getWordsForDifficulty(difficulty, length)
         if (words.isEmpty()) return ""

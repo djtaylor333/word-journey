@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.42.0",
-    "versionCode":  77,
+    "versionName":  "2.43.0",
+    "versionCode":  78,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
-    "buildDate":  "2026-04-23",
-    "releaseNotes":  "v2.42.0 - Fix VIP level 7 game state collision; fix settings persistence on startup; dev mode: skip level + per-map reset"
+    "buildDate":  "2026-04-28",
+    "releaseNotes":  "v2.43.0 - Hardcoded VIP word packs for levels 1-50; fixes blank definitions on VIP levels 7, 8, 9"
 }
