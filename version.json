@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.43.0",
-    "versionCode":  78,
+    "versionName":  "2.44.0",
+    "versionCode":  79,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
-    "buildDate":  "2026-04-28",
-    "releaseNotes":  "v2.43.0 - Hardcoded VIP word packs for levels 1-50; fixes blank definitions on VIP levels 7, 8, 9"
+    "buildDate":  "2026-05-21",
+    "releaseNotes":  "v2.44.0 - VIP levels 51-55 added, live star refresh on map, and rewarded ad initialization/load timing fixes"
 }

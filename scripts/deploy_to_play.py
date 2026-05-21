@@ -42,12 +42,12 @@ if hasattr(sys.stdout, "reconfigure"):
 
 PACKAGE_NAME = "com.djtaylor.wordjourney"
 
-RELEASE_NOTES = """v2.41.0 - Switched ad network to Unity IronSource LevelPlay
+RELEASE_NOTES = """v2.44.0 - VIP and rewarded ad reliability update
 
-\u2022 Ads now served by IronSource LevelPlay (Unity) \u2014 faster fill rates and broader mediation.
-\u2022 Yandex Mobile Ads fully removed and replaced.
-\u2022 Rewarded ad integration verified and fully tested.
-\u2022 VIP level quality improvements from previous release retained."""
+\u2022 Added hardcoded VIP word packs for levels 51-55 (fixes broken level 52 and related fallback issues).
+\u2022 Level select map now updates star ratings live after finishing a level.
+\u2022 Fixed rewarded ad load timing and initialization race conditions.
+\u2022 Improved first-load ad availability after app startup."""
 
 
 def build_service(key_path: str):
