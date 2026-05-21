@@ -1,6 +1,7 @@
 package com.djtaylor.wordjourney.data.db
 
 import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 
 @Entity(
     tableName = "star_ratings",
@@ -24,6 +25,9 @@ interface StarRatingDao {
 
     @Query("SELECT * FROM star_ratings WHERE difficultyKey = :difficultyKey ORDER BY level ASC")
     suspend fun getAllForDifficulty(difficultyKey: String): List<StarRatingEntity>
+
+    @Query("SELECT * FROM star_ratings WHERE difficultyKey = :difficultyKey ORDER BY level ASC")
+    fun getAllForDifficultyFlow(difficultyKey: String): Flow<List<StarRatingEntity>>
 
     @Query("SELECT COALESCE(SUM(stars), 0) FROM star_ratings WHERE difficultyKey = :difficultyKey")
     suspend fun totalStarsForDifficulty(difficultyKey: String): Int

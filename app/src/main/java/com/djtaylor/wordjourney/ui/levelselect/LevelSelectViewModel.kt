@@ -125,10 +125,11 @@ class LevelSelectViewModel @Inject constructor(
 
     private fun loadStarRatings() {
         viewModelScope.launch {
-            val ratings = starRatingDao.getAllForDifficulty(difficultyKey)
-            val map = ratings.associate { it.level to it.stars }
-            val total = ratings.sumOf { it.stars }
-            _uiState.update { it.copy(starRatings = map, totalStars = total) }
+            starRatingDao.getAllForDifficultyFlow(difficultyKey).collectLatest { ratings ->
+                val map = ratings.associate { it.level to it.stars }
+                val total = ratings.sumOf { it.stars }
+                _uiState.update { it.copy(starRatings = map, totalStars = total) }
+            }
         }
     }
 

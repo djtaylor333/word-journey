@@ -17,6 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.*
@@ -63,6 +64,7 @@ class LevelSelectViewModelTest {
 
         starRatingDao = mockk {
             coEvery { getAllForDifficulty(any()) } returns emptyList()
+            every { getAllForDifficultyFlow(any()) } returns flowOf(emptyList())
             coEvery { totalStars() } returns 0
             coEvery { totalStarsForDifficulty(any()) } returns 0
             coEvery { countPerfectLevels() } returns 0
@@ -263,6 +265,7 @@ class LevelSelectViewModelTest {
         audioManager = mockk(relaxed = true)
         starRatingDao = mockk {
             coEvery { getAllForDifficulty("easy") } returns ratings
+            every { getAllForDifficultyFlow("easy") } returns flowOf(ratings)
             coEvery { totalStars() } returns 6
         }
         adManager = mockk {
@@ -301,7 +304,7 @@ class LevelSelectViewModelTest {
 
     @Test
     fun `star ratings only loads for current difficulty`() = testWithVm("regular") { vm ->
-        coVerify { starRatingDao.getAllForDifficulty("regular") }
+        verify { starRatingDao.getAllForDifficultyFlow("regular") }
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -502,6 +505,7 @@ class LevelSelectViewModelTest {
         audioManager = mockk(relaxed = true)
         starRatingDao = mockk {
             coEvery { getAllForDifficulty(any()) } returns emptyList()
+            every { getAllForDifficultyFlow(any()) } returns flowOf(emptyList())
             coEvery { totalStars() } returns 0
             coEvery { totalStarsForDifficulty(any()) } returns 0
             coEvery { countPerfectLevels() } returns 0
