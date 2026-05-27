@@ -16,6 +16,7 @@ import com.djtaylor.wordjourney.data.repository.PlayerRepository
 import com.djtaylor.wordjourney.domain.model.PlayerProgress
 import com.djtaylor.wordjourney.domain.usecase.VipDailyRewardUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -63,8 +64,7 @@ class StoreViewModel @Inject constructor(
         // Pre-fetch a rewarded ad and update isAdReady when the load completes
         viewModelScope.launch {
             _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
-            adManager.loadRewardedAd()
-            val ready = adManager.isRewardedAdReady
+            val ready = waitForAdReady()
             _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
         }
         // Check billing product availability (non dev-mode only)
@@ -233,8 +233,7 @@ class StoreViewModel @Inject constructor(
         if (_uiState.value.isAdLoading) return
         viewModelScope.launch {
             _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
-            adManager.loadRewardedAd()
-            val ready = adManager.isRewardedAdReady
+            val ready = waitForAdReady()
             _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
         }
     }
@@ -256,8 +255,7 @@ class StoreViewModel @Inject constructor(
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
             }
             _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
-            adManager.loadRewardedAd()
-            val ready = adManager.isRewardedAdReady
+            val ready = waitForAdReady()
             _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
         }
     }
@@ -279,8 +277,7 @@ class StoreViewModel @Inject constructor(
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
             }
             _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
-            adManager.loadRewardedAd()
-            val ready = adManager.isRewardedAdReady
+            val ready = waitForAdReady()
             _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
         }
     }
@@ -327,10 +324,26 @@ class StoreViewModel @Inject constructor(
                 _uiState.update { it.copy(isWatchingAd = false, message = "Ad not completed.") }
             }
             _uiState.update { it.copy(isAdLoading = true, adLoadFailed = false) }
-            adManager.loadRewardedAd()
-            val ready = adManager.isRewardedAdReady
+            val ready = waitForAdReady()
             _uiState.update { it.copy(isAdReady = ready, isAdLoading = false, adLoadFailed = !ready) }
         }
+    }
+
+    // ── Ad Helper ─────────────────────────────────────────────────────────────
+
+    /**
+     * Triggers an ad load then polls [IAdManager.isRewardedAdReady] every 500 ms
+     * for up to [timeoutMs] ms. Returns true if an ad becomes available within
+     * the timeout, false otherwise.
+     */
+    private suspend fun waitForAdReady(timeoutMs: Long = 12_000L): Boolean {
+        adManager.loadRewardedAd()
+        var elapsed = 0L
+        while (elapsed < timeoutMs && !adManager.isRewardedAdReady) {
+            delay(500L)
+            elapsed += 500L
+        }
+        return adManager.isRewardedAdReady
     }
 
     // ── Currency Trading ──────────────────────────────────────────────────────

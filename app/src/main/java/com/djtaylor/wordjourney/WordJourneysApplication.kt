@@ -8,6 +8,7 @@ import com.djtaylor.wordjourney.audio.AudioSettings
 import com.djtaylor.wordjourney.audio.WordJourneysAudioManager
 import com.djtaylor.wordjourney.billing.ActivityProvider
 import com.djtaylor.wordjourney.billing.AdDebugHelper
+import com.djtaylor.wordjourney.billing.IAdManager
 import com.djtaylor.wordjourney.billing.RealAdManager
 import com.djtaylor.wordjourney.data.datastore.PlayerDataStore
 import com.djtaylor.wordjourney.notifications.NotificationChannels
@@ -31,6 +32,12 @@ class WordJourneysApplication : Application(), Configuration.Provider {
     /** Needed to eagerly apply saved audio settings before any Activity starts. */
     @Inject lateinit var playerDataStore: PlayerDataStore
     @Inject lateinit var audioManager: WordJourneysAudioManager
+
+    /**
+     * Injected eagerly so RealAdManager registers its IronSource listener
+     * before IronSource.init() is called below.
+     */
+    @Inject lateinit var adManager: IAdManager
 
     /**
      * WorkManager queries this before constructing any Worker, so the factory
@@ -78,6 +85,8 @@ class WordJourneysApplication : Application(), Configuration.Provider {
                     AdDebugHelper.printSdkStatus(this)
                     AdDebugHelper.printTestModeStatus()
                 }
+                // Pre-fetch the first rewarded ad now that the SDK is fully initialised.
+                IronSource.loadRewardedVideo()
             },
             IronSource.AD_UNIT.REWARDED_VIDEO
         )
