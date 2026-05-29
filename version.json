@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.45.0",
-    "versionCode":  80,
+    "versionName":  "2.46.0",
+    "versionCode":  81,
     "minSdk":  29,
     "targetSdk":  35,
     "compileSdk":  35,
-    "buildDate":  "2026-05-27",
+    "buildDate":  "2026-05-29",
     "releaseNotes":  "v2.45.0 - VIP levels 51-100 hardcoded (fixes level 52+ errors), rewarded ad initialization timing fixed (eager listener registration + post-init preload + async wait for ad ready)"
 }
