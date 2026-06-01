@@ -255,10 +255,6 @@ class GameViewModel @Inject constructor(
             if (isReplay && wordHasDefinition) {
                 defHint = definition
                 defUsed = true
-            } else if (!isReplay && playerProgress.lastLevelStars >= 2 && wordHasDefinition) {
-                // Grant free definition use as reward for 2+ stars on previous level
-                defHint = definition
-                grantedFreeDefinition = true
             }
         }
 
@@ -337,9 +333,6 @@ class GameViewModel @Inject constructor(
             if (isRestoredReplay && wordHasDefinition) {
                 defHint = definition
                 defUsed = true
-            } else if (!isRestoredReplay && playerProgress.lastLevelStars >= 2 && wordHasDefinition) {
-                defHint = definition
-                grantedFreeDefinition = true
             }
         }
 
@@ -1178,18 +1171,6 @@ class GameViewModel @Inject constructor(
 
     // ── Definition item ───────────────────────────────────────────────────────
     fun useDefinitionItem() {
-        // If a free definition was granted (2+ stars on previous level), use it for free
-        if (_uiState.value.grantedFreeDefinition && _uiState.value.definitionHint != null) {
-            audioManager.playSfx(SfxSound.BUTTON_CLICK)
-            _uiState.update { s ->
-                s.copy(
-                    showDefinitionDialog = true,
-                    grantedFreeDefinition = false,
-                    definitionUsedThisLevel = true
-                )
-            }
-            return
-        }
         // If definition already used/available this level, just re-show it
         if (_uiState.value.definitionUsedThisLevel && _uiState.value.definitionHint != null) {
             _uiState.update { it.copy(showDefinitionDialog = true) }

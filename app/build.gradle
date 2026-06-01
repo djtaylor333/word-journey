@@ -24,8 +24,8 @@ android {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 35
-        versionCode 81
-        versionName "2.46.0"
+        versionCode 82
+        versionName "2.47.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -175,8 +175,8 @@ dependencies {
     // Unity Ads mediation adapter (required for Unity Ads network to serve ads through LevelPlay)
     // Adapter changelog: https://github.com/ironsource-mobile/levelplay-android-adapters/blob/master/Adapters/UnityAds/CHANGELOG.md
     // Docs: https://docs.unity.com/en-us/grow/levelplay/sdk/android/networks/guides/unity-ads
-    implementation 'com.unity3d.ads-mediation:unityads-adapter:5.5.0'
-    implementation 'com.unity3d.ads:unity-ads:4.16.6'
+    implementation 'com.unity3d.ads-mediation:unityads-adapter:5.8.0'
+    implementation 'com.unity3d.ads:unity-ads:4.18.0'
 
 
     // ── Google Play Billing (stubbed) ────────────────────────────────────────

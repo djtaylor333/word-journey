@@ -71,8 +71,6 @@ class WordJourneysApplication : Application(), Configuration.Provider {
         if (BuildConfig.DEBUG) {
             IronSource.setMetaData("is_test_suite", "enable")
         }
-        // Pass Unity Game ID to the Unity Ads mediation adapter
-        IronSource.setMetaData("unityads_game_id", RealAdManager.UNITY_GAME_ID)
         // Initialize IronSource LevelPlay SDK.
         // Docs: https://developers.is.com/ironsource-mobile/android/android-sdk/
         IronSource.init(

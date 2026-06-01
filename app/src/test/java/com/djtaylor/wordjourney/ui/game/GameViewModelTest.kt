@@ -2995,8 +2995,8 @@ class GameViewModelTest {
     }
 
     @Test
-    fun `restoreFromSave grants free definition for non-replay with 2+ previous stars`() = runTest {
-        // lastLevelStars=3 triggers the free definition grant
+    fun `restoreFromSave does not grant free definition for non-replay even with 2+ previous stars`() = runTest {
+        // Definition items are always deducted on standard levels; no free grant on 2+ stars
         val progress = PlayerProgress(easyLevel = 1, lastLevelStars = 3)
         val saved = SavedGameState(
             difficultyKey = "easy",
@@ -3014,8 +3014,8 @@ class GameViewModelTest {
         )
         awaitInit(vm)
         val state = vm.uiState.first()
-        assertTrue("Should grant free definition preview for 2+ stars", state.grantedFreeDefinition)
-        assertEquals("Having the ability to do something", state.definitionHint)
+        assertFalse("Should NOT grant free definition — items deduct on every standard level", state.grantedFreeDefinition)
+        assertNull("Definition hint should not be pre-loaded for non-replay", state.definitionHint)
     }
 
     // ═════════════════════════════════════════════════════════════════════════
