@@ -301,6 +301,44 @@ fun GameScreen(
         )
     }
 
+    if (uiState.showDailyStarOfferDialog) {
+        AlertDialog(
+            onDismissRequest = { /* non-dismissable */ },
+            title = { Text("⭐ Game Over", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text(
+                        "You've used all your guesses!",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Use 3 stars for an extra guess",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Primary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "You have ${uiState.dailyAvailableStars} ⭐ available. Spending 3 stars will give you one additional guess and keep your streak alive.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = { viewModel.useStarsForExtraGuess() }) {
+                    Text("Use 3 ⭐")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.declineDailyStarOffer() }) {
+                    Text("Give Up")
+                }
+            }
+        )
+    }
+
     if (uiState.showDailyLossDialog) {
         AlertDialog(
             onDismissRequest = { /* non-dismissable */ },

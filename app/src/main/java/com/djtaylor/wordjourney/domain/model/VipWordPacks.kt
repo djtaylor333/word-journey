@@ -1,7 +1,7 @@
 package com.djtaylor.wordjourney.domain.model
 
 /**
- * Hardcoded word pack for VIP levels 1–100 (20 full cycles).
+ * Hardcoded word pack for VIP levels 1–105 (21 cycles).
  *
  * Each entry provides a verified word with definition that exactly matches the
  * expected word length for that VIP level. Word lengths cycle as:
@@ -11,7 +11,7 @@ package com.djtaylor.wordjourney.domain.model
  *   (level - 1) % 5 == 3  →  6 letters  (levels 4, 9, 14, 19, …)
  *   (level - 1) % 5 == 4  →  7 letters  (levels 5, 10, 15, 20, …)
  *
- * VIP levels beyond 100 fall back to the regular WordRepository database query.
+ * VIP levels beyond 105 fall back to the regular WordRepository database query.
  */
 object VipWordPacks {
 
@@ -146,6 +146,12 @@ object VipWordPacks {
         97 to VipWord("BARK",    "The tough outer covering of a tree; a sharp sound made by a dog"),
         98 to VipWord("CLIFF",   "A steep rock face at the edge of the sea or a drop"),
         99 to VipWord("MIRROR",  "A surface that reflects a clear image; to imitate something"),
-       100 to VipWord("DOLPHIN", "A marine mammal known for its intelligence and friendly behaviour")
+       100 to VipWord("DOLPHIN", "A marine mammal known for its intelligence and friendly behaviour"),
+        // ── Cycle 21 (levels 101–105) ──────────────────────────────────────────
+       101 to VipWord("ELM",     "A large deciduous tree with broad canopy and serrated leaves"),
+       102 to VipWord("GUST",    "A sudden strong rush of wind"),
+       103 to VipWord("STOVE",   "A heated appliance used for cooking or warming a room"),
+       104 to VipWord("PEPPER",  "A hot spice from dried berries; also a mild hollow vegetable"),
+       105 to VipWord("CLIMATE", "The long-term pattern of weather conditions in a particular region")
     )
 }

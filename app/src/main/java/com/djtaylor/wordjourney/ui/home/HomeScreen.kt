@@ -899,7 +899,7 @@ private fun DifficultyCard(
         Difficulty.EASY    -> "${difficulty.wordLength}-letter words • ${difficulty.maxGuesses} guesses\nEvery ${difficulty.levelBonusThreshold} levels = +1 life"
         Difficulty.REGULAR -> "${difficulty.wordLength}-letter words • ${difficulty.maxGuesses} guesses\nEvery ${difficulty.levelBonusThreshold} levels = +1 life"
         Difficulty.HARD    -> "${difficulty.wordLength}-letter words • ${difficulty.maxGuesses} guesses\nEvery ${difficulty.levelBonusThreshold} levels = +1 life"
-        Difficulty.VIP     -> "3-7 letter words • ${difficulty.maxGuesses} guesses\nx2 rewards • 100 levels"
+        Difficulty.VIP     -> "3-7 letter words • ${difficulty.maxGuesses} guesses\nx2 rewards • 100s of levels"
     }
 
     Surface(
@@ -1012,7 +1012,7 @@ private fun VipPackCard(
                             fontSize = 16.sp
                         )
                         Text(
-                            "100 levels • 3-7 letter words",
+                            "100s of levels • 3-7 letters",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isVip) 0.7f else 0.4f),
                             fontSize = 12.sp

@@ -22,6 +22,9 @@ data class GameUiState(
     val showNoLivesDialog: Boolean = false,
     val showDailyLossDialog: Boolean = false,
     val dailyLossWord: String = "",
+    // Offer to spend 3 stars for an extra guess when daily challenge is lost and stars >= 3
+    val showDailyStarOfferDialog: Boolean = false,
+    val dailyAvailableStars: Int = 0,
 
     // Win screen data
     val winCoinEarned: Long = 0L,

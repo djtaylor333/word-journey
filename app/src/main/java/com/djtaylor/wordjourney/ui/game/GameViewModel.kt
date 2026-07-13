@@ -24,6 +24,7 @@ import com.djtaylor.wordjourney.domain.model.seasonalMilestoneFor
 import com.djtaylor.wordjourney.domain.model.withSeasonalMilestone
 import com.djtaylor.wordjourney.domain.usecase.EvaluateGuessUseCase
 import com.djtaylor.wordjourney.domain.usecase.LifeRegenUseCase
+import com.djtaylor.wordjourney.domain.model.availableStars
 import com.djtaylor.wordjourney.engine.GameEngine
 import com.djtaylor.wordjourney.engine.SubmitResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -752,35 +753,17 @@ class GameViewModel @Inject constructor(
         val e = engine ?: return
 
         if (isDailyChallenge) {
-            // Daily challenge: no second chances — save loss
-            viewModelScope.launch {
-                dailyChallengeRepository.saveResult(
-                    wordLength = difficulty.wordLength,
-                    word = _targetWordCache,
-                    guessCount = e.guesses.size,
-                    won = false,
-                    stars = 0
-                )
-                // Reset daily challenge streak — also reset per-length streak
-                val wordLen = difficulty.wordLength
-                val p = playerProgress.copy(
-                    dailyChallengeStreak = 0,
-                    dailyStreak4 = if (wordLen == 4) 0 else playerProgress.dailyStreak4,
-                    dailyStreak5 = if (wordLen == 5) 0 else playerProgress.dailyStreak5,
-                    dailyStreak6 = if (wordLen == 6) 0 else playerProgress.dailyStreak6,
-                    totalGuesses = playerProgress.totalGuesses + e.guesses.size,
-                    totalDailyChallengesPlayed = playerProgress.totalDailyChallengesPlayed + 1
-                )
-                playerProgress = p
-                playerRepository.saveProgress(p)
-                playerRepository.clearInProgressGame(difficultyKey)
+            // If the player has 3+ available stars, offer to trade them for an extra guess
+            if (playerProgress.availableStars() >= 3) {
+                _uiState.update { it.copy(
+                    status = GameStatus.WAITING_FOR_LIFE,
+                    showDailyStarOfferDialog = true,
+                    dailyAvailableStars = playerProgress.availableStars()
+                )}
+            } else {
+                // Not enough stars — commit the loss immediately
+                commitDailyLoss()
             }
-            _uiState.update { it.copy(
-                status = GameStatus.LOST,
-                showDailyLossDialog = true,
-                dailyLossWord = _targetWordCache,
-                winDefinition = dailyChallengeRepository.getDefinitionForDailyWord(_targetWordCache) ?: ""
-            )}
         } else {
             val progress = playerProgress
             if (progress.lives > 0) {
@@ -796,6 +779,68 @@ class GameViewModel @Inject constructor(
                 )}
             }
         }
+    }
+
+    /**
+     * Saves the daily challenge loss result, resets streaks, and shows the loss dialog.
+     * Called either immediately (no stars) or after the player declines the star offer.
+     */
+    private fun commitDailyLoss() {
+        val e = engine ?: return
+        viewModelScope.launch {
+            dailyChallengeRepository.saveResult(
+                wordLength = difficulty.wordLength,
+                word = _targetWordCache,
+                guessCount = e.guesses.size,
+                won = false,
+                stars = 0
+            )
+            val wordLen = difficulty.wordLength
+            val p = playerProgress.copy(
+                dailyChallengeStreak = 0,
+                dailyStreak4 = if (wordLen == 4) 0 else playerProgress.dailyStreak4,
+                dailyStreak5 = if (wordLen == 5) 0 else playerProgress.dailyStreak5,
+                dailyStreak6 = if (wordLen == 6) 0 else playerProgress.dailyStreak6,
+                totalGuesses = playerProgress.totalGuesses + e.guesses.size,
+                totalDailyChallengesPlayed = playerProgress.totalDailyChallengesPlayed + 1
+            )
+            playerProgress = p
+            playerRepository.saveProgress(p)
+            playerRepository.clearInProgressGame(difficultyKey)
+            val definition = dailyChallengeRepository.getDefinitionForDailyWord(_targetWordCache) ?: ""
+            _uiState.update { it.copy(
+                status = GameStatus.LOST,
+                showDailyLossDialog = true,
+                showDailyStarOfferDialog = false,
+                dailyLossWord = _targetWordCache,
+                winDefinition = definition
+            )}
+        }
+    }
+
+    /** Player chose to spend 3 stars for one extra guess on a daily challenge. */
+    fun useStarsForExtraGuess() {
+        if (!isDailyChallenge) return
+        val progress = playerProgress
+        if (progress.availableStars() < 3) return
+        val updated = progress.copy(starsSpentOnChests = progress.starsSpentOnChests + 3)
+        playerProgress = updated
+        viewModelScope.launch { playerRepository.saveProgress(updated) }
+
+        val e = engine ?: return
+        e.addBonusGuesses(1)
+        syncEngineToUiState()
+        _uiState.update { s -> s.copy(
+            showDailyStarOfferDialog = false,
+            dailyAvailableStars = updated.availableStars()
+        )}
+        persistCurrentState()
+    }
+
+    /** Player declined the star offer — commit the loss as normal. */
+    fun declineDailyStarOffer() {
+        _uiState.update { it.copy(showDailyStarOfferDialog = false) }
+        commitDailyLoss()
     }
 
     // ── Life interactions ─────────────────────────────────────────────────────
