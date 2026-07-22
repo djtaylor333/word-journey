@@ -16,16 +16,16 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace 'com.djtaylor.wordjourney'
-    compileSdk 35
+    compileSdk 36
     // Artifact naming — APK/AAB files will be named word-journey-vX.X.X-release.*
     archivesBaseName = 'word-journey'
 
     defaultConfig {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
-        targetSdk 35
-        versionCode 84
-        versionName "2.50.1"
+        targetSdk 36
+        versionCode 85
+        versionName "2.51.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -179,8 +179,8 @@ dependencies {
     implementation 'com.unity3d.ads:unity-ads:4.18.0'
 
 
-    // ── Google Play Billing (stubbed) ────────────────────────────────────────
-    implementation 'com.android.billingclient:billing-ktx:7.1.1'
+    // ── Google Play Billing (v8) ──────────────────────────────────────────────
+    implementation 'com.android.billingclient:billing-ktx:8.0.0'
 
     // ── Google Play In-App Review ─────────────────────────────────────────
     implementation 'com.google.android.play:review:2.0.2'

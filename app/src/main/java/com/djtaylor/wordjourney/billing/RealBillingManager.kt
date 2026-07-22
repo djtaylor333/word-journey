@@ -16,7 +16,7 @@ import kotlin.coroutines.resume
 private const val TAG = "RealBillingManager"
 
 /**
- * Production implementation of [IBillingManager] backed by Google Play Billing Library v7.
+ * Production implementation of [IBillingManager] backed by Google Play Billing Library v8.
  *
  * ## How it works
  * 1. On first call to [purchase], a [BillingClient] connection is established.

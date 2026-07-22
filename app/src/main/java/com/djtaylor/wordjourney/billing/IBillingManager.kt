@@ -2,7 +2,7 @@ package com.djtaylor.wordjourney.billing
 
 /**
  * Product IDs as configured in Google Play Console.
- * Backed by [RealBillingManager] (Google Play Billing Library v7).
+ * Backed by [RealBillingManager] (Google Play Billing Library v8).
  */
 object ProductIds {
     const val COINS_500    = "coin_pack_500"   // Play Console product ID: coin_pack_500

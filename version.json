@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.50.1",
-    "versionCode":  84,
+    "versionName":  "2.51.0",
+    "versionCode":  85,
     "minSdk":  29,
-    "targetSdk":  35,
-    "compileSdk":  35,
-    "buildDate":  "2026-07-13",
-    "releaseNotes":  "v2.50.1 - VIP levels 101-105 fix, daily challenge star-for-guess, VIP label update"
+    "targetSdk":  36,
+    "compileSdk":  36,
+    "buildDate":  "2026-07-22",
+    "releaseNotes":  "v2.51.0 - Target Android 16 (API 36), Google Play Billing Library upgraded to v8.0.0"
 }
