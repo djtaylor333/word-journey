@@ -24,8 +24,8 @@ android {
         applicationId "com.djtaylor.wordjourney"
         minSdk 29
         targetSdk 36
-        versionCode 86
-        versionName "2.51.1"
+        versionCode 87
+        versionName "2.51.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
