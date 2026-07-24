@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.51.0",
-    "versionCode":  85,
+    "versionName":  "2.51.1",
+    "versionCode":  86,
     "minSdk":  29,
     "targetSdk":  36,
     "compileSdk":  36,
-    "buildDate":  "2026-07-22",
-    "releaseNotes":  "v2.51.0 - Target Android 16 (API 36), Google Play Billing Library upgraded to v8.0.0"
+    "buildDate":  "2026-07-24",
+    "releaseNotes": "v2.51.1 - 500 VIP levels (all hardcoded, all validated)"
 }
