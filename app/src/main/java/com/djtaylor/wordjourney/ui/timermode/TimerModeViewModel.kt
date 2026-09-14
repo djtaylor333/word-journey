@@ -36,11 +36,12 @@ enum class TimerDifficulty(
     val emoji: String,
     val wordLength: Int,
     val startTimeSecs: Int,
+    val entryCostLives: Int,
     val engineDifficulty: Difficulty
 ) {
-    EASY("Easy",    "🟢", 4, 180, Difficulty.EASY),
-    REGULAR("Regular", "🟡", 5, 240, Difficulty.REGULAR),
-    HARD("Hard",    "🔴", 6, 300, Difficulty.HARD)
+    EASY("Easy",    "🟢", 4, 180, 5, Difficulty.EASY),
+    REGULAR("Regular", "🟡", 5, 240, 3, Difficulty.REGULAR),
+    HARD("Hard",    "🔴", 6, 300, 1, Difficulty.HARD)
 }
 
 enum class TimerPhase { SETUP, COUNTDOWN, PLAYING, RECAP }
@@ -82,6 +83,7 @@ data class TimerModeUiState(
     val removeLetterItems: Int = 0,
     val definitionItems: Int = 0,
     val showLetterItems: Int = 0,
+    val currentLives: Int = 0,
     val isVip: Boolean = false
 ) {
     val remainingGuesses: Int get() = maxGuesses - guesses.size
@@ -121,6 +123,7 @@ class TimerModeViewModel @Inject constructor(
                         removeLetterItems = progress.removeLetterItems,
                         definitionItems  = progress.definitionItems,
                         showLetterItems  = progress.showLetterItems,
+                        currentLives     = progress.lives,
                         isVip            = progress.isVip
                     )
                 }
@@ -141,7 +144,26 @@ class TimerModeViewModel @Inject constructor(
     /** Called when the player taps "Begin" in the rules dialog. */
     fun beginSession() {
         val diff = _uiState.value.selectedDifficulty ?: return
-        _uiState.update { it.copy(showRulesDialog = false) }
+        val entryCost = diff.entryCostLives
+        val current = playerProgress
+
+        if (current.lives < entryCost) {
+            _uiState.update {
+                it.copy(snackbarMessage = "Need $entryCost lives to start ${diff.label} mode")
+            }
+            return
+        }
+
+        val updated = current.copy(lives = current.lives - entryCost)
+        playerProgress = updated
+        _uiState.update {
+            it.copy(
+                showRulesDialog = false,
+                snackbarMessage = null,
+                currentLives = updated.lives
+            )
+        }
+        viewModelScope.launch { playerRepository.saveProgress(updated) }
         startCountdown(diff)
     }
 

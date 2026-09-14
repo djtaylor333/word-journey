@@ -367,8 +367,8 @@ class WordRepositoryTest {
     @Test
     fun `3-letter word definition matches word across shuffled order`() = runTest {
         val repo = createRepoWith3And7()
-        // Use levels beyond VipWordPacks (101+) to test database fallback for 3-letter words
-        for (level in listOf(101, 106, 111)) {
+        // Use levels beyond VipWordPacks (501+) to test database fallback for 3-letter words
+        for (level in listOf(501, 506, 511)) {
             val wl = Difficulty.vipWordLengthForLevel(level)
             assertEquals("Level $level should be 3-letter", 3, wl)
             val word = repo.getWordForLevel(Difficulty.VIP, level, wordLengthOverride = wl)
@@ -383,8 +383,8 @@ class WordRepositoryTest {
     @Test
     fun `7-letter word definition matches word across shuffled order`() = runTest {
         val repo = createRepoWith3And7()
-        // Use levels beyond VipWordPacks (101+) to test database fallback for 7-letter words
-        for (level in listOf(105, 110, 115)) {
+        // Use levels beyond VipWordPacks (501+) to test database fallback for 7-letter words
+        for (level in listOf(505, 510, 515)) {
             val wl = Difficulty.vipWordLengthForLevel(level)
             assertEquals("Level $level should be 7-letter", 7, wl)
             val word = repo.getWordForLevel(Difficulty.VIP, level, wordLengthOverride = wl)
@@ -525,8 +525,8 @@ class WordRepositoryTest {
     fun `VIP pool for 3-letter words uses full list (no split)`() = runTest {
         val repo = createRepoWith3And7()
         // Lengths 3 and 7 have no partition — VIP gets the full list.
-        // Use levels 101-105 (beyond VipWordPacks) to test the database fallback path.
-        val vipWords = (101..105).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 3) }.filterNotNull()
+        // Use levels 501-505 (beyond VipWordPacks) to test the database fallback path.
+        val vipWords = (501..505).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 3) }.filterNotNull()
         val allWords = sampleWords3.map { it.word }
         assertTrue("VIP 3-letter pool should draw from full sampleWords3", allWords.containsAll(vipWords))
         assertEquals("All 5 unique 3-letter words should be seen", 5, vipWords.toSet().size)
@@ -535,8 +535,8 @@ class WordRepositoryTest {
     @Test
     fun `VIP pool for 7-letter words uses full list (no split)`() = runTest {
         val repo = createRepoWith3And7()
-        // Use levels 101-105 (beyond VipWordPacks) to test the database fallback path.
-        val vipWords = (101..105).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 7) }.filterNotNull()
+        // Use levels 505-509 (beyond VipWordPacks) to test the database fallback path.
+        val vipWords = (505..509).map { repo.getWordForLevel(Difficulty.VIP, it, wordLengthOverride = 7) }.filterNotNull()
         val allWords = sampleWords7.map { it.word }
         assertTrue("VIP 7-letter pool should draw from full sampleWords7", allWords.containsAll(vipWords))
         assertEquals("All 5 unique 7-letter words should be seen", 5, vipWords.toSet().size)
@@ -593,16 +593,16 @@ class WordRepositoryTest {
     }
 
     @Test
-    fun `VIP level 101 falls back to database for word and definition`() = runTest {
+    fun `VIP level 501 falls back to database for word and definition`() = runTest {
         val repo = createRepoWith3And7()
-        // Level 101 is beyond the pack — should come from the database (sampleWords3 for 3-letter)
-        val wl = Difficulty.vipWordLengthForLevel(101) // 3  ((101-1)%5==0)
-        val word = repo.getWordForLevel(Difficulty.VIP, 101, wordLengthOverride = wl)
-        val definition = repo.getDefinition(Difficulty.VIP, 101, wordLengthOverride = wl)
+        // Level 501 is beyond the pack — should come from the database (sampleWords3 for 3-letter)
+        val wl = Difficulty.vipWordLengthForLevel(501) // 3  ((501-1)%5==0)
+        val word = repo.getWordForLevel(Difficulty.VIP, 501, wordLengthOverride = wl)
+        val definition = repo.getDefinition(Difficulty.VIP, 501, wordLengthOverride = wl)
         // Must come from sampleWords3, not VipWordPacks
-        assertFalse("Level 101 must NOT be served by VipWordPacks", VipWordPacks.hasLevel(101))
+        assertFalse("Level 501 must NOT be served by VipWordPacks", VipWordPacks.hasLevel(501))
         assertNotNull(word)
-        assertTrue("Level 101 fallback word must be in sampleWords3", word!! in sampleWords3.map { it.word })
+        assertTrue("Level 501 fallback word must be in sampleWords3", word!! in sampleWords3.map { it.word })
         val entity = sampleWords3.first { it.word == word }
         assertEquals(entity.definition, definition)
     }

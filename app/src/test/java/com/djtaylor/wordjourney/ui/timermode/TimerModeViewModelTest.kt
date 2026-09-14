@@ -379,6 +379,71 @@ class TimerModeViewModelTest {
     }
 
     @Test
+    fun `beginSession on EASY spends 5 lives`() = runTest {
+        val vm = createViewModel(PlayerProgress(lives = 10))
+        awaitInit(vm)
+        vm.selectDifficulty(TimerDifficulty.EASY)
+        awaitInit(vm)
+
+        vm.beginSession()
+        testDispatcher.scheduler.runCurrent()
+
+        val state = vm.uiState.first()
+        assertEquals(TimerPhase.COUNTDOWN, state.phase)
+        assertEquals(5, state.currentLives)
+        coVerify { playerRepository.saveProgress(match { it.lives == 5 }) }
+    }
+
+    @Test
+    fun `beginSession on REGULAR spends 3 lives`() = runTest {
+        val vm = createViewModel(PlayerProgress(lives = 10))
+        awaitInit(vm)
+        vm.selectDifficulty(TimerDifficulty.REGULAR)
+        awaitInit(vm)
+
+        vm.beginSession()
+        testDispatcher.scheduler.runCurrent()
+
+        val state = vm.uiState.first()
+        assertEquals(TimerPhase.COUNTDOWN, state.phase)
+        assertEquals(7, state.currentLives)
+        coVerify { playerRepository.saveProgress(match { it.lives == 7 }) }
+    }
+
+    @Test
+    fun `beginSession on HARD spends 1 life`() = runTest {
+        val vm = createViewModel(PlayerProgress(lives = 10))
+        awaitInit(vm)
+        vm.selectDifficulty(TimerDifficulty.HARD)
+        awaitInit(vm)
+
+        vm.beginSession()
+        testDispatcher.scheduler.runCurrent()
+
+        val state = vm.uiState.first()
+        assertEquals(TimerPhase.COUNTDOWN, state.phase)
+        assertEquals(9, state.currentLives)
+        coVerify { playerRepository.saveProgress(match { it.lives == 9 }) }
+    }
+
+    @Test
+    fun `beginSession blocks when lives are below entry cost`() = runTest {
+        val vm = createViewModel(PlayerProgress(lives = 4))
+        awaitInit(vm)
+        vm.selectDifficulty(TimerDifficulty.EASY)
+        awaitInit(vm)
+
+        vm.beginSession()
+        testDispatcher.scheduler.runCurrent()
+
+        val state = vm.uiState.first()
+        assertEquals(TimerPhase.SETUP, state.phase)
+        assertTrue(state.showRulesDialog)
+        assertEquals("Need 5 lives to start Easy mode", state.snackbarMessage)
+        coVerify(exactly = 0) { playerRepository.saveProgress(any()) }
+    }
+
+    @Test
     fun `after countdown PLAYING phase begins with correct word length for EASY`() = runTest {
         val vm = createViewModel()
         awaitInit(vm)

@@ -109,8 +109,14 @@ private fun SetupContent(
     onDismissRules: () -> Unit,
     onBegin: () -> Unit
 ) {
+    val snackbarHost = remember { SnackbarHostState() }
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let { snackbarHost.showSnackbar(it) }
+    }
+
     Scaffold(
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             TopAppBar(
                 title = { Text("⏱️ Timer Mode", fontWeight = FontWeight.Bold) },
@@ -156,13 +162,12 @@ private fun SetupContent(
                     Text("How it works", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.height(6.dp))
                     listOf(
-                        "🟢 Easy — 4-letter words · 3 min",
-                        "🟡 Regular — 5-letter words · 4 min",
-                        "🔴 Hard — 6-letter words · 5 min",
+                        "🟢 Easy — 4-letter words · 3 min · costs 5 hearts",
+                        "🟡 Regular — 5-letter words · 4 min · costs 3 hearts",
+                        "🔴 Hard — 6-letter words · 5 min · costs 1 heart",
                         "⏱️ +30s per correct word (+15s if definition used)",
                         "❤️ Regular: +1 life per 5 words · VIP: +2 lives per 5 words",
-                        "✅ Define Word item is free (halves time bonus)",
-                        "🚫 No hearts needed to play"
+                        "✅ Define Word item is free (halves time bonus)"
                     ).forEach { line ->
                         Text(
                             line,
@@ -210,7 +215,7 @@ private fun DifficultySelectionCard(diff: TimerDifficulty, onClick: () -> Unit) 
                 Column {
                     Text(diff.label, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = colors)
                     Text(
-                        "${diff.wordLength}-letter words · ${diff.startTimeSecs / 60} min start",
+                        "${diff.wordLength}-letter words · ${diff.startTimeSecs / 60} min start · ${diff.entryCostLives} ${if (diff.entryCostLives == 1) "heart" else "hearts"}",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
                     )
@@ -249,6 +254,7 @@ private fun RulesDialog(diff: TimerDifficulty, onDismiss: () -> Unit, onBegin: (
                 listOf(
                     "• Guess as many ${diff.wordLength}-letter words as you can",
                     "• Starting time: ${diff.startTimeSecs / 60} minutes",
+                    "• Entry cost: ${diff.entryCostLives} ${if (diff.entryCostLives == 1) "heart" else "hearts"}",
                     "• Correct guess = +30 seconds",
                     "• Used \"Define Word\" on that word? Only +15 seconds",
                     "• Standard Wordle rules — 6 attempts per word",
@@ -261,9 +267,7 @@ private fun RulesDialog(diff: TimerDifficulty, onDismiss: () -> Unit, onBegin: (
                     "🎒 Items:",
                     "  • Define Word — FREE, but halves time bonus (+15s)",
                     "  • Other items cost from inventory",
-                    "  • No coin spending in Timer Mode",
-                    "",
-                    "🚫 No hearts needed to play"
+                    "  • No coin spending in Timer Mode"
                 ).forEach { line ->
                     if (line.isEmpty()) Spacer(Modifier.height(2.dp))
                     else Text(line, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f))

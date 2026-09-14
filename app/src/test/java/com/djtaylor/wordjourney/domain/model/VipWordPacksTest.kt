@@ -4,7 +4,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 /**
- * Tests for VipWordPacks — verifies the integrity of all 100 hardcoded VIP levels:
+ * Tests for VipWordPacks — verifies the integrity of all 500 hardcoded VIP levels:
  * pack coverage, word lengths, non-empty definitions, and spot-checks for
  * the historically broken levels 7, 8, and 9.
  */
@@ -15,30 +15,30 @@ class VipWordPacksTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `all levels 1 to 100 are covered`() {
-        for (level in 1..100) {
+    fun `all levels 1 to 500 are covered`() {
+        for (level in 1..500) {
             assertTrue("Level $level should be in VipWordPacks", VipWordPacks.hasLevel(level))
         }
     }
 
     @Test
-    fun `levels beyond 100 are not covered`() {
-        for (level in listOf(101, 102, 200, 500)) {
+    fun `levels beyond 500 are not covered`() {
+        for (level in listOf(501, 502, 700, 1000)) {
             assertFalse("Level $level should NOT be in VipWordPacks", VipWordPacks.hasLevel(level))
         }
     }
 
     @Test
-    fun `getWord returns null for level 0 and levels beyond 100`() {
+    fun `getWord returns null for level 0 and levels beyond 500`() {
         assertNull(VipWordPacks.getWord(0))
-        assertNull(VipWordPacks.getWord(101))
-        assertNull(VipWordPacks.getWord(200))
+        assertNull(VipWordPacks.getWord(501))
+        assertNull(VipWordPacks.getWord(700))
     }
 
     @Test
-    fun `getDefinition returns null for levels beyond 100`() {
-        assertNull(VipWordPacks.getDefinition(101))
-        assertNull(VipWordPacks.getDefinition(200))
+    fun `getDefinition returns null for levels beyond 500`() {
+        assertNull(VipWordPacks.getDefinition(501))
+        assertNull(VipWordPacks.getDefinition(700))
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -48,8 +48,8 @@ class VipWordPacksTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `all 100 VipWordPacks words have the correct length for their level`() {
-        for (level in 1..100) {
+    fun `all 500 VipWordPacks words have the correct length for their level`() {
+        for (level in 1..500) {
             val expectedLength = Difficulty.vipWordLengthForLevel(level)
             val word = VipWordPacks.getWord(level)
             assertNotNull("Level $level word must not be null", word)
@@ -106,8 +106,8 @@ class VipWordPacksTest {
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test
-    fun `all 100 words are uppercase and non-blank`() {
-        for (level in 1..100) {
+    fun `all 500 words are uppercase and non-blank`() {
+        for (level in 1..500) {
             val word = VipWordPacks.getWord(level)!!
             assertTrue("Level $level word must be non-blank", word.isNotBlank())
             assertEquals("Level $level word '$word' must be UPPERCASE", word.uppercase(), word)
@@ -115,16 +115,16 @@ class VipWordPacksTest {
     }
 
     @Test
-    fun `all 100 words contain only letters`() {
-        for (level in 1..100) {
+    fun `all 500 words contain only letters`() {
+        for (level in 1..500) {
             val word = VipWordPacks.getWord(level)!!
             assertTrue("Level $level word '$word' must contain only letters", word.all { it.isLetter() })
         }
     }
 
     @Test
-    fun `all 100 definitions are non-blank`() {
-        for (level in 1..100) {
+    fun `all 500 definitions are non-blank`() {
+        for (level in 1..500) {
             val definition = VipWordPacks.getDefinition(level)
             assertNotNull("Level $level definition must not be null", definition)
             assertTrue("Level $level definition must be non-blank", definition!!.isNotBlank())
@@ -133,8 +133,8 @@ class VipWordPacksTest {
 
     @Test
     fun `no duplicate words within the pack`() {
-        val words = (1..100).map { VipWordPacks.getWord(it)!! }
-        assertEquals("All 100 VipWordPacks words must be unique", 100, words.toSet().size)
+        val words = (1..500).map { VipWordPacks.getWord(it)!! }
+        assertEquals("All 500 VipWordPacks words must be unique", 500, words.toSet().size)
     }
 
     // ══════════════════════════════════════════════════════════════════════════

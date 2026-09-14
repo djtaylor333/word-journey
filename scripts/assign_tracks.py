@@ -11,8 +11,8 @@ creds = service_account.Credentials.from_service_account_file(
 )
 svc = build('androidpublisher', 'v3', credentials=creds, cache_discovery=False)
 pkg = 'com.djtaylor.wordjourney'
-vc = '87'
-release_notes = 'v2.51.1 - 500 hardcoded VIP levels (levels 106-500 added, all validated)'
+vc = '88'
+release_notes = 'v2.52.1 - Timer Mode entry costs by difficulty (Easy 5 hearts, Regular 3 hearts, Hard 1 heart)'
 
 for track_name in ['alpha', 'beta', 'production']:
     edit = svc.edits().insert(packageName=pkg, body={}).execute()
