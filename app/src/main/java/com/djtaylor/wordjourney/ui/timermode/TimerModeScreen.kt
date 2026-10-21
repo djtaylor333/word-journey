@@ -207,25 +207,46 @@ private fun DifficultySelectionCard(diff: TimerDifficulty, onClick: () -> Unit) 
             modifier = Modifier
                 .background(Brush.horizontalGradient(listOf(colors.copy(alpha = 0.1f), Color.Transparent)))
                 .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(diff.emoji, fontSize = 36.sp)
-                Column {
-                    Text(diff.label, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = colors)
-                    Text(
-                        "${diff.wordLength}-letter words · ${diff.startTimeSecs / 60} min start · ${diff.entryCostLives} ${if (diff.entryCostLives == 1) "heart" else "hearts"}",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                    )
+            Box(modifier = Modifier.fillMaxWidth(0.75f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(diff.emoji, fontSize = 36.sp)
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            diff.label,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = colors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            "${diff.wordLength}-letter words · ${diff.startTimeSecs / 60} min start · ${diff.entryCostLives} ${if (diff.entryCostLives == 1) "heart" else "hearts"}",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
-            Surface(shape = RoundedCornerShape(10.dp), color = colors.copy(alpha = 0.2f)) {
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = colors.copy(alpha = 0.2f),
+                modifier = Modifier.defaultMinSize(minWidth = 64.dp)
+            ) {
                 Text(
                     "Play",
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    color = colors, fontWeight = FontWeight.Bold
+                    color = colors,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
             }
         }

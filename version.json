@@ -1,9 +1,9 @@
 {
-    "versionName":  "2.52.1",
-    "versionCode":  88,
+    "versionName":  "2.52.2",
+    "versionCode":  89,
     "minSdk":  29,
     "targetSdk":  36,
     "compileSdk":  36,
-    "buildDate":  "2026-09-14",
-    "releaseNotes": "v2.52.1 - Timer Mode entry costs by difficulty (Easy 5, Regular 3, Hard 1)"
+    "buildDate":  "2026-10-21",
+    "releaseNotes": "v2.52.2 - Timer Mode difficulty cards now keep the Play button aligned on lower-resolution devices"
 }

@@ -11,8 +11,8 @@ creds = service_account.Credentials.from_service_account_file(
 )
 svc = build('androidpublisher', 'v3', credentials=creds, cache_discovery=False)
 pkg = 'com.djtaylor.wordjourney'
-vc = '88'
-release_notes = 'v2.52.1 - Timer Mode entry costs by difficulty (Easy 5 hearts, Regular 3 hearts, Hard 1 heart)'
+vc = '89'
+release_notes = 'v2.52.2 - Timer Mode difficulty cards now keep the Play button aligned on lower-resolution devices'
 
 for track_name in ['alpha', 'beta', 'production']:
     edit = svc.edits().insert(packageName=pkg, body={}).execute()
